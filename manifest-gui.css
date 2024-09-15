@@ -10,7 +10,9 @@ header #uos-logo path{fill:#fff}
 #manifest-gui{user-select:none;background-image: linear-gradient(0deg,#101010,#202020);margin-top:16px;border-radius:4px;margin:0 auto;box-shadow:0 24px 48px #000000;overflow:hidden;opacity:.75;transition:.25s opacity cubic-bezier(0,1,1,1);opacity:0}
 #manifest-gui.rendered{opacity:0.75}
 #manifest-gui:hover{opacity:1}
-.table-data-header{text-align:right;color:grey;text-transform:capitalize;text-rendering:geometricPrecision;padding-left:8px}
+.table-data-header{text-align:right;color:grey;text-transform:capitalize;text-rendering:geometricPrecision;/* padding-left:8px; */}
+/* #manifest-gui .table-data-header>div{opacity:0;width:0;transition:1s width ease;overflow: hidden;} */
+/* #manifest-gui:hover .table-data-header>div{opacity:1;width:100px} */
 .table-data-header>div{padding:8px 16px}
 .table-data-value{user-select:text}
 .table-data-value>div{padding:8px 16px;border-bottom-left-radius:4px;border-left:1px solid #303030;border-bottom:1px solid #303030;/* font-weight: bold; */}
