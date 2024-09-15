@@ -1,15 +1,23 @@
 body{
     margin: 0;
     background-color: #202020;
+
+    background-image: radial-gradient( #101010, #202020);
     color: #fff;
     font-family: "Proxima Nova", sans-serif;
 }
 header{
     margin: 24px;
     /* position: relative; */
+    opacity: 0.66;
+    user-select: none;
+    display: inline-block;
+}
+header:hover{
+    opacity: 1;
 }
 header #uos-logo-container{
-    padding: 0 16px;
+    padding-right: 12px;
 }
 header>*{
     display:inline-block;
@@ -20,8 +28,9 @@ header h1{
     margin: 0;
     /* text-align:center; */
     font-weight: normal;
+    font-size: 24px;
 }
-header #uos-logo {height: 48px;}
+header #uos-logo {height: 36px;}
 header #uos-logo path{fill:#fff}
 
 #manifest-preview{
@@ -55,7 +64,7 @@ header #uos-logo path{fill:#fff}
     /* letter-spacing: 1px; */
     text-rendering: geometricPrecision;
     /* font-weight: 100; */
-    padding-right: 8px;
+    padding-left: 8px;
 }
 .table-data-header>div{
     /* border-left: 1px solid #404040; */
@@ -72,8 +81,8 @@ header #uos-logo path{fill:#fff}
 .table-data-value>div{
     padding: 8px 16px;
     border-bottom-left-radius: 4px;
-    border-left: 1px solid #404040;
-    border-bottom: 1px solid #404040;
+    border-left: 1px solid #303030;
+    border-bottom: 1px solid #303030;
 }
 #manifest-gui>tr>td>*{
     vertical-align: middle;
@@ -82,6 +91,7 @@ header #uos-logo path{fill:#fff}
 #controls{
     position: fixed;
     right:24px;
+    top: 24px;
 }
 
 button {
