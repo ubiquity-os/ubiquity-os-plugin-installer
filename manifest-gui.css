@@ -47,3 +47,5 @@ button#add{color: #0f0;}
 button#add:hover{background-color: #00ff0010;}
 button#add:active{background-color: #00ff0020;}
 button#add:active::before{content:"+++"}
+
+#manifest-gui pre{margin: 0 0 16px;}

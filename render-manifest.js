@@ -39,7 +39,16 @@ const manifestGuiBody = document.querySelector(`#manifest-gui-body`);
         let rawValue = decodedManifest[key];
         let isString = true;
         if (typeof rawValue != "string") {
-            rawValue = JSON.stringify(decodedManifest[key], null, 2);
+            const prettified = JSON.stringify(decodedManifest[key], null, 2);
+            let humanize = prettified.replace(/\{|\}|\[|\]/igm, ``);
+            humanize = humanize.replace(/ubiquity:/igm, ``);
+            humanize = humanize.replace(/": "/igm, ` ➡️ `);
+            humanize = humanize.replace(/",?$/igm, ``);
+            humanize = humanize.replace(/^\s\s\s\s"/igm, `      `);
+            humanize = humanize.replace(/^\s\s"/igm, `   `);
+            humanize = humanize.replace(/":/igm, ``);
+            humanize = humanize.replace(/^\s\s,/igm, ``);
+            rawValue = humanize;
             isString = false;
         }
         const valueParsed = rawValue;
