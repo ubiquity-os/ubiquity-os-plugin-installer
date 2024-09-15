@@ -9,9 +9,11 @@ body{
 header{
     margin: 24px;
     /* position: relative; */
-    opacity: 0.66;
+    opacity: 0.75;
     user-select: none;
-    display: inline-block;
+    /* display: inline-block; */
+    white-space: nowrap;
+    -webkit-mask-image: linear-gradient(90deg, black, transparent);
 }
 header:hover{
     opacity: 1;
