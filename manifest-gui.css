@@ -21,3 +21,5 @@ button:active{background-color:#606060}
 #manifest-gui tfoot{text-align:right}
 #manifest-gui thead td{border-bottom:1px solid #303030;/* text-align: end; */}
 #manifest-gui thead td:last-of-type{text-align:right;padding:0 16px;color:#808080}
+#viewport{width: 100%;display: table;height: calc(100vh - ( ( 36px + 8px )  * 2 ));/* border-collapse: collapse; */}
+#viewport-cell{height: 100%;display: table-cell;vertical-align: middle;/* width: 100%; */}
