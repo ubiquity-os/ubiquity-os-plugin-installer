@@ -1,10 +1,11 @@
-const manifestGui = document.querySelector(`#manifest-gui`);
+const manifestGui = document.querySelector(`#manifest-gui-body`);
 
 (function renderManifest() {
     const decodedManifest = window.decodedManifest;
 
     const dfg = document.createDocumentFragment();
     const _div = document.createElement("DIV");
+    const _nestedObject = document.createElement("pre");
     // const _h3 = document.createElement("h3");
 
     /**
@@ -34,15 +35,25 @@ const manifestGui = document.querySelector(`#manifest-gui`);
         const key = decodedManifestKeys[x];
         tableRow.id = key;
         let rawValue = decodedManifest[key];
+        let isString = true;
         if (typeof rawValue != "string") {
             rawValue = JSON.stringify(decodedManifest[key], null, 2);
+            isString = false;
         }
         const valueParsed = rawValue;
         const keyDiv = _div.cloneNode();
-        keyDiv.textContent = key;
+        keyDiv.textContent = key.replace("ubiquity:", "");;
+
         // h3.id = `key-${key}`;
         const valueDiv = _div.cloneNode();
-        valueDiv.textContent = valueParsed;
+        if (isString) {
+            valueDiv.textContent = valueParsed;
+        } else {
+
+            const nestedObject = _nestedObject.cloneNode();
+            nestedObject.textContent = valueParsed;
+            valueDiv.appendChild(nestedObject);
+        }
         // div.id = `value-${key}`;
         tableRow.children[0].appendChild(keyDiv);
         tableRow.children[1].appendChild(valueDiv);
