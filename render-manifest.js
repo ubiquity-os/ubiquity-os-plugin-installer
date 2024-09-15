@@ -1,6 +1,8 @@
-const manifestGui = document.querySelector(`#manifest-gui-body`);
+const manifestGui = document.querySelector(`#manifest-gui`);
+const manifestGuiBody = document.querySelector(`#manifest-gui-body`);
 
 (function renderManifest() {
+    manifestGui?.classList.add("rendering");
     const decodedManifest = window.decodedManifest;
 
     const dfg = document.createDocumentFragment();
@@ -60,28 +62,10 @@ const manifestGui = document.querySelector(`#manifest-gui-body`);
         dfg.appendChild(tableRow);
     }
 
-    manifestGui.appendChild(dfg);
+    manifestGuiBody.appendChild(dfg);
+    manifestGui?.classList.add("rendered");
 
 
-
-    function renderName(name) {
-        const buffer = genericRender(element, "name");
-    }
-    function renderDescription(description) {
-        const buffer = genericRender(element, "description");
-    }
-    function renderListeners(listeners) {
-        const buffer = genericRender(element, "listeners");
-    }
-    function renderCommands(commands) {
-        const buffer = genericRender(element, "commands");
-    }
-    function genericRender(element, text) {
-        const div = _div.cloneNode();
-        div.id = `${element}-tableRow`;
-        div.innerText = text;
-        return div;
-    }
 
 
 })();

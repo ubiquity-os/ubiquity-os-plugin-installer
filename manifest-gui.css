@@ -1,137 +1,23 @@
-body{
-    margin: 0;
-    background-color: #202020;
-
-    background-image: radial-gradient( #101010, #202020);
-    color: #fff;
-    font-family: "Proxima Nova", sans-serif;
-}
-header{
-    margin: 24px;
-    /* position: relative; */
-    opacity: 0.75;
-    user-select: none;
-    /* display: inline-block; */
-    white-space: nowrap;
-    -webkit-mask-image: linear-gradient(90deg, black, transparent);
-}
-header:hover{
-    opacity: 1;
-}
-header #uos-logo-container{
-    padding-right: 12px;
-}
-header>*{
-    display:inline-block;
-    vertical-align: middle;
-    /* position:absolute */
-}
-header h1{
-    margin: 0;
-    /* text-align:center; */
-    font-weight: normal;
-    font-size: 24px;
-}
-header #uos-logo {height: 36px;}
+body{margin:0;background-color:#202020;background-image:radial-gradient(#101010,#202020);color:#fff;font-family:"Proxima Nova",sans-serif}
+header{margin:24px;opacity:.75;user-select:none;white-space:nowrap;-webkit-mask-image:linear-gradient(90deg,#000,transparent)}
+header:hover{opacity:1}
+header #uos-logo-container{padding-right:12px}
+header>*{display:inline-block;vertical-align:middle}
+header h1{margin:0;font-weight:400;font-size:24px}
+header #uos-logo{height:36px}
 header #uos-logo path{fill:#fff}
-
-#manifest-preview{
-}
-#manifest-gui{
-    user-select: none;
-    background-image: linear-gradient(45deg, #202020, #202020, #303030);
-    /* position:relative; */
-    /* padding: 16px; */
-    /* border-top: 1px solid #303030; */
-    /* border-bottom: 1px solid #303030; */
-    margin-top: 16px;
-    /* width: 100%; */
-    /* border-collapse: collapse; */
-    /* border: 1px solid #303030; */
-    border-radius: 4px;
-    margin: 0 auto;
-    box-shadow: 0 24px 48px #101010;
-    overflow: hidden;
-    opacity: 0.75;
-    transition:0.5s opacity ease
-}
-#manifest-gui:hover{opacity:1;}
-
-#manifest-gui>tbody>tr:first-of-type{
-    /* padding: 16px; */
-}
-#manifest-gui td{
-    /* padding: 0 16px; */
-}
-.table-data-header{
-
-    text-align: right;
-    /* border-right: 1px solid #404040; */
-    color: #808080;
-    text-transform: capitalize;
-    /* letter-spacing: 1px; */
-    text-rendering: geometricPrecision;
-    /* font-weight: 100; */
-    padding-left: 8px;
-}
-.table-data-header>div{
-    /* border-left: 1px solid #404040; */
-    /* border-right: 1px solid #404040; */
-    /* border-bottom: 1px solid #404040; */
-    padding: 8px 16px;
-}
-.table-data-value{
-    user-select: text;
-    /* border-left: 1px solid #404040; */
-    /* border-bottom: 1px solid #404040; */
-    /* border-bottom-left-radius: 4px; */
-    /* overflow: hidden; */
-}
-.table-data-value>div{
-    padding: 8px 16px;
-    border-bottom-left-radius: 4px;
-    border-left: 1px solid #303030;
-    border-bottom: 1px solid #303030;
-}
-#manifest-gui>tr>td>*{
-    vertical-align: middle;
-    margin: 8px;
-}
-#controls{
-    position: fixed;
-    right:24px;
-    top: 24px;
-}
-
-button {
-    appearance: none;
-    background: none;
-    color: #fff;
-    font-size:16px;
-    border:none;
-    /* box-shadow: inset 0 0 24px #404040; */
-    background-color: #202020;
-    padding:8px 16px;
-    border-radius: 4px;
-    opacity: 0.75;
-    filter: grayscale(1)
-}
-button:hover{
-    background-color: #404040;
-    cursor: pointer;
-    opacity: 1;
-}
-
-button:active{
-    background-color: #606060;
-    /* box-shadow: inset 0 0 24px #808080; */
-}
-
-#manifest-gui-body>tr{
-    /* border: 0; */
-    /* margin: 0; */
-    /* padding:0; */
-}
-
-#manifest-gui tfoot{text-align: right;}
-#manifest-gui thead td{border-bottom: 1px solid #303030}
+#manifest-gui{user-select:none;background-image:linear-gradient(45deg,#202020,#202020,#303030);margin-top:16px;border-radius:4px;margin:0 auto;box-shadow:0 24px 48px #101010;overflow:hidden;opacity:.75;transition:.25s opacity cubic-bezier(0,1,1,1);opacity:0}
+#manifest-gui.rendered{opacity:0.75}
+#manifest-gui:hover{opacity:1}
+.table-data-header{text-align:right;color:grey;text-transform:capitalize;text-rendering:geometricPrecision;padding-left:8px}
+.table-data-header>div{padding:8px 16px}
+.table-data-value{user-select:text}
+.table-data-value>div{padding:8px 16px;border-bottom-left-radius:4px;border-left:1px solid #303030;border-bottom:1px solid #303030}
+#manifest-gui>tr>td>*{vertical-align:middle;margin:8px}
+#controls{position:fixed;right:24px;top:24px}
+button{appearance:none;background:0 0;color:#fff;font-size:16px;border:none;/* background-color: transparent; */padding:8px 16px;border-radius:4px;opacity:.75;filter:grayscale(1)}
+button:hover{background-color:#404040;cursor:pointer;opacity:1}
+button:active{background-color:#606060}
+#manifest-gui tfoot{text-align:right}
+#manifest-gui thead td{border-bottom:1px solid #303030;/* text-align: end; */}
+#manifest-gui thead td:last-of-type{text-align:right;padding:0 16px;color:#808080}
