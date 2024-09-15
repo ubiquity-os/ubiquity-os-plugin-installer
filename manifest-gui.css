@@ -21,7 +21,7 @@ header #uos-logo path{fill:#fff}
 .table-data-value>div{padding:8px 16px;border-bottom-left-radius:4px;border-left:1px solid #303030;border-bottom:1px solid #303030;/* font-weight: bold; */}
 #manifest-gui>tr>td>*{vertical-align:middle;margin:8px}
 #controls{position:fixed;right:24px;top:24px}
-button{appearance:none;background:0 0;color:#fff;font-size:16px;border:none;/* background-color: transparent; */padding:8px 16px;border-radius:4px;opacity:.75;}
+button{appearance:none;background:0 0;color:#fff;font-size:16px;border:none;/* background-color: transparent; */padding:8px 16px;border-radius:4px;opacity:.75;font-family:"Proxima Nova",sans-serif;}
 button:hover{background-color:#404040;cursor:pointer;opacity:1}
 button:active{background-color:#606060}
 #manifest-gui thead td{border-bottom:1px solid #303030;/* text-align: end; */}

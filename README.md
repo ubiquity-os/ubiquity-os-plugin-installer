@@ -11,6 +11,10 @@
 - A simple answer could be to create an API (GitHub Actions?) that just asks ChatGPT to refactor the `.ubiquibot-config.yml` and push the commit. Refactoring via LLM seems pretty straightforward in my experience.
 - The optimized answer is to parse the YML file, and target the config based on its URL/location. Then edit the YML file using traditional code and push the commit using the user's credentials (there is a "GitHub Sign In" button.)
 
+#### Remarks
+
+- I think that the remove or add buttons should display intelligently. Given that I admin two organizations that use the bot, its a bit tricky. To start perhaps it makes sense to display both but we should figure a solution out thats simple to implement.
+
 ### How To Use
 
 Pass the manifest in the `?manifest=` query parameter for the UI to parse it.
