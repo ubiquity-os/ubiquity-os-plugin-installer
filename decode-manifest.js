@@ -22,6 +22,7 @@
     console.log(encodedManifestEnvelope);
     const encodedManifest = encodedManifestEnvelope["manifest"]
     const decodedManifest = decodeURI(encodedManifest);
+    // const decodedManifest = encodedManifest;
 
 
     renderManifest(decodedManifest);
