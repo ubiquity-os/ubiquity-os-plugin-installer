@@ -2,7 +2,7 @@
 
 ![_Users_nv_repos_0x4007_plugin-installer-gui_index html_manifest={%22name%22_%22Start%20_%20Stop%22,%22description%22_%22Assign%20or%20un-assign%20yourself%20from%20an%20issue %22,%22ubiquity_listeners%22_ %22issue_comment created%22,%22issu](https://github.com/user-attachments/assets/353b1e84-8c1b-48eb-9d6d-1f0e5ba80fb9)
 
-###### This was hand coded on an airplane ride with no internet. 
+###### This was hand coded on an airplane ride with no internet.
 
 ### Plan as of 16 September 2024
 
@@ -31,23 +31,99 @@ The browser automatically URI encodes it:
 
 ```json
 {
-    "name": "Start | Stop",
-    "description": "Assign or un-assign yourself from an issue.",
-    "ubiquity:listeners": [
-        "issue_comment.created",
-        "issues.assigned",
-        "pull_request.opened"
-    ],
-    "commands": {
-        "start": {
-            "ubiquity:example": "/start",
-            "description": "Assign yourself to the issue."
-        },
-        "stop": {
-            "ubiquity:example": "/stop",
-            "description": "Unassign yourself from the issue."
-        }
+  "name": "Start | Stop",
+  "description": "Assign or un-assign yourself from an issue.",
+  "ubiquity:listeners": [
+    "issue_comment.created",
+    "issues.assigned",
+    "pull_request.opened"
+  ],
+  "commands": {
+    "start": {
+      "ubiquity:example": "/start",
+      "description": "Assign yourself to the issue."
+    },
+    "stop": {
+      "ubiquity:example": "/stop",
+      "description": "Unassign yourself from the issue."
     }
+  }
 }
 ```
+
 ###### Example from `command-start-stop/manifest.json`
+
+## Kernel Config Parser
+
+This project now includes a Kernel Config Parser that mimics the behavior of the Linux kernel's config parser. It provides functionality to parse kernel configuration files and render them back to their original format.
+
+### Features
+
+- Parse kernel configuration files
+- Maintain the original format of numeric values (decimal or hexadecimal)
+- Render parsed configurations back to their string representation
+
+### Usage
+
+#### Parsing a configuration
+
+```javascript
+import KernelConfigParser from "./config-parser.js";
+
+const parser = new KernelConfigParser();
+const configString = `
+CONFIG_FEATURE_A=y
+CONFIG_FEATURE_B=n
+CONFIG_STRING_OPTION="hello world"
+CONFIG_INT_OPTION=42
+CONFIG_HEX_OPTION=0x2A
+`;
+
+const config = parser.parse(configString);
+console.log(config);
+```
+
+#### Rendering a config file
+
+```javascript
+import KernelConfigParser from "./config-parser.js";
+
+const parser = new KernelConfigParser();
+parser.config = {
+  FEATURE_A: true,
+  FEATURE_B: false,
+  STRING_OPTION: "hello world",
+  INT_OPTION: 42,
+  HEX_OPTION: 0x2a,
+};
+
+const renderedConfig = parser.render();
+console.log(renderedConfig);
+```
+
+### Supported Config Types
+
+The Kernel Config Parser supports the following config types:
+
+- Boolean: `y` (true) or `n` (false)
+- String: Enclosed in double quotes
+- Integer: Decimal or hexadecimal (prefixed with `0x`)
+- Module: `m` (represented as the string 'module')
+
+### Error Handling
+
+The parser includes basic error handling:
+
+- Invalid lines are skipped with a warning
+- Config keys not starting with `CONFIG_` are ignored with a warning
+- Parsing errors for individual values are caught and logged
+
+### Testing
+
+To run the tests for the Kernel Config Parser:
+
+```bash
+node config-parser.test.js
+```
+
+...
