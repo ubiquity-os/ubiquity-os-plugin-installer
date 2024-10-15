@@ -1,81 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Octokit } from "@octokit/rest";
-import { RequestError } from "@octokit/request-error";
-import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
-
-export type GitHubUserResponse = RestEndpointMethodTypes["users"]["getByUsername"]["response"];
-export type GitHubUser = GitHubUserResponse["data"];
-
-export type TaskStorageItems = {
-  timestamp: number; // in milliseconds
-  tasks: GitHubIssue[];
-  loggedIn: boolean;
-};
-
-type RateLimit = {
-  reset: number | null;
-  user: boolean;
-};
-
-export type GitHubIssue = RestEndpointMethodTypes["issues"]["get"]["response"]["data"];
-
-export interface AuthToken {
-  provider_token: string;
-  access_token: string;
-  expires_in: number;
-  expires_at: number;
-  refresh_token: string;
-  token_type: string;
-  user: {
-    id: string;
-    aud: string;
-    role: string;
-    email: string;
-    email_confirmed_at: string;
-    phone: string;
-    confirmed_at: string;
-    last_sign_in_at: string;
-    app_metadata: { provider: string; providers: string[] };
-    user_metadata: {
-      avatar_url: string;
-      email: string;
-      email_verified: boolean;
-      full_name: string;
-      iss: string;
-      name: string;
-      phone_verified: boolean;
-      preferred_username: string;
-      provider_id: string;
-      sub: string;
-      user_name: string;
-    };
-    identities: [
-      {
-        id: string;
-        user_id: string;
-        identity_data: {
-          avatar_url: string;
-          email: string;
-          email_verified: boolean;
-          full_name: string;
-          iss: string;
-          name: string;
-          phone_verified: boolean;
-          preferred_username: string;
-          provider_id: string;
-          sub: string;
-          user_name: string;
-        };
-        provider: string;
-        last_sign_in_at: string;
-        created_at: string;
-        updated_at: string;
-      },
-    ];
-    created_at: string;
-    updated_at: string;
-  };
-}
+import { AuthToken, GitHubUser, GitHubUserResponse, TaskStorageItems } from "./types";
 
 export function generateSupabaseStorageKey(): string | null {
   if (!SUPABASE_URL) {
@@ -107,8 +32,7 @@ const SUPABASE_STORAGE_KEY = generateSupabaseStorageKey();
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const gitHubLoginButton = document.getElementById("github-sign-in") as HTMLElement;
-const authenticationElement = document.getElementById("authenticationElement") as HTMLElement;
+const controlsContainer = document.getElementById("controls") as HTMLElement;
 
 export function renderErrorInModal(error: Error, info?: string) {
   if (info) {
@@ -116,42 +40,7 @@ export function renderErrorInModal(error: Error, info?: string) {
   } else {
     console.error(info ?? error.message);
   }
-  displayPopupMessage({
-    modalHeader: error.name,
-    modalBody: info ?? error.message,
-    isError: true,
-  });
   return false;
-}
-
-export function displayPopupMessage({ modalHeader, modalBody, isError, url }: { modalHeader: string; modalBody: string; isError: boolean; url?: string }) {
-  titleHeader.textContent = modalHeader;
-  if (url) {
-    titleAnchor.href = url;
-  }
-  modalBodyInner.innerHTML = modalBody;
-
-  modal.classList.add("active");
-  document.body.classList.add("preview-active");
-
-  if (toolbar) {
-    toolbar.scrollTo({
-      left: toolbar.scrollWidth,
-      behavior: "smooth",
-    });
-  }
-
-  if (isError) {
-    modal.classList.add("error");
-  } else {
-    modal.classList.remove("error");
-  }
-  console.trace({
-    modalHeader,
-    modalBody,
-    isError,
-    url,
-  });
 }
 
 async function getGitHubUser() {
@@ -176,54 +65,6 @@ export function setLocalStore(key: string, value: TaskStorageItems | AuthToken) 
   localStorage[key] = JSON.stringify(value);
 }
 
-export async function handleRateLimit(octokit?: Octokit, error?: RequestError) {
-  const rate: RateLimit = {
-    reset: null,
-    user: false,
-  };
-
-  modal.classList.add("active");
-  document.body.classList.add("preview-active");
-
-  if (toolbar) {
-    toolbar.scrollTo({
-      left: toolbar.scrollWidth,
-      behavior: "smooth",
-    });
-
-    gitHubLoginButton?.classList.add("highlight");
-  }
-
-  if (error?.response?.headers["x-ratelimit-reset"]) {
-    rate.reset = parseInt(error.response.headers["x-ratelimit-reset"]);
-  }
-
-  if (octokit) {
-    try {
-      const core = await octokit.rest.rateLimit.get();
-      const remaining = core.data.resources.core.remaining;
-      const reset = core.data.resources.core.reset;
-
-      rate.reset = !rate.reset && remaining === 0 ? reset : rate.reset;
-      rate.user = !!(await getGitHubUser());
-    } catch (err) {
-      renderErrorInModal(err as Error, "Error handling GitHub rate limit");
-    }
-  }
-
-  const resetParsed = rate.reset && new Date(rate.reset * 1000).toLocaleTimeString();
-
-  if (!rate.user) {
-    rateLimitModal(`You have been rate limited. Please log in to GitHub to increase your GitHub API limits, otherwise you can try again at ${resetParsed}.`);
-  } else {
-    rateLimitModal(`You have been rate limited. Please try again at ${resetParsed}.`);
-  }
-}
-
-export function rateLimitModal(message: string) {
-  displayPopupMessage({ modalHeader: `GitHub API rate limit exceeded.`, modalBody: message, isError: false });
-}
-
 async function getSessionToken(): Promise<string | null> {
   const cachedSessionToken = getLocalStore(`sb-${SUPABASE_STORAGE_KEY}-auth-token`) as AuthToken | null;
   if (cachedSessionToken) {
@@ -238,7 +79,7 @@ async function getSessionToken(): Promise<string | null> {
 
 async function getNewSessionToken(): Promise<string | null> {
   const hash = window.location.hash;
-  const params = new URLSearchParams(hash.substr(1)); // remove the '#' and parse
+  const params = new URLSearchParams(hash.substr(1));
   const providerToken = params.get("provider_token");
   if (!providerToken) {
     const error = params.get("error_description");
@@ -252,12 +93,11 @@ async function getNewGitHubUser(providerToken: string | null): Promise<GitHubUse
   const octokit = new Octokit({ auth: providerToken });
   try {
     const response = (await octokit.request("GET /user")) as GitHubUserResponse;
-    console.log(response);
     return response.data;
   } catch (error) {
-    console.log(error.status);
+    // TODO Rate limit
     if (!!error && typeof error === "object" && "status" in error && error.status === 403) {
-      await handleRateLimit(providerToken ? octokit : undefined, error as RequestError);
+      console.log("TODO Rate limit");
     }
     console.warn("You have been logged out. Please login again.", error);
   }
@@ -265,13 +105,11 @@ async function getNewGitHubUser(providerToken: string | null): Promise<GitHubUse
 }
 
 function renderGitHubLoginButton() {
-  gitHubLoginButton.id = "github-login-button";
-  gitHubLoginButton.innerHTML = "<span>Login</span><span class='full'>&nbsp;With GitHub</span>";
-  gitHubLoginButton.addEventListener("click", () => gitHubLoginButtonHandler());
-  if (authenticationElement) {
-    authenticationElement.appendChild(gitHubLoginButton);
-    authenticationElement.classList.add("ready");
-  }
+  const authButton = controlsContainer.children[0];
+  authButton.id = "github-login-button";
+  authButton.innerHTML = "<span>Login</span><span class='full'>&nbsp;With GitHub</span>";
+  authButton.addEventListener("click", () => gitHubLoginButtonHandler());
+  controlsContainer.classList.add("ready");
 }
 
 async function gitHubLoginButtonHandler(scopes = "public_repo read:org") {
@@ -321,14 +159,17 @@ async function getGitHubAccessToken() {
   return null;
 }
 
-async function displayGitHubUserInformation(gitHubUser: GitHubUser) {
+async function renderGitHubUserInformation(gitHubUser: GitHubUser) {
   const authenticatedDivElement = document.createElement("div");
-  const containerDivElement = document.createElement("div");
   authenticatedDivElement.id = "authenticated";
   authenticatedDivElement.classList.add("user-container");
+  const authButton = controlsContainer.children[0];
+  authButton.innerHTML = "Log out";
   if (!toolbar) throw new Error("toolbar not found");
 
   const img = document.createElement("img");
+  img.id = "user__avatar";
+
   if (gitHubUser.avatar_url) {
     img.src = gitHubUser.avatar_url;
   } else {
@@ -344,7 +185,7 @@ async function displayGitHubUserInformation(gitHubUser: GitHubUser) {
   divNameElement.classList.add("full");
   authenticatedDivElement.appendChild(divNameElement);
 
-  authenticatedDivElement.addEventListener("click", async function signOut() {
+  authButton.addEventListener("click", async function signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) {
       renderErrorInModal(error, "Error logging out");
@@ -353,15 +194,12 @@ async function displayGitHubUserInformation(gitHubUser: GitHubUser) {
     window.location.reload();
   });
 
-  containerDivElement.appendChild(authenticatedDivElement);
-
-  authenticationElement.appendChild(containerDivElement);
-  toolbar.setAttribute("data-authenticated", "true");
-  toolbar.classList.add("ready");
+  controlsContainer.prepend(authenticatedDivElement);
 }
 
-async function authentication() {
+(async function main() {
   const accessToken = await getGitHubAccessToken();
+  console.log(accessToken);
   if (!accessToken) {
     renderGitHubLoginButton();
     return;
@@ -369,12 +207,8 @@ async function authentication() {
 
   const gitHubUser = await getGitHubUser();
   if (gitHubUser) {
-    await displayGitHubUserInformation(gitHubUser);
+    await renderGitHubUserInformation(gitHubUser);
   }
-}
-
-(async function main() {
-  void authentication();
 })().catch(() => {
   console.log("[ERROR] Auth module");
 });
