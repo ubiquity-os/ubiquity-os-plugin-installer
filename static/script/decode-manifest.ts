@@ -19,7 +19,6 @@
   if (!encodedManifestEnvelope) {
     throw new Error("No encoded manifest found!");
   }
-  console.log(encodedManifestEnvelope);
   const encodedManifest = encodedManifestEnvelope["manifest"];
   const decodedManifest = decodeURI(encodedManifest);
   // const decodedManifest = encodedManifest;

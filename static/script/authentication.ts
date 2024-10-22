@@ -7,7 +7,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const controlsContainer = document.getElementById("controls") as HTMLElement;
 
-function renderErrorInModal(error: Error, info?: string) {
+function renderErrorInConsole(error: Error, info?: string) {
   if (info) {
     console.error(error);
   } else {
@@ -32,7 +32,7 @@ async function gitHubLoginButtonHandler(scopes = "public_repo read:org") {
     },
   });
   if (error) {
-    renderErrorInModal(error, "Error logging in");
+    renderErrorInConsole(error, "Error logging in");
   }
 }
 
@@ -64,7 +64,7 @@ async function renderGitHubUserInformation(gitHubUser: UserMetadata) {
   authButton.addEventListener("click", async function signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      renderErrorInModal(error, "Error logging out");
+      renderErrorInConsole(error, "Error logging out");
     }
     window.location.reload();
   });
@@ -85,6 +85,7 @@ async function renderGitHubUserInformation(gitHubUser: UserMetadata) {
   if (user.user_metadata) {
     await renderGitHubUserInformation(user.user_metadata);
   }
+  console.trace(user);
 })().catch(() => {
   console.log("[ERROR] Auth module");
 });
