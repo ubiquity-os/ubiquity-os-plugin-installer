@@ -26,7 +26,6 @@ export class ManifestRenderer {
          * commands": {
          */
 
-        console.trace(decodedManifest);
         const decodedManifestKeys = Object.keys(decodedManifest);
         let x = -1;
         const limit = decodedManifestKeys.length;
@@ -38,8 +37,6 @@ export class ManifestRenderer {
         _tableDataValue.className = "table-data-value";
         _tableRow.appendChild(_tableDataHeader);
         _tableRow.appendChild(_tableDataValue);
-
-        console.trace(_tableRow);
 
         while (++x < limit) {
             const tableRow = _tableRow.cloneNode(true) as HTMLTableRowElement;

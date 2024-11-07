@@ -26,9 +26,6 @@ export class AuthService {
     const hash = window.location.hash;
     if (!hash) return null;
 
-    window.location.hash = "";
-    window.history.replaceState(null, "", window.location.pathname);
-
     const params = new URLSearchParams(hash.substring(1));
     const providerToken = params.get("provider_token");
     if (!providerToken) {
@@ -58,6 +55,8 @@ export class AuthService {
   }
 
   public async signInWithGithub(): Promise<void> {
+    const search = window.location.search;
+    localStorage.setItem("manifest", search);
     const { data } = await this.supabase.auth.signInWithOAuth({ provider: "github" });
     if (!data) throw new Error("Failed to sign in with GitHub");
   }
@@ -72,6 +71,14 @@ export class AuthService {
 
     const session = await this.getSupabaseSession();
     user = user || await this.getNewGitHubUser(session?.provider_token || null);
+
+    const preAuthManifest = localStorage.getItem("manifest");
+    const isUrlEmpty = !window.location.search || !window.location.hash;
+    if (preAuthManifest && isUrlEmpty && user) {
+      const search = localStorage.getItem("manifest");
+      localStorage.removeItem("manifest");
+      window.location.search = `${search}`;
+    }
 
     if (user) {
       button.textContent = `Sign out ${user.login}`;
