@@ -34,7 +34,6 @@ async function runBuild() {
 
 void runBuild();
 
-
 function createEnvDefines(environmentVariables: string[], generatedAtBuild: Record<string, unknown>): Record<string, string> {
   const defines: Record<string, string> = {};
   for (const name of environmentVariables) {
@@ -45,7 +44,7 @@ function createEnvDefines(environmentVariables: string[], generatedAtBuild: Reco
       throw new Error(`Missing environment variable: ${name}`);
     }
   }
-  for (const key in generatedAtBuild) {
+  for (const key of Object.keys(generatedAtBuild)) {
     if (Object.prototype.hasOwnProperty.call(generatedAtBuild, key)) {
       defines[key] = JSON.stringify(generatedAtBuild[key]);
     }
