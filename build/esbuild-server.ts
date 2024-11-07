@@ -15,6 +15,7 @@ export async function server() {
   const { host, port } = await context.serve({
     servedir: "static",
     port: 8080,
+    host: "localhost",
   });
   console.log(`Server running at http://${host}:${port}`);
 }

@@ -4,6 +4,7 @@
   "description": "Template repository with TypeScript support.",
   "main": "build/index.ts",
   "author": "Ubiquity DAO",
+  "type": "module",
   "license": "MIT",
   "engines": {
     "node": ">=20.10.0"
