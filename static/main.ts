@@ -1,5 +1,6 @@
 import { AuthService } from "./scripts/authentication";
 import { ManifestDecoder } from "./scripts/decode-manifest";
+import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
 
 async function handleAuth() {
@@ -9,17 +10,32 @@ async function handleAuth() {
   if (!token) {
     // await auth.signInWithGithub(); force a login?
   }
+
+  return auth;
 }
 
 export async function mainModule() {
-  await handleAuth();
+  const auth = await handleAuth();
+  const decoder = new ManifestDecoder();
+  const renderer = new ManifestRenderer();
+
   try {
-    const decoder = new ManifestDecoder(window.location.search.substring(1));
-    const decodedManifest = await decoder.decodeManifest();
-    const renderer = new ManifestRenderer(decodedManifest);
-    renderer.renderManifest();
+    const search = window.location.search.substring(1);
+    const decodedManifest = await decoder.decodeManifestFromSearch(search);
+    renderer.renderManifest(decodedManifest);
   } catch (error) {
-    console.error(error);
+    if (error instanceof Error) {
+      const message = error.message;
+      if (message === "No encoded manifest found!") {
+        const fetcher = new ManifestFetcher(["ubiquity-os"], await auth.getOctokit(), decoder);
+        const manifestCache = await fetcher.fetchManifests();
+        const firstErrorlessManifest = Object.values(manifestCache).find((manifest) => !manifest.error);
+        if (!firstErrorlessManifest) {
+          throw new Error("No errorless manifests found!");
+        }
+        renderer.renderManifest(firstErrorlessManifest);
+      }
+    }
   }
 }
 

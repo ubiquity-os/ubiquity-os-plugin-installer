@@ -8,13 +8,13 @@ declare const SUPABASE_STORAGE_KEY: string;
 declare const NODE_ENV: string;
 
 export class AuthService {
-  private supabase: SupabaseClient;
+  supabase: SupabaseClient;
 
   constructor() {
     this.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
 
-  private async getSessionToken(): Promise<string | null> {
+  async getSessionToken(): Promise<string | null> {
     const localToken = localStorage.getItem(`sb-${SUPABASE_STORAGE_KEY}-auth-token`);
     if (localToken) {
       return JSON.parse(localToken).provider_token;
@@ -22,7 +22,7 @@ export class AuthService {
     return this.getNewSessionToken();
   }
 
-  private async getNewSessionToken(): Promise<string | null> {
+  async getNewSessionToken(): Promise<string | null> {
     const hash = window.location.hash;
     if (!hash) return null;
 
@@ -34,14 +34,16 @@ export class AuthService {
     return providerToken;
   }
 
-  private async getSupabaseSession(): Promise<Session | null> {
+  async getSupabaseSession(): Promise<Session | null> {
     if (NODE_ENV === "development") {
       const token = localStorage.getItem(`sb-${SUPABASE_STORAGE_KEY}-auth-token`);
       if (token) {
         return JSON.parse(token);
       }
     }
-    const { data: { session } } = await this.supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await this.supabase.auth.getSession();
     return session;
   }
 
@@ -70,7 +72,7 @@ export class AuthService {
     if (!button) throw new Error("Missing sign in button");
 
     const session = await this.getSupabaseSession();
-    user = user || await this.getNewGitHubUser(session?.provider_token || null);
+    user = user || (await this.getNewGitHubUser(session?.provider_token || null));
 
     const preAuthManifest = localStorage.getItem("manifest");
     const isUrlEmpty = !window.location.search || !window.location.hash;
@@ -99,7 +101,7 @@ export class AuthService {
     return this.getNewGitHubUser(token);
   }
 
-  private async getNewGitHubUser(token: string | null): Promise<GitHubUser | null> {
+  async getNewGitHubUser(token: string | null): Promise<GitHubUser | null> {
     if (!token) return null;
     const octokit = new Octokit({ auth: token });
     try {
@@ -111,5 +113,10 @@ export class AuthService {
       await this.renderGithubLoginButton(null);
       return null;
     }
+  }
+
+  public async getOctokit(): Promise<Octokit> {
+    const token = await this.getSessionToken();
+    return new Octokit({ auth: token });
   }
 }
