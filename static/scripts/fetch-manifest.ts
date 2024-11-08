@@ -1,5 +1,6 @@
 import { Octokit } from "@octokit/rest";
-import { Manifest, ManifestDecoder } from "./decode-manifest";
+import { ManifestDecoder, ManifestPreDecode } from "./decode-manifest";
+import { CONFIG_FULL_PATH, CONFIG_ORG_REPO, DEV_CONFIG_FULL_PATH, Manifest } from "@ubiquity-os/ubiquity-os-kernel"
 
 /**
  * Given a list of repositories, fetch the manifest for each repository.
@@ -8,20 +9,22 @@ export class ManifestFetcher {
   private _orgs: string[];
   private _octokit: Octokit;
   private _decoder: ManifestDecoder;
-  ownerReposWithBranches = new Set<string>();
 
   workerUrlRegex = /https:\/\/([a-z0-9-]+)\.ubiquity\.workers\.dev/g;
   actionUrlRegex = /(?<owner>[a-z0-9-]+)\/(?<repo>[a-z0-9-]+)(?:\/[^@]+)?@(?<branch>[a-z0-9-]+)/g;
   workerUrls = new Set<string>();
   actionUrls = new Set<string>();
 
-  constructor(orgs: string[], octokit: Octokit, decoder: ManifestDecoder) {
+  constructor(orgs: string[], octokit: Octokit | null, decoder: ManifestDecoder) {
     this._orgs = orgs;
+    if (!octokit) {
+      throw new Error("Octokit failed to initialize");
+    }
     this._octokit = octokit;
     this._decoder = decoder;
   }
 
-  checkManifestCache(): Record<string, Manifest> {
+  checkManifestCache(): Record<string, ManifestPreDecode> {
     // check if the manifest is already in the cache
     const manifestCache = localStorage.getItem("manifestCache");
     if (manifestCache) {
@@ -40,11 +43,11 @@ export class ManifestFetcher {
   }
 
   createActionEndpoint(owner: string, repo: string, branch: string) {
+    // no endpoint so we fetch the raw content from the owner/repo/branch
     return `https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/${branch}/manifest.json`;
   }
 
   captureActionUrls(config: string) {
-    // no endpoint so we fetch the raw content from the owner/repo/branch
     let match;
     while ((match = this.actionUrlRegex.exec(config)) !== null) {
       const { owner, repo, branch } = match.groups || {};
@@ -55,7 +58,7 @@ export class ManifestFetcher {
     }
   }
 
-  sanitizeManifestCache(manifestCache: Record<string, Manifest>) {
+  sanitizeManifestCache(manifestCache: Record<string, ManifestPreDecode>) {
     for (const key of Object.keys(manifestCache)) {
       if (manifestCache[key]?.error) {
         console.log("Removing error manifest", manifestCache[key]);
@@ -137,15 +140,13 @@ export class ManifestFetcher {
   async fetchOrgsUbiquityOsConfigs() {
     const configFileContents: Record<string, string> = {};
 
-    const devYmlConfigPath = ".github/.ubiquity-os.config.dev.yml";
-    const prodYmlConfigPath = ".github/.ubiquity-os.config.yml";
 
     for (const org of this._orgs) {
       try {
         const { data: devConfig } = await this._octokit.repos.getContent({
           owner: org,
-          repo: ".ubiquity-os",
-          path: devYmlConfigPath,
+          repo: CONFIG_ORG_REPO,
+          path: DEV_CONFIG_FULL_PATH,
         });
 
         if ("content" in devConfig) {
@@ -158,8 +159,8 @@ export class ManifestFetcher {
       try {
         const { data: prodConfig } = await this._octokit.repos.getContent({
           owner: org,
-          repo: ".ubiquity-os",
-          path: prodYmlConfigPath,
+          repo: CONFIG_ORG_REPO,
+          path: CONFIG_FULL_PATH,
         });
 
         if ("content" in prodConfig) {

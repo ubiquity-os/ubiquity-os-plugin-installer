@@ -31,9 +31,13 @@
     "open-source"
   ],
   "dependencies": {
+    "@octokit/rest": "^21.0.2",
+    "@sinclair/typebox": "^0.33.21",
     "@supabase/supabase-js": "^2.46.1",
+    "@ubiquity-os/ubiquity-os-kernel": "^2.5.3",
     "dotenv": "^16.4.4",
-    "@octokit/rest": "^21.0.2"
+    "typebox-validators": "^0.3.5",
+    "yaml": "^2.6.0"
   },
   "devDependencies": {
     "@actions/core": "^1.11.1",

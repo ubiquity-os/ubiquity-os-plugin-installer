@@ -1,26 +1,7 @@
-export type Manifest = {
-  name: string;
-  description: string;
-  "ubiquity:listeners": string[];
-  configuration: {
-    type: string;
-    properties: {
-      [key: string]: {
-        default: unknown;
-        type?: string;
-      };
-    };
-  };
-  error?: string;
-};
-
-export interface ManifestPreDecode extends Manifest {
-  actionUrl?: string;
-  workerUrl?: string;
-}
+import { Manifest, ManifestPreDecode } from "../types/plugins";
 
 export class ManifestDecoder {
-  constructor() {}
+  constructor() { }
 
   decodeManifestFromFetch(manifest: ManifestPreDecode) {
     if (manifest.error) {

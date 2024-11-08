@@ -6,9 +6,12 @@ declare const SUPABASE_URL: string;
 declare const SUPABASE_ANON_KEY: string;
 declare const SUPABASE_STORAGE_KEY: string;
 declare const NODE_ENV: string;
+declare const APP_PRIVATE_KEY: string;
+declare const APP_ID: string;
 
 export class AuthService {
   supabase: SupabaseClient;
+  octokit: Octokit | null = null;
 
   constructor() {
     this.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -106,6 +109,7 @@ export class AuthService {
     const octokit = new Octokit({ auth: token });
     try {
       const response = await octokit.request("GET /user");
+      this.octokit = octokit;
       return response.data as GitHubUser;
     } catch (error) {
       console.error("Failed to get user", error);
@@ -115,8 +119,43 @@ export class AuthService {
     }
   }
 
+  public async getGitHubUserOrgs(): Promise<string[]> {
+    const octokit = await this.getOctokit();
+    const response = await octokit.request("GET /user/orgs");
+    return response.data.map((org: { login: string }) => org.login);
+  }
+
   public async getOctokit(): Promise<Octokit> {
+    if (this.octokit) return this.octokit;
     const token = await this.getSessionToken();
     return new Octokit({ auth: token });
+  }
+
+  async getInstallationIds(userOrgs?: string[]): Promise<number[] | null> {
+    const octokit = await this.getOctokit();
+    const orgs = userOrgs || (await this.getGitHubUserOrgs());
+
+    try {
+      const installationIds = await Promise.all(
+        orgs.map(async (org) => {
+          const response = await octokit.request("GET /orgs/{org}/installations", { org });
+          return response.data.installations.map((installation: { id: number }) => installation.id);
+        })
+      );
+      return installationIds.flat();
+    } catch (error) {
+      console.error("Failed to get installation ids", error);
+      return null;
+    }
+  }
+
+  async getAppOctokit(installationId: number): Promise<Octokit> {
+    return new Octokit({
+      auth: {
+        id: APP_ID,
+        privateKey: APP_PRIVATE_KEY,
+        installationId,
+      }
+    });
   }
 }
