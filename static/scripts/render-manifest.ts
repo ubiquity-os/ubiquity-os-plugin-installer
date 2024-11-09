@@ -277,14 +277,31 @@ export class ManifestRenderer {
     const configInputs = document.querySelectorAll<HTMLInputElement>(".config-input");
     const newConfig = this._parseConfigInputs(configInputs);
 
-    console.log("New Config", newConfig);
-
     this._configParser.loadConfig();
+
+    const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}");
+
+    const pluginName = pluginManifest.name;
+
+    // this relies on the manifest matching the repo name
+    const normalizedPluginName = pluginName
+      .toLowerCase()
+      .replace(/ /g, "-")
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/-+/g, "-");
+
+    const pluginUrl = Object.keys(officialPluginConfig).find((url) => {
+      return url.includes(normalizedPluginName);
+    });
+
+    if (!pluginUrl) {
+      throw new Error("No plugin URL found");
+    }
 
     const plugin: Plugin = {
       uses: [
         {
-          plugin: pluginManifest.name, // this need to be the url taken from our official config
+          plugin: pluginUrl,
           with: newConfig,
         },
       ],
