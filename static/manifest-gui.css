@@ -52,6 +52,10 @@ header #uos-logo path {
   opacity: 0.75;
   transition: 0.25s opacity cubic-bezier(0, 1, 1, 1);
   opacity: 0;
+  width: 400px;
+}
+#manifest-gui.plugin-editor {
+  width: 800px;
 }
 #manifest-gui.rendered {
   opacity: 0.75;
@@ -171,6 +175,269 @@ button#add:active::before {
 
 #manifest-gui pre {
   margin: 0 0 16px;
+}
+
+.picker-select {
+  width: 100%;
+  padding: 8px 16px;
+  background-color: #101010;
+  color: #fff;
+  border: 1px solid #303030;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: "Proxima Nova", sans-serif;
+  appearance: none;
+}
+
+.picker-select:hover {
+  border-color: #606060;
+}
+
+.picker-select:focus {
+  outline: none;
+  border-color: #808080;
+}
+
+.config-input {
+  width: 100%;
+  padding: 8px 16px;
+  background-color: #101010;
+  color: #fff;
+  border: 1px solid #303030;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: "Proxima Nova", sans-serif;
+}
+
+.config-input:hover {
+  border-color: #606060;
+}
+
+.config-input:focus {
+  outline: none;
+  border-color: #808080;
+}
+
+.picker-container,
+.editor-container {
+  background-image: linear-gradient(0deg, #101010, #202020);
+  margin: 16px auto;
+  padding: 16px;
+  border-radius: 4px;
+  box-shadow: 0 24px 48px #000000;
+  opacity: 0.75;
+  transition: 0.25s opacity cubic-bezier(0, 1, 1, 1);
+  width: 80%;
+}
+
+.picker-container:hover,
+.editor-container:hover {
+  opacity: 1;
+}
+
+.picker-header,
+.editor-header {
+  margin-bottom: 16px;
+}
+
+.picker-header h2,
+.editor-header h2 {
+  margin: 0;
+  font-weight: 400;
+  font-size: 24px;
+}
+
+.picker-header p,
+.editor-header p {
+  margin: 4px 0 0;
+  color: #808080;
+}
+
+.picker-body,
+.editor-body {
+  margin-bottom: 16px;
+}
+
+/* Select Elements */
+.picker-select {
+  width: 100%;
+  padding: 8px 16px;
+  background-color: #101010;
+  color: #fff;
+  border: 1px solid #303030;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: "Proxima Nova", sans-serif;
+}
+
+.picker-select:focus {
+  outline: none;
+  border-color: #606060;
+}
+
+.save-button {
+  appearance: none;
+  background: #101010;
+  color: #fff;
+  font-size: 16px;
+  border: 1px solid #303030;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-family: "Proxima Nova", sans-serif;
+  cursor: pointer;
+  transition:
+    background-color 0.25s,
+    border-color 0.25s;
+}
+
+.save-button:hover {
+  background-color: #404040;
+  border-color: #606060;
+}
+
+.save-button:active {
+  background-color: #606060;
+}
+
+.object-input-row,
+.array-input-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.object-input-key {
+  flex: 1;
+  margin-right: 8px;
+  padding: 8px 16px;
+  background-color: #101010;
+  color: #fff;
+  border: 1px solid #303030;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: "Proxima Nova", sans-serif;
+}
+
+.object-input-key:hover {
+  border-color: #606060;
+}
+
+.object-input-key:focus {
+  outline: none;
+  border-color: #808080;
+}
+
+.object-input-value,
+.array-input-value {
+  flex: 2;
+  padding: 8px 16px;
+  background-color: #101010;
+  color: #fff;
+  border: 1px solid #303030;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: "Proxima Nova", sans-serif;
+}
+
+.object-input-value:hover,
+.array-input-value:hover {
+  border-color: #606060;
+}
+
+.object-input-value:focus,
+.array-input-value:focus {
+  outline: none;
+  border-color: #808080;
+}
+
+.config-input {
+  margin-bottom: 16px;
+}
+
+.config-input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-family: "Proxima Nova", sans-serif;
+  color: #fff;
+}
+
+.toast-container {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.toast {
+  background-color: #101010;
+  color: #fff;
+  padding: 16px;
+  border: 1px solid #303030;
+  border-radius: 4px;
+  box-shadow: 0 24px 48px #000000;
+  font-family: "Proxima Nova", sans-serif;
+  display: flex;
+  align-items: center;
+  min-width: 300px;
+  max-width: 400px;
+  opacity: 0;
+  transform: translateY(100%);
+  transition:
+    opacity 0.25s cubic-bezier(0, 1, 1, 1),
+    transform 0.25s cubic-bezier(0, 1, 1, 1);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-message {
+  flex: 1;
+  margin-right: 8px;
+}
+
+.toast-close,
+.toast-action {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: 8px;
+  font-family: "Proxima Nova", sans-serif;
+  transition: color 0.25s;
+}
+
+.toast-close:hover,
+.toast-action:hover {
+  color: #808080;
+}
+
+.toast-success {
+  border-left: 4px solid #4caf50;
+}
+
+.toast-error {
+  border-left: 4px solid #f44336;
+}
+
+.toast-info {
+  border-left: 4px solid #2196f3;
+}
+
+.toast-warning {
+  border-left: 4px solid #ffc107;
 }
 
 /* body {
