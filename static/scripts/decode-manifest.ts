@@ -1,11 +1,11 @@
 import { Manifest, ManifestPreDecode } from "../types/plugins";
 
 export class ManifestDecoder {
-  constructor() { }
+  constructor() {}
 
   decodeManifestFromFetch(manifest: ManifestPreDecode) {
     if (manifest.error) {
-      return manifest;
+      return null;
     }
 
     const decodedManifest: Manifest = {
