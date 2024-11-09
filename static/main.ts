@@ -2,6 +2,7 @@ import { AuthService } from "./scripts/authentication";
 import { ManifestDecoder } from "./scripts/decode-manifest";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
+import { OrgWithInstall } from "./types/github";
 
 async function handleAuth() {
   const auth = new AuthService();
@@ -11,13 +12,13 @@ async function handleAuth() {
     // await auth.signInWithGithub(); force a login?
   }
 
-  return auth
+  return auth;
 }
 
 export async function mainModule() {
   const auth = await handleAuth();
   const decoder = new ManifestDecoder();
-  const renderer = new ManifestRenderer();
+  const renderer = new ManifestRenderer(auth);
   const search = window.location.search.substring(1);
 
   if (search) {
@@ -26,22 +27,36 @@ export async function mainModule() {
   }
 
   try {
-    const userOrgs = await auth.getGitHubUserOrgs();
-    renderer.renderOrgPicker(userOrgs);
+    const fetcher = new ManifestFetcher(["ubiquity-os"], auth.octokit, decoder);
+    const cache = fetcher.checkManifestCache();
+    if (Object.keys(cache).length === 0) {
+      const manifestCache = await fetcher.fetchMarketplaceManifests();
+      localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
+    }
+
+    if (auth.isActiveSession()) {
+      const userOrgs = await auth.getGitHubUserOrgs();
+      const appInstallations = await auth.octokit?.apps.listInstallationsForAuthenticatedUser();
+      const installs = appInstallations?.data.installations;
+
+      const orgsWithInstalls = userOrgs.map((org) => {
+        const orgInstall = installs?.find((install) => {
+          if (install.account && "login" in install.account) {
+            return install.account.login.toLowerCase() === org.toLowerCase();
+          }
+          return false;
+        });
+        return {
+          org,
+          install: orgInstall,
+        };
+      }) as OrgWithInstall[];
+      renderer.renderOrgPicker(orgsWithInstalls.map((org) => org.org));
+    } else {
+      renderer.renderOrgPicker([]);
+    }
   } catch (error) {
     console.error(error);
-    // if (error instanceof Error) {
-    //   const message = error.message;
-    //   if (message === "No encoded manifest found!") {
-    //     const fetcher = new ManifestFetcher(["ubiquity-os"], auth.octokit, decoder);
-    //     const manifestCache = await fetcher.fetchManifests();
-    //     const firstErrorlessManifest = Object.values(manifestCache).find((manifest) => !manifest.error);
-    //     if (!firstErrorlessManifest) {
-    //       throw new Error("No errorless manifests found!");
-    //     }
-    //     renderer.renderManifest(firstErrorlessManifest);
-    //   }
-    // }
   }
 }
 
