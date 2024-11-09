@@ -27,13 +27,13 @@ export async function mainModule() {
   }
 
   try {
-    const fetcher = new ManifestFetcher(["ubiquity-os"], auth.octokit, decoder);
+    /**
+     * "ubiquity-os", "ubiquity-os-marketplace" === dev config
+     * "ubiquity" === prod config
+     */
+    const ubiquityOrgsToFetchOfficialConfigFrom = ["ubiquity-os"];
+    const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit, decoder);
     const cache = fetcher.checkManifestCache();
-    if (Object.keys(cache).length === 0) {
-      const manifestCache = await fetcher.fetchMarketplaceManifests();
-      localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
-    }
-
     if (auth.isActiveSession()) {
       const userOrgs = await auth.getGitHubUserOrgs();
       const appInstallations = await auth.octokit?.apps.listInstallationsForAuthenticatedUser();
@@ -52,6 +52,12 @@ export async function mainModule() {
         };
       }) as OrgWithInstall[];
       renderer.renderOrgPicker(orgsWithInstalls.map((org) => org.org));
+      if (Object.keys(cache).length === 0) {
+        const manifestCache = await fetcher.fetchMarketplaceManifests();
+        localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
+        // this is going to extract URLs from our official config which we'll inject into `- plugin: ...`
+        await fetcher.fetchOfficialPluginConfig();
+      }
     } else {
       renderer.renderOrgPicker([]);
     }
