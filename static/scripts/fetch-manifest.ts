@@ -109,7 +109,6 @@ export class ManifestFetcher {
     } catch (e) {
       let error = e;
       try {
-        console.log("retry fetch with main", url.replace(/development/g, "main"));
         const res = await fetch(url.replace(/development/g, "main"));
         return await res.json();
       } catch (e) {

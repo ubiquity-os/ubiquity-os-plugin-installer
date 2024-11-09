@@ -514,7 +514,6 @@ export class ManifestRenderer {
       if (key.includes(".")) {
         const keys = key.split(".");
         let currentObj = config;
-        console.log("Keys", keys);
         for (let i = 0; i < keys.length - 1; i++) {
           currentObj[keys[i]] = currentObj[keys[i]] || {};
           currentObj = currentObj[keys[i]] as Record<string, unknown>;
@@ -546,8 +545,8 @@ export class ManifestRenderer {
       throw new Error("Input name is required");
     }
 
-    if (!defaultValue) {
-      throw new Error("Default value is required");
+    if (!defaultValue && typeof input === "string") {
+      defaultValue = input;
     }
 
     let ele;
@@ -566,6 +565,10 @@ export class ManifestRenderer {
 
     if (typeof defaultValue === "string") {
       ele = this._createStringInput(input, defaultValue);
+    }
+
+    if (typeof defaultValue === "number") {
+      ele = this._createStringInput(input, String(defaultValue));
     }
 
     if (!ele) {
