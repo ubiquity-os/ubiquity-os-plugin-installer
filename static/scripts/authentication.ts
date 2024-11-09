@@ -6,8 +6,6 @@ declare const SUPABASE_URL: string;
 declare const SUPABASE_ANON_KEY: string;
 declare const SUPABASE_STORAGE_KEY: string;
 declare const NODE_ENV: string;
-declare const APP_PRIVATE_KEY: string;
-declare const APP_ID: string;
 
 export class AuthService {
   supabase: SupabaseClient;
@@ -15,6 +13,11 @@ export class AuthService {
 
   constructor() {
     this.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+
+  isActiveSession(): boolean {
+    const token = localStorage.getItem(`sb-${SUPABASE_STORAGE_KEY}-auth-token`);
+    return !!token;
   }
 
   async getSessionToken(): Promise<string | null> {
@@ -129,33 +132,5 @@ export class AuthService {
     if (this.octokit) return this.octokit;
     const token = await this.getSessionToken();
     return new Octokit({ auth: token });
-  }
-
-  async getInstallationIds(userOrgs?: string[]): Promise<number[] | null> {
-    const octokit = await this.getOctokit();
-    const orgs = userOrgs || (await this.getGitHubUserOrgs());
-
-    try {
-      const installationIds = await Promise.all(
-        orgs.map(async (org) => {
-          const response = await octokit.request("GET /orgs/{org}/installations", { org });
-          return response.data.installations.map((installation: { id: number }) => installation.id);
-        })
-      );
-      return installationIds.flat();
-    } catch (error) {
-      console.error("Failed to get installation ids", error);
-      return null;
-    }
-  }
-
-  async getAppOctokit(installationId: number): Promise<Octokit> {
-    return new Octokit({
-      auth: {
-        id: APP_ID,
-        privateKey: APP_PRIVATE_KEY,
-        installationId,
-      }
-    });
   }
 }
