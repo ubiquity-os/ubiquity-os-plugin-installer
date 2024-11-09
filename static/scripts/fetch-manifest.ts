@@ -11,7 +11,7 @@ export class ManifestFetcher {
   private _decoder: ManifestDecoder;
 
   workerUrlRegex = /https:\/\/([a-z0-9-]+)\.ubiquity\.workers\.dev/g;
-  actionUrlRegex = /(?<owner>[a-z0-9-]+)\/(?<repo>[a-z0-9-]+)(?:\/[^@]+)?@(?<branch>[a-z0-9-]+)/g;
+  actionUrlRegex = /[a-z0-9-]+\/[a-z0-9-]+(?:\/[^@]+)?@[a-z0-9-]+/g;
   workerUrls = new Set<string>();
   actionUrls = new Set<string>();
 
@@ -73,53 +73,27 @@ export class ManifestFetcher {
   captureActionUrls(config: string) {
     let match;
     while ((match = this.actionUrlRegex.exec(config)) !== null) {
-      const { owner, repo, branch } = match.groups || {};
-      if (owner && repo && branch) {
-        const endpoint = this.createActionEndpoint(owner, repo, branch);
-        this.actionUrls.add(endpoint);
-      }
+      this.actionUrls.add(match[0]);
     }
   }
 
-  async fetchManifests() {
-    const manifestCache = this.checkManifestCache();
-
-    if (Object.keys(manifestCache).length > 0) {
-      return manifestCache;
-    }
-
-    console.log("Fetching manifests...");
+  async fetchOfficialPluginConfig() {
     await this.fetchOrgsUbiquityOsConfigs();
-    console.log("Worker URLs", this.workerUrls);
-    console.log("Action URLs", this.actionUrls);
+    const officialPluginConfig = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}") || {};
 
-    for (const workerUrl of this.workerUrls) {
-      if (manifestCache[workerUrl]) {
-        continue;
+    this.workerUrls.forEach((url) => {
+      officialPluginConfig[url] = { workerUrl: url };
+    });
+
+    this.actionUrls.forEach((url) => {
+      if (url.includes("ubiquibot")) {
+        return;
       }
+      officialPluginConfig[url] = { actionUrl: url };
+    });
 
-      const manifest = await this.fetchWorkerManifest(workerUrl);
-      const decoded = this._decoder.decodeManifestFromFetch(manifest);
-      if (decoded) {
-        manifestCache[workerUrl] = decoded;
-      }
-    }
-
-    for (const actionUrl of this.actionUrls) {
-      if (manifestCache[actionUrl]) {
-        continue;
-      }
-
-      const manifest = await this.fetchActionManifest(actionUrl);
-      const decoded = this._decoder.decodeManifestFromFetch(manifest);
-      if (decoded) {
-        manifestCache[actionUrl] = decoded;
-      }
-    }
-
-    localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
-
-    return manifestCache;
+    localStorage.setItem("officialPluginConfig", JSON.stringify(officialPluginConfig));
+    return officialPluginConfig;
   }
 
   async fetchWorkerManifest(workerUrl: string) {
