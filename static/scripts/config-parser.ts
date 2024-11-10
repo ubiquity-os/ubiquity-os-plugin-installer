@@ -1,15 +1,16 @@
 import YAML from "yaml";
-import { Plugin, PluginConfig, Uses, With } from "../types/plugins";
+import { Plugin, PluginConfig } from "../types/plugins";
 import { Octokit } from "@octokit/rest";
+const repo = ".ubiquity-os";
+const path = `.github/.ubiquity-os.config.yml`;
 
 export class ConfigParser {
-  currentConfig: string | null = null;
-  newConfig: string | null = null;
+  repoConfig: string | null = null;
+  repoConfigSha: string | null = null;
+  newConfigYml: string | null = null;
 
-  async pushConfigToRepo(org: string, env: "development" | "production", octokit: Octokit) {
-    const repo = ".ubiquity-os";
-    const path = `.github/.ubiquity-os.config.yml`;
-    const content = this.currentConfig;
+  async fetchUserInstalledConfig(org: string, env: "development" | "production", octokit: Octokit) {
+    const content = this.loadConfig();
     if (!content) {
       throw new Error("No content to push");
     }
@@ -20,51 +21,79 @@ export class ConfigParser {
       path: env === "production" ? path : path.replace(".yml", ".dev.yml"),
     });
 
-    let extContent, extSha;
-
     if (existingConfig && "content" in existingConfig.data) {
-      extContent = atob(existingConfig.data.content);
-      extSha = existingConfig.data.sha;
-    }
-
-    if (existingConfig) {
-      return this.updateConfig(org, repo, path, env, content, octokit, {
-        extContent,
-        extSha,
-      });
+      this.repoConfigSha = existingConfig.data.sha;
+      this.repoConfig = atob(existingConfig.data.content);
     } else {
-      return this.createConfig(org, repo, path, env, content, octokit);
+      throw new Error("No existing config found"); // todo create repo/dirs/files
     }
   }
 
-  async updateConfig(
-    org: string,
-    repo: string,
-    path: string,
-    env: "development" | "production",
-    content: string,
-    octokit: Octokit,
-    existingConfig: { extContent?: string; extSha?: string }
-  ) {
-    const newContent = existingConfig ? `${existingConfig.extContent}\n${content}` : content;
-    return octokit.repos.createOrUpdateFileContents({
+  parseConfig(config?: string | null): PluginConfig {
+    if (config) {
+      return YAML.parse(config);
+    }
+    if (!this.newConfigYml) {
+      this.loadConfig();
+    }
+    return YAML.parse(`${this.newConfigYml}`);
+  }
+
+  async updateConfig(org: string, env: "development" | "production", octokit: Octokit) {
+    const repoPlugins = this.parseConfig(this.repoConfig).plugins;
+    const newPlugins = this.parseConfig().plugins;
+
+    if (!newPlugins) {
+      throw new Error("No plugins found in the config");
+    }
+
+    const newPluginNames = newPlugins.map((p) => p.uses[0].plugin);
+    if (newPluginNames.length === 0) {
+      throw new Error("No plugins found in the config");
+    }
+
+    for (const plugin of newPlugins) {
+      const repoPlugin = repoPlugins.find((p) => p.uses[0].plugin === plugin.uses[0].plugin);
+      if (repoPlugin) {
+        repoPlugin.uses = plugin.uses;
+      } else {
+        repoPlugins.push(plugin);
+      }
+    }
+
+    this.newConfigYml = YAML.stringify({ plugins: repoPlugins });
+    this.saveConfig();
+    return this.createOrUpdateFileContents(org, repo, path, env, octokit);
+  }
+
+  async createOrUpdateFileContents(org: string, repo: string, path: string, env: "development" | "production", octokit: Octokit) {
+    const recentSha = await octokit.repos.getContent({
       owner: org,
       repo: repo,
       path: env === "production" ? path : path.replace(".yml", ".dev.yml"),
-      message: `chore: updating ${env} config`,
-      content: btoa(newContent),
-      sha: existingConfig?.extSha,
     });
-  }
 
-  async createConfig(org: string, repo: string, path: string, env: "development" | "production", content: string, octokit: Octokit) {
+    const sha = "sha" in recentSha.data ? recentSha.data.sha : null;
+
     return octokit.repos.createOrUpdateFileContents({
       owner: org,
       repo: repo,
       path: env === "production" ? path : path.replace(".yml", ".dev.yml"),
       message: `chore: creating ${env} config`,
-      content: btoa(content),
+      content: btoa(`${this.newConfigYml}`),
+      sha: `${sha}`,
     });
+  }
+
+  addPlugin(plugin: Plugin) {
+    const config = this.loadConfig();
+    const parsedConfig = YAML.parse(config);
+    if (!parsedConfig.plugins) {
+      parsedConfig.plugins = [];
+    }
+    parsedConfig.plugins.push(plugin);
+    this.newConfigYml = YAML.stringify(parsedConfig);
+    this.saveConfig();
   }
 
   /**
@@ -76,83 +105,33 @@ export class ConfigParser {
    * the ubiquity-os.config.yml file.
    */
   loadConfig() {
-    if (!this.currentConfig) {
-      this.currentConfig = localStorage.getItem("config");
+    if (this.repoConfig) {
+      return this.repoConfig;
     }
 
-    if (!this.currentConfig) {
+    if (!this.newConfigYml) {
+      this.newConfigYml = localStorage.getItem("config");
+    }
+
+    if (!this.newConfigYml) {
       this.writeBlankConfig();
     }
 
-    this.newConfig = this.currentConfig;
+    if (!this.repoConfig && this.newConfigYml) {
+      this.repoConfig = YAML.parse(this.newConfigYml);
+    }
 
-    return this.currentConfig;
+    return this.newConfigYml as string;
   }
 
   saveConfig() {
-    if (this.newConfig) {
-      localStorage.setItem("config", this.newConfig);
-      this.currentConfig = this.newConfig;
-      this.newConfig = null;
+    if (this.newConfigYml) {
+      localStorage.setItem("config", this.newConfigYml);
     }
-  }
-
-  parseConfig(): PluginConfig {
-    if (!this.currentConfig) {
-      return { plugins: [] };
-    }
-    return YAML.parse(this.currentConfig) as PluginConfig;
   }
 
   writeBlankConfig() {
-    this.newConfig = YAML.stringify({ plugins: [] });
+    this.newConfigYml = YAML.stringify({ plugins: [] });
     this.saveConfig();
-  }
-
-  addPlugin(plugin: Plugin) {
-    this.loadConfig();
-    const config = this.parseConfig();
-    if (!config.plugins.some((p) => p.uses[0].plugin === plugin.uses[0].plugin)) {
-      config.plugins.push(plugin);
-    }
-    this.newConfig = YAML.stringify(config);
-    this.saveConfig();
-  }
-
-  removePlugin(pluginName: string) {
-    this.loadConfig();
-    const config = this.parseConfig();
-    config.plugins = config.plugins.filter((p) => p.uses[0].plugin !== pluginName);
-    this.newConfig = YAML.stringify(config);
-    this.saveConfig();
-  }
-
-  updatePlugin(plugin: Plugin) {
-    this.loadConfig();
-    const config = this.parseConfig();
-    const index = config.plugins.findIndex((p) => p.uses[0].plugin === plugin.uses[0].plugin);
-    if (index !== -1) {
-      config.plugins[index] = plugin;
-    } else {
-      config.plugins.push(plugin);
-    }
-    this.newConfig = YAML.stringify(config);
-    this.saveConfig();
-  }
-
-  extractPlugin(pluginName: string): Plugin | null {
-    this.loadConfig();
-    const config = this.parseConfig();
-    return config.plugins.find((p) => p.uses.some((u) => u.plugin === pluginName)) || null;
-  }
-
-  extractUses(pluginName: string): Uses[] {
-    const plugin = this.extractPlugin(pluginName);
-    return plugin ? plugin.uses : [];
-  }
-
-  extractWith(pluginName: string): With[] {
-    const uses = this.extractUses(pluginName);
-    return uses.map((u) => u.with);
   }
 }
