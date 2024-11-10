@@ -2,6 +2,9 @@ import { Manifest } from "@ubiquity-os/ubiquity-os-kernel";
 import { ManifestCache, ManifestPreDecode, ManifestProps, Plugin } from "../types/plugins";
 import { ConfigParser } from "./config-parser";
 import { AuthService } from "./authentication";
+import AJV, { AnySchemaObject } from "ajv";
+
+const ajv = new AJV({ allErrors: true, coerceTypes: true, strict: true });
 
 export class ManifestRenderer {
   private _manifestGui: HTMLElement;
@@ -21,8 +24,11 @@ export class ManifestRenderer {
 
     this._manifestGui = manifestGui as HTMLElement;
     this._manifestGuiBody = manifestGuiBody as HTMLElement;
+
     this._controlButtons(true);
   }
+
+  // Event Handlers
 
   private _handleOrgSelection(event: Event): void {
     const selectElement = event.target as HTMLSelectElement;
@@ -52,14 +58,25 @@ export class ManifestRenderer {
       const selectElement = event.target as HTMLSelectElement;
       const selectedConfig = selectElement.value as "development" | "production";
       if (selectedConfig) {
+        const fetchOrgConfig = async () => {
+          const org = localStorage.getItem("selectedOrg");
+          const octokit = this._auth.octokit;
+          if (!org || !octokit) {
+            throw new Error("No org or octokit found");
+          }
+          await this._configParser.fetchUserInstalledConfig(org, selectedConfig, octokit);
+        };
         localStorage.setItem("selectedConfig", selectedConfig);
         this._renderPluginSelector(selectedConfig);
+        fetchOrgConfig().catch(console.error);
       }
     } catch (error) {
       console.error("Error handling configuration selection:", error);
       alert("An error occurred while selecting the configuration.");
     }
   }
+
+  // UI Rendering
 
   private _controlButtons(hide: boolean): void {
     const addButton = document.getElementById("add");
@@ -78,7 +95,6 @@ export class ManifestRenderer {
     this._manifestGui?.classList.add("rendering");
     this._manifestGuiBody.innerHTML = "";
 
-    // Organization Picker Row
     const pickerRow = document.createElement("tr");
     const pickerCell = document.createElement("td");
     pickerCell.colSpan = 4;
@@ -128,7 +144,6 @@ export class ManifestRenderer {
   private _renderConfigSelector(selectedOrg: string): void {
     this._manifestGuiBody.innerHTML = "";
 
-    // Configuration Picker Row
     const pickerRow = document.createElement("tr");
     const pickerCell = document.createElement("td");
     pickerCell.colSpan = 2;
@@ -210,213 +225,6 @@ export class ManifestRenderer {
     this._manifestGuiBody.appendChild(pickerRow);
   }
 
-  private _renderConfigEditor(manifestStr: string): void {
-    this._manifestGuiBody.innerHTML = "";
-
-    const pluginManifest = JSON.parse(manifestStr) as Manifest;
-    const configProps = pluginManifest.configuration?.properties || {};
-
-    this._processProperties(configProps);
-
-    const add = document.getElementById("add");
-    if (!add) {
-      throw new Error("Add button not found");
-    }
-    add.addEventListener("click", this._writeNewConfig.bind(this));
-
-    this._updateGuiTitle(`Editing Configuration for ${pluginManifest.name}`);
-    this._controlButtons(false);
-    this._manifestGui?.classList.add("plugin-editor");
-    this._manifestGui?.classList.add("rendered");
-  }
-
-  private _createInputRow(key: string, prop: ManifestProps) {
-    const row = document.createElement("tr");
-
-    const headerCell = document.createElement("td");
-    headerCell.className = "table-data-header";
-    headerCell.textContent = key;
-    row.appendChild(headerCell);
-
-    const valueCell = document.createElement("td");
-    valueCell.className = "table-data-value";
-
-    const input = this._createInput(key, prop.default);
-    valueCell.appendChild(input);
-
-    row.appendChild(valueCell);
-    this._manifestGuiBody.appendChild(row);
-
-    // Store the default value and type in configDefaults
-    this._configDefaults[key] = {
-      type: prop.type,
-      value: prop.default,
-      items: prop.items ? { type: prop.items.type } : null,
-    };
-  }
-
-  private _processProperties(props: Record<string, ManifestProps>, prefix = "") {
-    Object.keys(props).forEach((key) => {
-      const fullKey = prefix ? `${prefix}.${key}` : key;
-      const prop = props[key];
-
-      if (prop.type === "object" && prop.properties) {
-        this._processProperties(prop.properties, fullKey);
-      } else {
-        this._createInputRow(fullKey, prop);
-      }
-    });
-  }
-
-  private _writeNewConfig(): void {
-    const selectedManifest = localStorage.getItem("selectedPluginManifest");
-    if (!selectedManifest) {
-      throw new Error("No selected plugin manifest found");
-    }
-    const pluginManifest = JSON.parse(selectedManifest) as Manifest;
-    const configInputs = document.querySelectorAll<HTMLInputElement>(".config-input");
-    const newConfig = this._parseConfigInputs(configInputs);
-
-    this._configParser.loadConfig();
-
-    const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}");
-
-    const pluginName = pluginManifest.name;
-
-    // this relies on the manifest matching the repo name
-    const normalizedPluginName = pluginName
-      .toLowerCase()
-      .replace(/ /g, "-")
-      .replace(/[^a-z0-9-]/g, "")
-      .replace(/-+/g, "-");
-
-    const pluginUrl = Object.keys(officialPluginConfig).find((url) => {
-      return url.includes(normalizedPluginName);
-    });
-
-    if (!pluginUrl) {
-      throw new Error("No plugin URL found");
-    }
-
-    const plugin: Plugin = {
-      uses: [
-        {
-          plugin: pluginUrl,
-          with: newConfig,
-        },
-      ],
-    };
-
-    this._configParser.addPlugin(plugin);
-
-    this._toastNotification(`Configuration for ${pluginManifest.name} saved successfully. Do you want to push to GitHub?`, {
-      type: "success",
-      actionText: "Push to GitHub",
-      action: async () => {
-        const octokit = this._auth.octokit;
-        if (!octokit) {
-          throw new Error("Octokit not found");
-        }
-
-        const org = localStorage.getItem("selectedOrg");
-        const config = localStorage.getItem("selectedConfig") as "development" | "production";
-
-        if (!org) {
-          throw new Error("No selected org found");
-        }
-
-        if (!config) {
-          throw new Error("No selected config found");
-        }
-
-        try {
-          await this._configParser.pushConfigToRepo(org, config, octokit);
-        } catch (error) {
-          console.error("Error pushing config to GitHub:", error);
-          this._toastNotification("An error occurred while pushing the configuration to GitHub.", {
-            type: "error",
-            shouldAutoDismiss: true,
-          });
-          return;
-        }
-
-        // Push to GitHub
-        this._toastNotification("Configuration pushed to GitHub successfully.", {
-          type: "success",
-          shouldAutoDismiss: true,
-        });
-      },
-    });
-  }
-
-  private _toastNotification(
-    message: string,
-    options: {
-      type?: "success" | "error" | "info" | "warning";
-      actionText?: string;
-      action?: () => void;
-      shouldAutoDismiss?: boolean;
-      duration?: number;
-    } = {}
-  ): void {
-    const { type = "info", actionText, action, shouldAutoDismiss = false, duration = 5000 } = options;
-
-    const toastElement = this._createElement("div", {
-      class: `toast toast-${type}`,
-    });
-
-    const messageElement = this._createElement("span", {
-      class: "toast-message",
-      textContent: message,
-    });
-
-    const closeButton = this._createElement("button", {
-      class: "toast-close",
-      textContent: "X",
-    });
-
-    closeButton.addEventListener("click", () => {
-      toastElement.classList.remove("show");
-      setTimeout(() => toastElement.remove(), 250); // Match the CSS transition duration
-    });
-
-    toastElement.appendChild(messageElement);
-
-    if (action && actionText) {
-      const actionButton = this._createElement("button", {
-        class: "toast-action",
-        textContent: actionText,
-      });
-      actionButton.addEventListener("click", action);
-      toastElement.appendChild(actionButton);
-    }
-
-    toastElement.appendChild(closeButton);
-
-    // Get or create the toast container
-    let toastContainer = document.querySelector(".toast-container");
-    if (!toastContainer) {
-      toastContainer = this._createElement("div", {
-        class: "toast-container",
-      });
-      document.body.appendChild(toastContainer);
-    }
-
-    toastContainer.appendChild(toastElement);
-
-    // Trigger the animation
-    requestAnimationFrame(() => {
-      toastElement.classList.add("show");
-    });
-
-    if (shouldAutoDismiss) {
-      setTimeout(() => {
-        toastElement.classList.remove("show");
-        setTimeout(() => toastElement.remove(), 250);
-      }, duration);
-    }
-  }
-
   renderManifest(decodedManifest: ManifestPreDecode) {
     if (!decodedManifest) {
       throw new Error("No decoded manifest found!");
@@ -452,6 +260,25 @@ export class ManifestRenderer {
     this._manifestGui?.classList.add("rendered");
   }
 
+  private _renderConfigEditor(manifestStr: string): void {
+    this._manifestGuiBody.innerHTML = "";
+
+    const pluginManifest = JSON.parse(manifestStr) as Manifest;
+    const configProps = pluginManifest.configuration?.properties || {};
+    this._processProperties(configProps);
+
+    const add = document.getElementById("add");
+    if (!add) {
+      throw new Error("Add button not found");
+    }
+    add.addEventListener("click", this._writeNewConfig.bind(this));
+
+    this._updateGuiTitle(`Editing Configuration for ${pluginManifest.name}`);
+    this._controlButtons(false);
+    this._manifestGui?.classList.add("plugin-editor");
+    this._manifestGui?.classList.add("rendered");
+  }
+
   private _updateGuiTitle(title: string): void {
     const guiTitle = document.querySelector("#manifest-gui-title");
     if (!guiTitle) {
@@ -460,71 +287,218 @@ export class ManifestRenderer {
     guiTitle.textContent = title;
   }
 
-  private _parseArrayInput(input: HTMLInputElement): unknown[] {
-    const arrayInputs = input.querySelectorAll<HTMLInputElement>(".array-input-value");
-    const values: unknown[] = [];
-    arrayInputs.forEach((arrayInput) => {
-      values.push(arrayInput.value);
+  private _toastNotification(
+    message: string,
+    options: {
+      type?: "success" | "error" | "info" | "warning";
+      actionText?: string;
+      action?: () => void;
+      shouldAutoDismiss?: boolean;
+      duration?: number;
+    } = {}
+  ): void {
+    const { type = "info", actionText, action, shouldAutoDismiss = false, duration = 5000 } = options;
+
+    const toastElement = this._createElement("div", {
+      class: `toast toast-${type}`,
     });
-    return values;
+
+    const messageElement = this._createElement("span", {
+      class: "toast-message",
+      textContent: message,
+    });
+
+    const closeButton = this._createElement("button", {
+      class: "toast-close",
+      textContent: "X",
+    });
+
+    closeButton.addEventListener("click", () => {
+      toastElement.classList.remove("show");
+      setTimeout(() => toastElement.remove(), 250);
+    });
+
+    toastElement.appendChild(messageElement);
+
+    if (action && actionText) {
+      const actionButton = this._createElement("button", {
+        class: "toast-action",
+        textContent: actionText,
+      });
+      actionButton.addEventListener("click", action);
+      toastElement.appendChild(actionButton);
+    }
+
+    toastElement.appendChild(closeButton);
+
+    let toastContainer = document.querySelector(".toast-container");
+    if (!toastContainer) {
+      toastContainer = this._createElement("div", {
+        class: "toast-container",
+      });
+      document.body.appendChild(toastContainer);
+    }
+
+    toastContainer.appendChild(toastElement);
+
+    requestAnimationFrame(() => {
+      toastElement.classList.add("show");
+    });
+
+    if (shouldAutoDismiss) {
+      setTimeout(() => {
+        toastElement.classList.remove("show");
+        setTimeout(() => toastElement.remove(), 250);
+      }, duration);
+    }
   }
 
-  private _parseObjectInput(input: HTMLInputElement): Record<string, unknown> {
-    const objectInputs = input.querySelectorAll<HTMLInputElement>(".object-input-row");
-    const obj: Record<string, unknown> = {};
-    objectInputs.forEach((objectInput) => {
-      const keyInput = objectInput.querySelector<HTMLInputElement>(".object-input-key");
-      const valueInput = objectInput.querySelector<HTMLInputElement>(".object-input-value");
-      if (!keyInput || !valueInput) {
-        throw new Error("Key and value inputs are required");
+  // Configuration Parsing
+
+  private _processProperties(props: Record<string, ManifestProps>, prefix = "") {
+    Object.keys(props).forEach((key) => {
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+      const prop = props[key];
+
+      if (prop.type === "object" && prop.properties) {
+        this._processProperties(prop.properties, fullKey);
+      } else {
+        this._createInputRow(fullKey, prop);
       }
-      obj[keyInput.value] = valueInput.value;
     });
-    return obj;
   }
 
-  private _parseConfigInputs(configInputs: NodeListOf<HTMLInputElement>): { [key: string]: unknown } {
+  private _parseConfigInputs(configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement>, manifest: Manifest): { [key: string]: unknown } {
     const config: Record<string, unknown> = {};
+    const schema = manifest.configuration;
+    if (!schema) {
+      throw new Error("No schema found in manifest");
+    }
+    const validate = ajv.compile(schema as AnySchemaObject);
+
     configInputs.forEach((input) => {
       const key = input.getAttribute("data-config-key");
       if (!key) {
         throw new Error("Input key is required");
       }
-      let value: unknown;
 
-      const defaultObj = this._configDefaults[key];
-      if (!defaultObj) {
-        throw new Error(`No default object found for key: ${key}`);
-      }
-      const { type } = defaultObj;
+      const keys = key.split(".");
 
-      if (type === "number") {
-        value = Number(input.value);
-      } else if (type === "boolean") {
-        value = input.value === "true";
-      } else if (type === "object") {
-        value = this._parseObjectInput(input);
-      } else if (type === "array") {
-        value = this._parseArrayInput(input);
-      } else {
-        value = input.value;
-      }
-
-      // Handle nested keys
-      if (key.includes(".")) {
-        const keys = key.split(".");
-        let currentObj = config;
-        for (let i = 0; i < keys.length - 1; i++) {
-          currentObj[keys[i]] = currentObj[keys[i]] || {};
-          currentObj = currentObj[keys[i]] as Record<string, unknown>;
+      let currentObj = config;
+      for (let i = 0; i < keys.length - 1; i++) {
+        const part = keys[i];
+        if (!currentObj[part] || typeof currentObj[part] !== "object") {
+          currentObj[part] = {};
         }
-        currentObj[keys[keys.length - 1]] = value;
-      } else {
-        config[key] = value;
+        currentObj = currentObj[part] as Record<string, unknown>;
       }
+
+      let value: unknown;
+      const expectedType = input.getAttribute("data-type");
+
+      if (expectedType === "boolean") {
+        value = (input as HTMLInputElement).checked;
+      } else if (expectedType === "object" || expectedType === "array") {
+        try {
+          value = JSON.parse((input as HTMLTextAreaElement).value);
+        } catch (e) {
+          throw new Error(`Invalid JSON input for ${expectedType} at key "${key}": ${input.value}`);
+        }
+      } else {
+        value = (input as HTMLInputElement).value;
+      }
+
+      currentObj[keys[keys.length - 1]] = value;
     });
-    return config;
+
+    if (validate(config)) {
+      return config;
+    } else {
+      throw new Error("Invalid configuration: " + JSON.stringify(validate.errors, null, 2));
+    }
   }
+
+  private _writeNewConfig(): void {
+    const selectedManifest = localStorage.getItem("selectedPluginManifest");
+    if (!selectedManifest) {
+      throw new Error("No selected plugin manifest found");
+    }
+    const pluginManifest = JSON.parse(selectedManifest) as Manifest;
+    const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
+
+    const newConfig = this._parseConfigInputs(configInputs, pluginManifest);
+
+    this._configParser.loadConfig();
+
+    const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}");
+
+    const pluginName = pluginManifest.name;
+
+    // this relies on the manifest matching the repo name
+    const normalizedPluginName = pluginName
+      .toLowerCase()
+      .replace(/ /g, "-")
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/-+/g, "-");
+
+    const pluginUrl = Object.keys(officialPluginConfig).find((url) => {
+      return url.includes(normalizedPluginName);
+    });
+
+    if (!pluginUrl) {
+      throw new Error("No plugin URL found");
+    }
+
+    const plugin: Plugin = {
+      uses: [
+        {
+          plugin: pluginUrl,
+          with: newConfig,
+        },
+      ],
+    };
+
+    this._configParser.addPlugin(plugin);
+    this._toastNotification(`Configuration for ${pluginManifest.name} saved successfully. Do you want to push to GitHub?`, {
+      type: "success",
+      actionText: "Push to GitHub",
+      action: async () => {
+        const octokit = this._auth.octokit;
+        if (!octokit) {
+          throw new Error("Octokit not found");
+        }
+
+        const org = localStorage.getItem("selectedOrg");
+        const config = localStorage.getItem("selectedConfig") as "development" | "production";
+
+        if (!org) {
+          throw new Error("No selected org found");
+        }
+
+        if (!config) {
+          throw new Error("No selected config found");
+        }
+
+        try {
+          await this._configParser.updateConfig(org, config, octokit);
+        } catch (error) {
+          console.error("Error pushing config to GitHub:", error);
+          this._toastNotification("An error occurred while pushing the configuration to GitHub.", {
+            type: "error",
+            shouldAutoDismiss: true,
+          });
+          return;
+        }
+
+        this._toastNotification("Configuration pushed to GitHub successfully.", {
+          type: "success",
+          shouldAutoDismiss: true,
+        });
+      },
+    });
+  }
+
+  // Helper functions
 
   private _createElement<TK extends keyof HTMLElementTagNameMap>(tagName: TK, attributes: { [key: string]: string }): HTMLElementTagNameMap[TK] {
     const element = document.createElement(tagName);
@@ -539,64 +513,67 @@ export class ManifestRenderer {
     });
     return element;
   }
+  private _createInputRow(key: string, prop: ManifestProps) {
+    const row = document.createElement("tr");
 
-  private _createInput(input: string, defaultValue: string | boolean | object): HTMLElement {
-    if (!input) {
+    const headerCell = document.createElement("td");
+    headerCell.className = "table-data-header";
+    headerCell.textContent = key;
+    row.appendChild(headerCell);
+
+    const valueCell = document.createElement("td");
+    valueCell.className = "table-data-value";
+
+    const input = this._createInput(key, prop.default, prop);
+    valueCell.appendChild(input);
+
+    row.appendChild(valueCell);
+    this._manifestGuiBody.appendChild(row);
+
+    this._configDefaults[key] = {
+      type: prop.type,
+      value: prop.default,
+      items: prop.items ? { type: prop.items.type } : null,
+    };
+  }
+  private _createInput(key: string, defaultValue: unknown, prop: ManifestProps): HTMLElement {
+    if (!key) {
       throw new Error("Input name is required");
     }
 
-    if (!defaultValue && typeof input === "string") {
-      defaultValue = input;
-    }
+    let ele: HTMLElement;
 
-    let ele;
+    const dataType = prop.type;
 
-    if (typeof defaultValue === "object") {
-      ele = this._createObjectInput(input, defaultValue);
-    }
-
-    if (Array.isArray(defaultValue)) {
-      ele = this._createArrayInput(input, defaultValue);
-    }
-
-    if (typeof defaultValue === "boolean") {
-      ele = this._createBooleanInput(input, defaultValue);
-    }
-
-    if (typeof defaultValue === "string") {
-      ele = this._createStringInput(input, defaultValue);
-    }
-
-    if (typeof defaultValue === "number") {
-      ele = this._createStringInput(input, String(defaultValue));
-    }
-
-    if (!ele) {
-      throw new Error("Unable to create input");
+    if (dataType === "object" || dataType === "array") {
+      ele = this._createTextareaInput(key, defaultValue, dataType);
+    } else if (dataType === "boolean") {
+      ele = this._createBooleanInput(key, defaultValue);
+    } else {
+      ele = this._createStringInput(key, defaultValue, dataType);
     }
 
     return ele;
   }
-
-  private _createStringInput(input: string, defaultValue: string): HTMLElement {
+  private _createStringInput(key: string, defaultValue: string | unknown, dataType: string): HTMLElement {
     const inputElem = this._createElement("input", {
       type: "text",
-      id: input,
-      name: input,
-      "data-config-key": input,
+      id: key,
+      name: key,
+      "data-config-key": key,
+      "data-type": dataType,
       class: "config-input",
-      value: defaultValue,
+      value: `${defaultValue}`,
     });
-
     return inputElem;
   }
-
-  private _createBooleanInput(input: string, defaultValue: boolean): HTMLElement {
+  private _createBooleanInput(key: string, defaultValue: boolean | unknown): HTMLElement {
     const inputElem = this._createElement("input", {
       type: "checkbox",
-      id: input,
-      name: input,
-      "data-config-key": input,
+      id: key,
+      name: key,
+      "data-config-key": key,
+      "data-type": "boolean",
       class: "config-input",
     });
 
@@ -606,62 +583,19 @@ export class ManifestRenderer {
 
     return inputElem;
   }
-
-  private _createObjectInput(input: string, obj: object): HTMLElement {
-    const inputElem = this._createElement("div", {
-      id: input,
-      name: input,
-      "data-config-key": input,
+  private _createTextareaInput(key: string, defaultValue: object | unknown, dataType: string): HTMLElement {
+    const inputElem = this._createElement("textarea", {
+      id: key,
+      name: key,
+      "data-config-key": key,
+      "data-type": dataType,
       class: "config-input",
+      rows: "5",
+      cols: "50",
     });
+    inputElem.textContent = JSON.stringify(defaultValue, null, 2);
 
-    Object.entries(obj).forEach(([key, value]) => {
-      const row = this._createElement("div", {
-        class: "object-input-row",
-      });
-
-      const keyInput = this._createElement("input", {
-        type: "text",
-        class: "object-input-key",
-        value: key,
-      });
-
-      const valueInput = this._createElement("input", {
-        type: "text",
-        class: "object-input-value",
-        value: value,
-      });
-
-      row.appendChild(keyInput);
-      row.appendChild(valueInput);
-      inputElem.appendChild(row);
-    });
-
-    return inputElem;
-  }
-
-  private _createArrayInput(input: string, defaultValue: Array<unknown>): HTMLElement {
-    const inputElem = this._createElement("div", {
-      id: input,
-      name: input,
-      "data-config-key": input,
-      class: "config-input",
-    });
-
-    defaultValue.forEach((value) => {
-      const row = this._createElement("div", {
-        class: "array-input-row",
-      });
-
-      const input = this._createElement("input", {
-        type: "text",
-        class: "array-input-value",
-        value: value as string,
-      });
-
-      row.appendChild(input);
-      inputElem.appendChild(row);
-    });
+    inputElem.setAttribute("placeholder", `Enter ${dataType} in JSON format`);
 
     return inputElem;
   }
