@@ -8,10 +8,8 @@ export interface Plugin {
 
 export interface Uses {
   plugin: string;
-  with: With;
+  with: Record<string, unknown>;
 }
-
-export interface With extends Record<string, unknown> {}
 
 export interface ManifestPreDecode extends Manifest {
   actionUrl?: string;

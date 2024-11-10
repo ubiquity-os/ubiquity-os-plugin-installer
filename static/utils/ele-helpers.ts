@@ -1,4 +1,7 @@
 import { ManifestProps } from "../types/plugins";
+
+const CONFIG_INPUT_STR = "config-input";
+
 export const manifestGuiBody = document.getElementById("manifest-gui-body");
 
 export function createElement<TK extends keyof HTMLElementTagNameMap>(tagName: TK, attributes: { [key: string]: string }): HTMLElementTagNameMap[TK] {
@@ -61,16 +64,15 @@ export function createInput(key: string, defaultValue: unknown, prop: ManifestPr
   return ele;
 }
 export function createStringInput(key: string, defaultValue: string | unknown, dataType: string): HTMLElement {
-  const inputElem = createElement("input", {
+  return createElement("input", {
     type: "text",
     id: key,
     name: key,
     "data-config-key": key,
     "data-type": dataType,
-    class: "config-input",
+    class: CONFIG_INPUT_STR,
     value: `${defaultValue}`,
   });
-  return inputElem;
 }
 export function createBooleanInput(key: string, defaultValue: boolean | unknown): HTMLElement {
   const inputElem = createElement("input", {
@@ -79,7 +81,7 @@ export function createBooleanInput(key: string, defaultValue: boolean | unknown)
     name: key,
     "data-config-key": key,
     "data-type": "boolean",
-    class: "config-input",
+    class: CONFIG_INPUT_STR,
   });
 
   if (defaultValue) {
@@ -94,7 +96,7 @@ export function createTextareaInput(key: string, defaultValue: object | unknown,
     name: key,
     "data-config-key": key,
     "data-type": dataType,
-    class: "config-input",
+    class: CONFIG_INPUT_STR,
     rows: "5",
     cols: "50",
   });

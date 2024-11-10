@@ -8,6 +8,9 @@ import { toastNotification } from "../utils/toaster";
 
 const ajv = new AJV({ allErrors: true, coerceTypes: true, strict: true });
 
+const TDV_CENTERED = "table-data-value centered";
+const PICKER_SELECT_STR = "picker-select";
+
 export class ManifestRenderer {
   private _manifestGui: HTMLElement;
   private _manifestGuiBody: HTMLElement;
@@ -138,7 +141,7 @@ export class ManifestRenderer {
     const pickerRow = document.createElement("tr");
     const pickerCell = document.createElement("td");
     pickerCell.colSpan = 4;
-    pickerCell.className = "table-data-value centered";
+    pickerCell.className = TDV_CENTERED;
 
     if (!orgs.length) {
       const hasSession = this._auth.isActiveSession();
@@ -156,7 +159,7 @@ export class ManifestRenderer {
 
     const orgSelect = createElement("select", {
       id: "org-picker-select",
-      class: "picker-select",
+      class: PICKER_SELECT_STR,
       style: "width: 100%",
     });
 
@@ -190,11 +193,11 @@ export class ManifestRenderer {
     const pickerRow = document.createElement("tr");
     const pickerCell = document.createElement("td");
     pickerCell.colSpan = 2;
-    pickerCell.className = "table-data-value centered";
+    pickerCell.className = TDV_CENTERED;
 
     const configSelect = createElement("select", {
       id: "config-selector-select",
-      class: "picker-select",
+      class: PICKER_SELECT_STR,
     });
 
     const defaultOption = createElement("option", {
@@ -232,11 +235,11 @@ export class ManifestRenderer {
     const pickerRow = document.createElement("tr");
     const pickerCell = document.createElement("td");
     pickerCell.colSpan = 2;
-    pickerCell.className = "table-data-value centered";
+    pickerCell.className = TDV_CENTERED;
 
     const pluginSelect = createElement("select", {
       id: "plugin-selector-select",
-      class: "picker-select",
+      class: PICKER_SELECT_STR,
     });
 
     const defaultOption = createElement("option", {
@@ -389,6 +392,7 @@ export class ManifestRenderer {
         try {
           value = JSON.parse((input as HTMLTextAreaElement).value);
         } catch (e) {
+          console.error(e);
           throw new Error(`Invalid JSON input for ${expectedType} at key "${key}": ${input.value}`);
         }
       } else {
