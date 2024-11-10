@@ -53,10 +53,13 @@ export class ConfigParser {
     }
 
     if (option === "add") {
-      newPluginNames.forEach((pluginName) => {
-        const existingPlugin = repoPlugins.find((p) => p.uses[0].plugin === pluginName);
-        if (!existingPlugin) {
-          repoPlugins.push(newPlugins.find((p) => p.uses[0].plugin === pluginName) as Plugin);
+      // update if it exists, add if it doesn't
+      newPlugins.forEach((newPlugin) => {
+        const existingPlugin = repoPlugins.find((p) => p.uses[0].plugin === newPlugin.uses[0].plugin);
+        if (existingPlugin) {
+          existingPlugin.uses[0].with = newPlugin.uses[0].with;
+        } else {
+          repoPlugins.push(newPlugin);
         }
       });
     } else if (option === "remove") {
