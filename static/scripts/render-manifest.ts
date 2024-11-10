@@ -3,6 +3,8 @@ import { ManifestCache, ManifestPreDecode, ManifestProps, Plugin } from "../type
 import { ConfigParser } from "./config-parser";
 import { AuthService } from "./authentication";
 import AJV, { AnySchemaObject } from "ajv";
+import { createElement, createInputRow } from "../utils/ele-helpers";
+import { toastNotification } from "../utils/toaster";
 
 const ajv = new AJV({ allErrors: true, coerceTypes: true, strict: true });
 
@@ -114,20 +116,20 @@ export class ManifestRenderer {
 
     this._updateGuiTitle("Select an Organization");
 
-    const orgSelect = this._createElement("select", {
+    const orgSelect = createElement("select", {
       id: "org-picker-select",
       class: "picker-select",
       style: "width: 100%",
     });
 
-    const defaultOption = this._createElement("option", {
+    const defaultOption = createElement("option", {
       value: "",
       textContent: "Found installations...",
     });
     orgSelect.appendChild(defaultOption);
 
     orgs.forEach((org) => {
-      const option = this._createElement("option", {
+      const option = createElement("option", {
         value: org,
         textContent: org,
       });
@@ -149,12 +151,12 @@ export class ManifestRenderer {
     pickerCell.colSpan = 2;
     pickerCell.className = "table-data-value centered";
 
-    const configSelect = this._createElement("select", {
+    const configSelect = createElement("select", {
       id: "config-selector-select",
       class: "picker-select",
     });
 
-    const defaultOption = this._createElement("option", {
+    const defaultOption = createElement("option", {
       value: "",
       textContent: "Select a configuration",
     });
@@ -162,7 +164,7 @@ export class ManifestRenderer {
 
     const configs = ["development", "production"];
     configs.forEach((config) => {
-      const option = this._createElement("option", {
+      const option = createElement("option", {
         value: config,
         textContent: config.charAt(0).toUpperCase() + config.slice(1),
       });
@@ -188,12 +190,12 @@ export class ManifestRenderer {
     pickerCell.colSpan = 2;
     pickerCell.className = "table-data-value centered";
 
-    const pluginSelect = this._createElement("select", {
+    const pluginSelect = createElement("select", {
       id: "plugin-selector-select",
       class: "picker-select",
     });
 
-    const defaultOption = this._createElement("option", {
+    const defaultOption = createElement("option", {
       value: "",
       textContent: "Select a plugin",
     });
@@ -210,7 +212,7 @@ export class ManifestRenderer {
       if (!cleanManifestCache[url]?.name) {
         return;
       }
-      const option = this._createElement("option", {
+      const option = createElement("option", {
         value: JSON.stringify(cleanManifestCache[url]),
         textContent: cleanManifestCache[url]?.name,
       });
@@ -287,72 +289,6 @@ export class ManifestRenderer {
     guiTitle.textContent = title;
   }
 
-  private _toastNotification(
-    message: string,
-    options: {
-      type?: "success" | "error" | "info" | "warning";
-      actionText?: string;
-      action?: () => void;
-      shouldAutoDismiss?: boolean;
-      duration?: number;
-    } = {}
-  ): void {
-    const { type = "info", actionText, action, shouldAutoDismiss = false, duration = 5000 } = options;
-
-    const toastElement = this._createElement("div", {
-      class: `toast toast-${type}`,
-    });
-
-    const messageElement = this._createElement("span", {
-      class: "toast-message",
-      textContent: message,
-    });
-
-    const closeButton = this._createElement("button", {
-      class: "toast-close",
-      textContent: "X",
-    });
-
-    closeButton.addEventListener("click", () => {
-      toastElement.classList.remove("show");
-      setTimeout(() => toastElement.remove(), 250);
-    });
-
-    toastElement.appendChild(messageElement);
-
-    if (action && actionText) {
-      const actionButton = this._createElement("button", {
-        class: "toast-action",
-        textContent: actionText,
-      });
-      actionButton.addEventListener("click", action);
-      toastElement.appendChild(actionButton);
-    }
-
-    toastElement.appendChild(closeButton);
-
-    let toastContainer = document.querySelector(".toast-container");
-    if (!toastContainer) {
-      toastContainer = this._createElement("div", {
-        class: "toast-container",
-      });
-      document.body.appendChild(toastContainer);
-    }
-
-    toastContainer.appendChild(toastElement);
-
-    requestAnimationFrame(() => {
-      toastElement.classList.add("show");
-    });
-
-    if (shouldAutoDismiss) {
-      setTimeout(() => {
-        toastElement.classList.remove("show");
-        setTimeout(() => toastElement.remove(), 250);
-      }, duration);
-    }
-  }
-
   // Configuration Parsing
 
   private _processProperties(props: Record<string, ManifestProps>, prefix = "") {
@@ -363,7 +299,7 @@ export class ManifestRenderer {
       if (prop.type === "object" && prop.properties) {
         this._processProperties(prop.properties, fullKey);
       } else {
-        this._createInputRow(fullKey, prop);
+        createInputRow(fullKey, prop, this._configDefaults);
       }
     });
   }
@@ -459,7 +395,7 @@ export class ManifestRenderer {
     };
 
     this._configParser.addPlugin(plugin);
-    this._toastNotification(`Configuration for ${pluginManifest.name} saved successfully. Do you want to push to GitHub?`, {
+    toastNotification(`Configuration for ${pluginManifest.name} saved successfully. Do you want to push to GitHub?`, {
       type: "success",
       actionText: "Push to GitHub",
       action: async () => {
@@ -483,120 +419,18 @@ export class ManifestRenderer {
           await this._configParser.updateConfig(org, config, octokit);
         } catch (error) {
           console.error("Error pushing config to GitHub:", error);
-          this._toastNotification("An error occurred while pushing the configuration to GitHub.", {
+          toastNotification("An error occurred while pushing the configuration to GitHub.", {
             type: "error",
             shouldAutoDismiss: true,
           });
           return;
         }
 
-        this._toastNotification("Configuration pushed to GitHub successfully.", {
+        toastNotification("Configuration pushed to GitHub successfully.", {
           type: "success",
           shouldAutoDismiss: true,
         });
       },
     });
-  }
-
-  // Helper functions
-
-  private _createElement<TK extends keyof HTMLElementTagNameMap>(tagName: TK, attributes: { [key: string]: string }): HTMLElementTagNameMap[TK] {
-    const element = document.createElement(tagName);
-    Object.keys(attributes).forEach((key) => {
-      if (key === "textContent") {
-        element.textContent = attributes[key];
-      } else if (key in element) {
-        (element as Record<string, string>)[key] = attributes[key];
-      } else {
-        element.setAttribute(key, attributes[key]);
-      }
-    });
-    return element;
-  }
-  private _createInputRow(key: string, prop: ManifestProps) {
-    const row = document.createElement("tr");
-
-    const headerCell = document.createElement("td");
-    headerCell.className = "table-data-header";
-    headerCell.textContent = key;
-    row.appendChild(headerCell);
-
-    const valueCell = document.createElement("td");
-    valueCell.className = "table-data-value";
-
-    const input = this._createInput(key, prop.default, prop);
-    valueCell.appendChild(input);
-
-    row.appendChild(valueCell);
-    this._manifestGuiBody.appendChild(row);
-
-    this._configDefaults[key] = {
-      type: prop.type,
-      value: prop.default,
-      items: prop.items ? { type: prop.items.type } : null,
-    };
-  }
-  private _createInput(key: string, defaultValue: unknown, prop: ManifestProps): HTMLElement {
-    if (!key) {
-      throw new Error("Input name is required");
-    }
-
-    let ele: HTMLElement;
-
-    const dataType = prop.type;
-
-    if (dataType === "object" || dataType === "array") {
-      ele = this._createTextareaInput(key, defaultValue, dataType);
-    } else if (dataType === "boolean") {
-      ele = this._createBooleanInput(key, defaultValue);
-    } else {
-      ele = this._createStringInput(key, defaultValue, dataType);
-    }
-
-    return ele;
-  }
-  private _createStringInput(key: string, defaultValue: string | unknown, dataType: string): HTMLElement {
-    const inputElem = this._createElement("input", {
-      type: "text",
-      id: key,
-      name: key,
-      "data-config-key": key,
-      "data-type": dataType,
-      class: "config-input",
-      value: `${defaultValue}`,
-    });
-    return inputElem;
-  }
-  private _createBooleanInput(key: string, defaultValue: boolean | unknown): HTMLElement {
-    const inputElem = this._createElement("input", {
-      type: "checkbox",
-      id: key,
-      name: key,
-      "data-config-key": key,
-      "data-type": "boolean",
-      class: "config-input",
-    });
-
-    if (defaultValue) {
-      inputElem.setAttribute("checked", "");
-    }
-
-    return inputElem;
-  }
-  private _createTextareaInput(key: string, defaultValue: object | unknown, dataType: string): HTMLElement {
-    const inputElem = this._createElement("textarea", {
-      id: key,
-      name: key,
-      "data-config-key": key,
-      "data-type": dataType,
-      class: "config-input",
-      rows: "5",
-      cols: "50",
-    });
-    inputElem.textContent = JSON.stringify(defaultValue, null, 2);
-
-    inputElem.setAttribute("placeholder", `Enter ${dataType} in JSON format`);
-
-    return inputElem;
   }
 }
