@@ -1,7 +1,7 @@
 {
-  "name": "ts-template",
-  "version": "0.0.0",
-  "description": "Template repository with TypeScript support.",
+  "name": "@ubiquity-os/pluggin-installer",
+  "version": "1.0.0",
+  "description": "The official UbiquityOS plugin installer.",
   "main": "build/index.ts",
   "author": "Ubiquity DAO",
   "type": "module",

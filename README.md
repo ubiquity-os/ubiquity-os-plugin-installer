@@ -1,6 +1,6 @@
 # UbiquityOS Plugin Installer
 
-![_Users_nv_repos_0x4007_plugin-installer-gui_index html_manifest={%22name%22_%22Start%20_%20Stop%22,%22description%22_%22Assign%20or%20un-assign%20yourself%20from%20an%20issue %22,%22ubiquity_listeners%22_ %22issue_comment created%22,%22issu](https://github.com/user-attachments/assets/353b1e84-8c1b-48eb-9d6d-1f0e5ba80fb9)
+![_Users_nv_repos_0x4007_plugin-installer-gui_index html_manifest={%22name%22_%22Start%20_%20Stop%22,%22description%22_%22Assign%20or%20un-assign%20yourself%20from%20an%20issue %22,%22ubiquity_listeners%22_ %22issue_comment created%22,%22issue](https://github.com/user-attachments/assets/353b1e84-8c1b-48eb-9d6d-1f0e5ba80fb9)
 
 ###### This was hand coded on an airplane ride with no internet.
 

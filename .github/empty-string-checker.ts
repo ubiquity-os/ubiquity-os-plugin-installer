@@ -44,7 +44,6 @@ async function main() {
         );
       });
 
-
       await octokit.rest.checks.create({
         owner,
         repo,
