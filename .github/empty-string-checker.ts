@@ -44,7 +44,6 @@ async function main() {
         );
       });
 
-      // core.setFailed(`${violations.length} empty string${violations.length > 1 ? "s" : ""} detected in the code.`);
 
       await octokit.rest.checks.create({
         owner,
