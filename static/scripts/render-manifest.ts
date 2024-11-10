@@ -14,6 +14,9 @@ export class ManifestRenderer {
   private _configParser = new ConfigParser();
   private _configDefaults: { [key: string]: { type: string; value: string; items: { type: string } | null } } = {};
   private _auth: AuthService;
+  private _backButton: HTMLButtonElement;
+  private _currentStep: "orgPicker" | "configSelector" | "pluginSelector" | "configEditor" = "orgPicker";
+  private _orgs: string[] = [];
 
   constructor(auth: AuthService) {
     this._auth = auth;
@@ -26,8 +29,39 @@ export class ManifestRenderer {
 
     this._manifestGui = manifestGui as HTMLElement;
     this._manifestGuiBody = manifestGuiBody as HTMLElement;
-
     this._controlButtons(true);
+
+    this._backButton = createElement("button", {
+      id: "back-button",
+      class: "button",
+      textContent: "Back",
+    }) as HTMLButtonElement;
+
+    const title = manifestGui.querySelector("#manifest-gui-title");
+    title?.previousSibling?.appendChild(this._backButton);
+    this._backButton.style.display = "none";
+    this._backButton.addEventListener("click", this._handleBackButtonClick.bind(this));
+  }
+
+  private _handleBackButtonClick(): void {
+    switch (this._currentStep) {
+      case "configSelector": {
+        this.renderOrgPicker(this._orgs);
+        break;
+      }
+      case "pluginSelector": {
+        const selectedConfig = localStorage.getItem("selectedConfig") as "development" | "production";
+        this._renderConfigSelector(selectedConfig);
+        break;
+      }
+      case "configEditor": {
+        const selectedConfig = localStorage.getItem("selectedConfig") as "development" | "production";
+        this._renderPluginSelector(selectedConfig);
+        break;
+      }
+      default:
+        break;
+    }
   }
 
   // Event Handlers
@@ -94,6 +128,10 @@ export class ManifestRenderer {
   }
 
   public renderOrgPicker(orgs: string[]): void {
+    this._orgs = orgs;
+    this._currentStep = "orgPicker";
+    this._controlButtons(true);
+    this._backButton.style.display = "none";
     this._manifestGui?.classList.add("rendering");
     this._manifestGuiBody.innerHTML = "";
 
@@ -144,7 +182,10 @@ export class ManifestRenderer {
   }
 
   private _renderConfigSelector(selectedOrg: string): void {
+    this._currentStep = "configSelector";
+    this._backButton.style.display = "block";
     this._manifestGuiBody.innerHTML = "";
+    this._controlButtons(true);
 
     const pickerRow = document.createElement("tr");
     const pickerCell = document.createElement("td");
@@ -180,7 +221,10 @@ export class ManifestRenderer {
   }
 
   private _renderPluginSelector(selectedConfig: "development" | "production"): void {
+    this._currentStep = "pluginSelector";
+    this._backButton.style.display = "block";
     this._manifestGuiBody.innerHTML = "";
+    this._controlButtons(true);
 
     const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
     const pluginUrls = Object.keys(manifestCache);
@@ -263,7 +307,10 @@ export class ManifestRenderer {
   }
 
   private _renderConfigEditor(manifestStr: string): void {
+    this._currentStep = "configEditor";
+    this._backButton.style.display = "block";
     this._manifestGuiBody.innerHTML = "";
+    this._controlButtons(false);
 
     const pluginManifest = JSON.parse(manifestStr) as Manifest;
     const configProps = pluginManifest.configuration?.properties || {};
@@ -273,10 +320,14 @@ export class ManifestRenderer {
     if (!add) {
       throw new Error("Add button not found");
     }
-    add.addEventListener("click", this._writeNewConfig.bind(this));
+    add.addEventListener("click", this._writeNewConfig.bind(this, "add"));
+    const remove = document.getElementById("remove");
+    if (!remove) {
+      throw new Error("Remove button not found");
+    }
+    remove.addEventListener("click", this._writeNewConfig.bind(this, "remove"));
 
     this._updateGuiTitle(`Editing Configuration for ${pluginManifest.name}`);
-    this._controlButtons(false);
     this._manifestGui?.classList.add("plugin-editor");
     this._manifestGui?.classList.add("rendered");
   }
@@ -354,7 +405,7 @@ export class ManifestRenderer {
     }
   }
 
-  private _writeNewConfig(): void {
+  private _writeNewConfig(option: "add" | "remove"): void {
     const selectedManifest = localStorage.getItem("selectedPluginManifest");
     if (!selectedManifest) {
       throw new Error("No selected plugin manifest found");
@@ -394,6 +445,14 @@ export class ManifestRenderer {
       ],
     };
 
+    if (option === "add") {
+      this._handleAddPlugin(plugin, pluginManifest);
+    } else {
+      this._handleRemovePlugin(plugin, pluginManifest);
+    }
+  }
+
+  private _handleAddPlugin(plugin: Plugin, pluginManifest: Manifest): void {
     this._configParser.addPlugin(plugin);
     toastNotification(`Configuration for ${pluginManifest.name} saved successfully. Do you want to push to GitHub?`, {
       type: "success",
@@ -416,7 +475,48 @@ export class ManifestRenderer {
         }
 
         try {
-          await this._configParser.updateConfig(org, config, octokit);
+          await this._configParser.updateConfig(org, config, octokit, "add");
+        } catch (error) {
+          console.error("Error pushing config to GitHub:", error);
+          toastNotification("An error occurred while pushing the configuration to GitHub.", {
+            type: "error",
+            shouldAutoDismiss: true,
+          });
+          return;
+        }
+
+        toastNotification("Configuration pushed to GitHub successfully.", {
+          type: "success",
+          shouldAutoDismiss: true,
+        });
+      },
+    });
+  }
+
+  private _handleRemovePlugin(plugin: Plugin, pluginManifest: Manifest): void {
+    this._configParser.removePlugin(plugin);
+    toastNotification(`Configuration for ${pluginManifest.name} removed successfully. Do you want to push to GitHub?`, {
+      type: "success",
+      actionText: "Push to GitHub",
+      action: async () => {
+        const octokit = this._auth.octokit;
+        if (!octokit) {
+          throw new Error("Octokit not found");
+        }
+
+        const org = localStorage.getItem("selectedOrg");
+        const config = localStorage.getItem("selectedConfig") as "development" | "production";
+
+        if (!org) {
+          throw new Error("No selected org found");
+        }
+
+        if (!config) {
+          throw new Error("No selected config found");
+        }
+
+        try {
+          await this._configParser.updateConfig(org, config, octokit, "remove");
         } catch (error) {
           console.error("Error pushing config to GitHub:", error);
           toastNotification("An error occurred while pushing the configuration to GitHub.", {

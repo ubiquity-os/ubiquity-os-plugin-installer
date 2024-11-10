@@ -200,7 +200,7 @@ button#add:active::before {
 }
 
 .config-input {
-  width: 100%;
+  width: calc(100% - 32px);
   padding: 8px 16px;
   background-color: #101010;
   color: #fff;

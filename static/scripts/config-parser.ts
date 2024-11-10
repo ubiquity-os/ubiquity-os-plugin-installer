@@ -39,8 +39,8 @@ export class ConfigParser {
     return YAML.parse(`${this.newConfigYml}`);
   }
 
-  async updateConfig(org: string, env: "development" | "production", octokit: Octokit) {
-    const repoPlugins = this.parseConfig(this.repoConfig).plugins;
+  async updateConfig(org: string, env: "development" | "production", octokit: Octokit, option: "add" | "remove") {
+    let repoPlugins = this.parseConfig(this.repoConfig).plugins;
     const newPlugins = this.parseConfig().plugins;
 
     if (!newPlugins) {
@@ -52,13 +52,16 @@ export class ConfigParser {
       throw new Error("No plugins found in the config");
     }
 
-    for (const plugin of newPlugins) {
-      const repoPlugin = repoPlugins.find((p) => p.uses[0].plugin === plugin.uses[0].plugin);
-      if (repoPlugin) {
-        repoPlugin.uses = plugin.uses;
-      } else {
-        repoPlugins.push(plugin);
-      }
+    if (option === "add") {
+      newPluginNames.forEach((pluginName) => {
+        const existingPlugin = repoPlugins.find((p) => p.uses[0].plugin === pluginName);
+        if (!existingPlugin) {
+          repoPlugins.push(newPlugins.find((p) => p.uses[0].plugin === pluginName) as Plugin);
+        }
+      });
+    } else if (option === "remove") {
+      // remove only this plugin, keep all others
+      repoPlugins = repoPlugins.filter((p) => !newPluginNames.includes(p.uses[0].plugin));
     }
 
     this.newConfigYml = YAML.stringify({ plugins: repoPlugins });
@@ -96,6 +99,19 @@ export class ConfigParser {
     this.saveConfig();
   }
 
+  removePlugin(plugin: Plugin) {
+    const config = this.loadConfig();
+    const parsedConfig = YAML.parse(config);
+    if (!parsedConfig.plugins) {
+      console.log("No plugins to remove");
+      return;
+    }
+    parsedConfig.plugins = parsedConfig.plugins.filter((p: Plugin) => p.uses[0].plugin !== plugin.uses[0].plugin);
+    console.log(parsedConfig);
+    this.newConfigYml = YAML.stringify(parsedConfig);
+    this.saveConfig();
+  }
+
   /**
    * Loads the current config from local storage or
    * creates a new one if it doesn't exist.
@@ -105,10 +121,6 @@ export class ConfigParser {
    * the ubiquity-os.config.yml file.
    */
   loadConfig() {
-    if (this.repoConfig) {
-      return this.repoConfig;
-    }
-
     if (!this.newConfigYml) {
       this.newConfigYml = localStorage.getItem("config");
     }
