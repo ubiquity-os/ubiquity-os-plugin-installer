@@ -412,6 +412,10 @@ export class ManifestRenderer {
   private _writeNewConfig(option: "add" | "remove"): void {
     const selectedManifest = localStorage.getItem("selectedPluginManifest");
     if (!selectedManifest) {
+      toastNotification("No selected plugin manifest found.", {
+        type: "error",
+        shouldAutoDismiss: true,
+      });
       throw new Error("No selected plugin manifest found");
     }
     const pluginManifest = JSON.parse(selectedManifest) as Manifest;
@@ -437,6 +441,10 @@ export class ManifestRenderer {
     });
 
     if (!pluginUrl) {
+      toastNotification(`No plugin URL found for ${pluginName}.`, {
+        type: "error",
+        shouldAutoDismiss: true,
+      });
       throw new Error("No plugin URL found");
     }
 
