@@ -16,7 +16,7 @@ export const esbuildOptions: BuildOptions = {
   minify: false,
   loader: Object.fromEntries(DATA_URL_LOADERS.map((ext) => [ext, "dataurl"])),
   outdir: "static/dist",
-  define: createEnvDefines(["SUPABASE_URL", "SUPABASE_ANON_KEY", "APP_PRIVATE_KEY", "APP_ID"], {
+  define: createEnvDefines(["SUPABASE_URL", "SUPABASE_ANON_KEY"], {
     SUPABASE_STORAGE_KEY: generateSupabaseStorageKey(),
     NODE_ENV: process.env.NODE_ENV || "development",
   }),
