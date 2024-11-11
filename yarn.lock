@@ -1798,7 +1798,7 @@
   resolved "https://registry.yarnpkg.com/@sinclair/typebox/-/typebox-0.27.8.tgz#6667fac16c436b5434a387a34dedb013198f6e6e"
   integrity sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==
 
-"@sinclair/typebox@^0.33.17", "@sinclair/typebox@^0.33.21":
+"@sinclair/typebox@^0.33.17":
   version "0.33.21"
   resolved "https://registry.yarnpkg.com/@sinclair/typebox/-/typebox-0.33.21.tgz#651191b5cc13c27ae0cb2150f3af5255597a9961"
   integrity sha512-1wU0VNSZQt13BmJvxYhHRVwDBnG8y5qrcyi3DnmEQzvfeRycUNneQSd6quyxrNbspM1pV/m4r4udO6o1tCuXjg==
@@ -6058,7 +6058,7 @@ type-fest@^4.9.0:
   resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-4.10.3.tgz#ff01cb0a1209f59583d61e1312de9715e7ea4874"
   integrity sha512-JLXyjizi072smKGGcZiAJDCNweT8J+AuRxmPZ1aG7TERg4ijx9REl8CNhbr36RV4qXqL1gO1FF9HL8OkVmmrsA==
 
-typebox-validators@0.3.5, typebox-validators@^0.3.5:
+typebox-validators@0.3.5:
   version "0.3.5"
   resolved "https://registry.yarnpkg.com/typebox-validators/-/typebox-validators-0.3.5.tgz#b913bad0a87571ffe0edd01d2b6090a268e1ecc9"
   integrity sha512-FXrmSUAN6bSGxDANResNCZQ8VRRLr5bSyy73/HyqSXGdiVuogppGAoRocy7NTVZY4Wc2sWUofmWwwIXE6OxS6Q==
