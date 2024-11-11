@@ -62,12 +62,19 @@ export class ConfigParser {
           repoPlugins.push(newPlugin);
         }
       });
+
+      this.newConfigYml = YAML.stringify({ plugins: repoPlugins });
     } else if (option === "remove") {
       // remove only this plugin, keep all others
-      repoPlugins = repoPlugins.filter((p) => !newPluginNames.includes(p.uses[0].plugin));
+      newPlugins.forEach((newPlugin) => {
+        const existingPlugin = repoPlugins.find((p) => p.uses[0].plugin === newPlugin.uses[0].plugin);
+        if (existingPlugin) {
+          repoPlugins = repoPlugins.filter((p) => p.uses[0].plugin !== newPlugin.uses[0].plugin);
+        }
+      });
+      this.newConfigYml = YAML.stringify({ plugins: newPlugins });
     }
 
-    this.newConfigYml = YAML.stringify({ plugins: repoPlugins });
     this.saveConfig();
     return this.createOrUpdateFileContents(org, repo, path, env, octokit);
   }

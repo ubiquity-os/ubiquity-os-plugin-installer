@@ -215,6 +215,7 @@ export class ManifestRenderer {
       configSelect.appendChild(option);
     });
 
+    configSelect.removeEventListener("change", this._handleConfigSelection.bind(this));
     configSelect.addEventListener("change", this._handleConfigSelection.bind(this));
     pickerCell.appendChild(configSelect);
     pickerRow.appendChild(pickerCell);
@@ -309,6 +310,8 @@ export class ManifestRenderer {
     this._manifestGui?.classList.add("rendered");
   }
 
+  private _boundConfigAdd = this._writeNewConfig.bind(this, "add");
+  private _boundConfigRemove = this._writeNewConfig.bind(this, "remove");
   private _renderConfigEditor(manifestStr: string): void {
     this._currentStep = "configEditor";
     this._backButton.style.display = "block";
@@ -320,15 +323,12 @@ export class ManifestRenderer {
     this._processProperties(configProps);
 
     const add = document.getElementById("add");
-    if (!add) {
-      throw new Error("Add button not found");
-    }
-    add.addEventListener("click", this._writeNewConfig.bind(this, "add"));
     const remove = document.getElementById("remove");
-    if (!remove) {
-      throw new Error("Remove button not found");
+    if (!add || !remove) {
+      throw new Error("Add or remove button not found");
     }
-    remove.addEventListener("click", this._writeNewConfig.bind(this, "remove"));
+    add.addEventListener("click", this._boundConfigAdd);
+    remove.addEventListener("click", this._boundConfigRemove);
 
     this._updateGuiTitle(`Editing Configuration for ${pluginManifest.name}`);
     this._manifestGui?.classList.add("plugin-editor");
