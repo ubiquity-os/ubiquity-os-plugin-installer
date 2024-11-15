@@ -11,9 +11,13 @@ const ajv = new AJV({ allErrors: true, coerceTypes: true, strict: true });
 const TDV_CENTERED = "table-data-value centered";
 const PICKER_SELECT_STR = "picker-select";
 
+type ExtendedHTMLElement<T = HTMLElement> = {
+  [key in keyof T]: T[key] extends HTMLElement["innerHTML"] ? (string | null) : T[key];
+}
+
 export class ManifestRenderer {
   private _manifestGui: HTMLElement;
-  private _manifestGuiBody: HTMLElement;
+  private _manifestGuiBody: ExtendedHTMLElement
   private _configParser = new ConfigParser();
   private _configDefaults: { [key: string]: { type: string; value: string; items: { type: string } | null } } = {};
   private _auth: AuthService;
@@ -136,7 +140,7 @@ export class ManifestRenderer {
     this._controlButtons(true);
     this._backButton.style.display = "none";
     this._manifestGui?.classList.add("rendering");
-    this._manifestGuiBody.innerHTML = "";
+    this._manifestGuiBody.innerHTML = null;
 
     const pickerRow = document.createElement("tr");
     const pickerCell = document.createElement("td");
@@ -164,7 +168,7 @@ export class ManifestRenderer {
     });
 
     const defaultOption = createElement("option", {
-      value: "",
+      value: null,
       textContent: "Found installations...",
     });
     orgSelect.appendChild(defaultOption);
@@ -187,7 +191,7 @@ export class ManifestRenderer {
   private _renderConfigSelector(selectedOrg: string): void {
     this._currentStep = "configSelector";
     this._backButton.style.display = "block";
-    this._manifestGuiBody.innerHTML = "";
+    this._manifestGuiBody.innerHTML = null;
     this._controlButtons(true);
 
     const pickerRow = document.createElement("tr");
@@ -201,7 +205,7 @@ export class ManifestRenderer {
     });
 
     const defaultOption = createElement("option", {
-      value: "",
+      value: null,
       textContent: "Select a configuration",
     });
     configSelect.appendChild(defaultOption);
@@ -227,7 +231,7 @@ export class ManifestRenderer {
   private _renderPluginSelector(selectedConfig: "development" | "production"): void {
     this._currentStep = "pluginSelector";
     this._backButton.style.display = "block";
-    this._manifestGuiBody.innerHTML = "";
+    this._manifestGuiBody.innerHTML = null;
     this._controlButtons(true);
 
     const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
@@ -244,7 +248,7 @@ export class ManifestRenderer {
     });
 
     const defaultOption = createElement("option", {
-      value: "",
+      value: null,
       textContent: "Select a plugin",
     });
     pluginSelect.appendChild(defaultOption);
@@ -280,7 +284,7 @@ export class ManifestRenderer {
       throw new Error("No decoded manifest found!");
     }
     this._manifestGui?.classList.add("rendering");
-    this._manifestGuiBody.innerHTML = "";
+    this._manifestGuiBody.innerHTML = null;
 
     const table = document.createElement("table");
     Object.entries(decodedManifest).forEach(([key, value]) => {
@@ -315,7 +319,7 @@ export class ManifestRenderer {
   private _renderConfigEditor(manifestStr: string): void {
     this._currentStep = "configEditor";
     this._backButton.style.display = "block";
-    this._manifestGuiBody.innerHTML = "";
+    this._manifestGuiBody.innerHTML = null;
     this._controlButtons(false);
 
     const pluginManifest = JSON.parse(manifestStr) as Manifest;
@@ -345,7 +349,7 @@ export class ManifestRenderer {
 
   // Configuration Parsing
 
-  private _processProperties(props: Record<string, ManifestProps>, prefix = "") {
+  private _processProperties(props: Record<string, ManifestProps>, prefix: string | null = null) {
     Object.keys(props).forEach((key) => {
       const fullKey = prefix ? `${prefix}.${key}` : key;
       const prop = props[key];

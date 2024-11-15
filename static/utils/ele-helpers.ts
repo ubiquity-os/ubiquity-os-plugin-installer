@@ -4,15 +4,15 @@ const CONFIG_INPUT_STR = "config-input";
 
 export const manifestGuiBody = document.getElementById("manifest-gui-body");
 
-export function createElement<TK extends keyof HTMLElementTagNameMap>(tagName: TK, attributes: { [key: string]: string }): HTMLElementTagNameMap[TK] {
+export function createElement<TK extends keyof HTMLElementTagNameMap>(tagName: TK, attributes: { [key: string]: string | null }): HTMLElementTagNameMap[TK] {
   const element = document.createElement(tagName);
   Object.keys(attributes).forEach((key) => {
     if (key === "textContent") {
       element.textContent = attributes[key];
     } else if (key in element) {
-      (element as Record<string, string>)[key] = attributes[key];
+      (element as Record<string, string | null>)[key] = attributes[key];
     } else {
-      element.setAttribute(key, attributes[key]);
+      element.setAttribute(key, `${attributes[key]}`);
     }
   });
   return element;
