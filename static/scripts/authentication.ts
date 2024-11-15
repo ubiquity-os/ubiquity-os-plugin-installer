@@ -71,6 +71,8 @@ export class AuthService {
 
   public async signOut(): Promise<void> {
     await this.supabase.auth.signOut();
+    localStorage.removeItem(`sb-${SUPABASE_STORAGE_KEY}-auth-token`);
+    window.location.reload();
   }
 
   public async renderGithubLoginButton(user?: GitHubUser | null): Promise<void> {
