@@ -124,7 +124,7 @@ export class AuthService {
 
   public async getGitHubUserOrgs(): Promise<string[]> {
     const octokit = await this.getOctokit();
-    const response = await octokit.request("GET /user/orgs");
+    const response = await octokit.rest.orgs.listForAuthenticatedUser();
     return response.data.map((org: { login: string }) => org.login);
   }
 
