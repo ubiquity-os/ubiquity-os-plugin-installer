@@ -1,10 +1,8 @@
 name: Run Cypress testing suite
 on:
+  # Would be better to run this on pull request events.
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Build"]
-    types:
-      - completed
+  pull_request:
 
 jobs:
   cypress-run:
