@@ -16,9 +16,11 @@ export const esbuildOptions: BuildOptions = {
   minify: false,
   loader: Object.fromEntries(DATA_URL_LOADERS.map((ext) => [ext, "dataurl"])),
   outdir: "static/dist",
-  define: createEnvDefines(["SUPABASE_URL", "SUPABASE_ANON_KEY"], {
+  define: createEnvDefines([], {
     SUPABASE_STORAGE_KEY: generateSupabaseStorageKey(),
     NODE_ENV: process.env.NODE_ENV || "development",
+    SUPABASE_URL: "https://wfzpewmlyiozupulbuur.supabase.co",
+    SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmenBld21seWlvenVwdWxidXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTU2NzQzMzksImV4cCI6MjAxMTI1MDMzOX0.SKIL3Q0NOBaMehH0ekFspwgcu3afp3Dl9EDzPqs1nKs"
   }),
 };
 
@@ -53,7 +55,7 @@ function createEnvDefines(environmentVariables: string[], generatedAtBuild: Reco
 }
 
 export function generateSupabaseStorageKey(): string | null {
-  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_URL = "https://wfzpewmlyiozupulbuur.supabase.co";
   if (!SUPABASE_URL) {
     console.error("SUPABASE_URL environment variable is not set");
     return null;
