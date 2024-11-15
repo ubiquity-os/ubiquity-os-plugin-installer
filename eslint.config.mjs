@@ -10,7 +10,7 @@ export default tsEslint.config({
     "check-file": checkFile,
   },
   // static\dist\main.js
-  ignores: [".github/*.ts", "static/dist/*.js", "static/dist/*.ts", "static/dist/*.d.ts"],
+  ignores: [".github/*.ts", "static/dist/*.js", "static/dist/*.ts", "static/dist/*.d.ts", "cypress.config.ts", "coverage/*"],
   extends: [eslint.configs.recommended, ...tsEslint.configs.recommended, sonarjs.configs.recommended],
   languageOptions: {
     parser: tsEslint.parser,

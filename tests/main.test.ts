@@ -14,5 +14,5 @@ describe("User tests", () => {
     }
   });
 
-  it("todo", async () => { });
+  it("todo", async () => {});
 });

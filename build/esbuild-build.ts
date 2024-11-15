@@ -20,7 +20,9 @@ export const esbuildOptions: BuildOptions = {
     SUPABASE_STORAGE_KEY: generateSupabaseStorageKey(),
     NODE_ENV: process.env.NODE_ENV || "development",
     SUPABASE_URL: "https://wfzpewmlyiozupulbuur.supabase.co",
-    SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmenBld21seWlvenVwdWxidXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTU2NzQzMzksImV4cCI6MjAxMTI1MDMzOX0.SKIL3Q0NOBaMehH0ekFspwgcu3afp3Dl9EDzPqs1nKs"
+    SUPABASE_ANON_KEY:
+      /* cspell:disable-next-line */
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmenBld21seWlvenVwdWxidXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTU2NzQzMzksImV4cCI6MjAxMTI1MDMzOX0.SKIL3Q0NOBaMehH0ekFspwgcu3afp3Dl9EDzPqs1nKs",
   }),
 };
 

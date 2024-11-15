@@ -11,13 +11,13 @@ const ajv = new AJV({ allErrors: true, coerceTypes: true, strict: true });
 const TDV_CENTERED = "table-data-value centered";
 const PICKER_SELECT_STR = "picker-select";
 
-type ExtendedHTMLElement<T = HTMLElement> = {
-  [key in keyof T]: T[key] extends HTMLElement["innerHTML"] ? (string | null) : T[key];
-}
+type ExtendedHtmlElement<T = HTMLElement> = {
+  [key in keyof T]: T[key] extends HTMLElement["innerHTML"] ? string | null : T[key];
+};
 
 export class ManifestRenderer {
   private _manifestGui: HTMLElement;
-  private _manifestGuiBody: ExtendedHTMLElement
+  private _manifestGuiBody: ExtendedHtmlElement;
   private _configParser = new ConfigParser();
   private _configDefaults: { [key: string]: { type: string; value: string; items: { type: string } | null } } = {};
   private _auth: AuthService;

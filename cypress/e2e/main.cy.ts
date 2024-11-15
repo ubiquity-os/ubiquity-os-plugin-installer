@@ -1,3 +1,3 @@
 describe("Homepage tests", () => {
-  it("todo", () => { });
+  it("todo", () => {});
 });
