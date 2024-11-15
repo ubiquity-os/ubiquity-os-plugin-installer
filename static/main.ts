@@ -37,6 +37,8 @@ export async function mainModule() {
     const cache = fetcher.checkManifestCache();
     if (auth.isActiveSession()) {
       const userOrgs = await auth.getGitHubUserOrgs();
+      localStorage.setItem("userOrgs", JSON.stringify(userOrgs));
+
       const appInstallations = await auth.octokit?.apps.listInstallationsForAuthenticatedUser();
       const installs = appInstallations?.data.installations;
 
@@ -52,8 +54,9 @@ export async function mainModule() {
           install: orgInstall,
         };
       }) as OrgWithInstall[];
-
       renderer.renderOrgPicker(orgsWithInstalls.map((org) => org.org));
+      const userOrgRepos = await auth.getGitHubUserOrgRepos(userOrgs);
+      localStorage.setItem("orgRepos", JSON.stringify(userOrgRepos));
 
       if (Object.keys(cache).length === 0) {
         const manifestCache = await fetcher.fetchMarketplaceManifests();

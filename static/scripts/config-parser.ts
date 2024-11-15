@@ -1,45 +1,64 @@
 import YAML from "yaml";
 import { Plugin, PluginConfig } from "../types/plugins";
 import { Octokit } from "@octokit/rest";
-const repo = ".ubiquity-os";
-const path = `.github/.ubiquity-os.config.yml`;
+import { RequestError } from "@octokit/request-error";
+import { toastNotification } from "../utils/toaster";
+
+const CONFIG_PATH = ".github/.ubiquity-os.config.yml";
+const UBIQUITY_OS = ".ubiquity-os";
 
 export class ConfigParser {
   repoConfig: string | null = null;
   repoConfigSha: string | null = null;
   newConfigYml: string | null = null;
 
-  async fetchUserInstalledConfig(org: string, env: "development" | "production", octokit: Octokit) {
+  async fetchUserInstalledConfig(org: string | null, repo: string | null, env: "development" | "production", octokit: Octokit | null) {
+    if (!org || !octokit) {
+      throw new Error("Missing required parameters");
+    }
+
     const content = this.loadConfig();
     if (!content) {
       throw new Error("No content to push");
     }
 
-    const existingConfig = await octokit.repos.getContent({
-      owner: org,
-      repo: repo,
-      path: env === "production" ? path : path.replace(".yml", ".dev.yml"),
-    });
+    try {
+      const existingConfig = await octokit.repos.getContent({
+        owner: org,
+        repo: repo ? repo : UBIQUITY_OS,
+        path: env === "production" ? CONFIG_PATH : CONFIG_PATH.replace(".yml", ".dev.yml"),
+        ref: repo ? "development" : "main",
+      });
 
-    if (existingConfig && "content" in existingConfig.data) {
-      this.repoConfigSha = existingConfig.data.sha;
-      this.repoConfig = atob(existingConfig.data.content);
-    } else {
-      throw new Error("No existing config found"); // todo create repo/dirs/files
+      if (existingConfig && "content" in existingConfig.data) {
+        this.repoConfigSha = existingConfig.data.sha;
+        this.repoConfig = atob(existingConfig.data.content);
+      }
+    } catch (er) {
+      console.log(er);
+      if (er instanceof RequestError && er.status === 404) {
+        const msgParts = ["Could not find the", env, "config file in", repo ? repo : `your org: ${org}`, ", would you like to create one?"];
+
+        toastNotification(msgParts.join(" "), {
+          type: "success",
+          actionText: "Create",
+          action: async () => {
+            await this.handleMissingStorageBranchOrFile(octokit, org, repo);
+          },
+        });
+      }
     }
   }
 
   parseConfig(config?: string | null): PluginConfig {
-    if (config) {
+    if (config && typeof config === "string") {
       return YAML.parse(config);
+    } else {
+      return YAML.parse(this.loadConfig());
     }
-    if (!this.newConfigYml) {
-      this.loadConfig();
-    }
-    return YAML.parse(`${this.newConfigYml}`);
   }
 
-  async updateConfig(org: string, env: "development" | "production", octokit: Octokit, option: "add" | "remove") {
+  async updateConfig(org: string, repo: string | null, env: "development" | "production", octokit: Octokit, option: "add" | "remove") {
     let repoPlugins = this.parseConfig(this.repoConfig).plugins;
     const newPlugins = this.parseConfig().plugins;
 
@@ -76,26 +95,32 @@ export class ConfigParser {
     }
 
     this.saveConfig();
-    return this.createOrUpdateFileContents(org, repo, path, env, octokit);
+    return this.createOrUpdateFileContents(org, repo, env, octokit);
   }
 
-  async createOrUpdateFileContents(org: string, repo: string, path: string, env: "development" | "production", octokit: Octokit) {
+  async createOrUpdateFileContents(org: string, repo: string | null, env: "development" | "production", octokit: Octokit) {
     const recentSha = await octokit.repos.getContent({
       owner: org,
-      repo: repo,
-      path: env === "production" ? path : path.replace(".yml", ".dev.yml"),
+      repo: repo ? repo : UBIQUITY_OS,
+      path: env === "production" ? CONFIG_PATH : CONFIG_PATH.replace(".yml", ".dev.yml"),
+      ref: repo ? "development" : "main",
     });
 
     const sha = "sha" in recentSha.data ? recentSha.data.sha : null;
 
-    return octokit.repos.createOrUpdateFileContents({
-      owner: org,
-      repo: repo,
-      path: env === "production" ? path : path.replace(".yml", ".dev.yml"),
-      message: `chore: creating ${env} config`,
-      content: btoa(`${this.newConfigYml}`),
-      sha: `${sha}`,
-    });
+    try {
+      return octokit.repos.createOrUpdateFileContents({
+        owner: org,
+        repo: repo ? repo : UBIQUITY_OS,
+        path: env === "production" ? CONFIG_PATH : CONFIG_PATH.replace(".yml", ".dev.yml"),
+        message: `chore: updating ${env} config`,
+        content: btoa(`${this.newConfigYml}`),
+        sha: `${sha}`,
+        branch: repo ? "development" : "main",
+      });
+    } catch (err) {
+      throw new Error(`Failed to create or update file contents:\n ${String(err)}`);
+    }
   }
 
   addPlugin(plugin: Plugin) {
@@ -155,5 +180,74 @@ export class ConfigParser {
   writeBlankConfig() {
     this.newConfigYml = YAML.stringify({ plugins: [] });
     this.saveConfig();
+  }
+
+  async handleMissingStorageBranchOrFile(octokit: Octokit, owner: string, repo: string | null) {
+    let mostRecentDefaultHeadCommitSha;
+
+    try {
+      const { data: defaultBranchData } = await octokit.rest.repos.getCommit({
+        owner,
+        repo: repo ? repo : UBIQUITY_OS,
+        ref: repo ? "development" : "main",
+      });
+      mostRecentDefaultHeadCommitSha = defaultBranchData.sha;
+    } catch (er) {
+      throw new Error(`Failed to get default branch commit sha:\n ${String(er)}`);
+    }
+
+    // Check if the branch exists
+    try {
+      await octokit.rest.repos.getBranch({
+        owner,
+        repo: repo ? repo : UBIQUITY_OS,
+        branch: repo ? "development" : "main",
+      });
+    } catch (branchError) {
+      if (branchError instanceof RequestError || branchError instanceof Error) {
+        const { message } = branchError;
+        if (message.toLowerCase().includes(`branch not found`)) {
+          // Branch doesn't exist, create the branch
+          try {
+            await octokit.rest.git.createRef({
+              owner,
+              repo: repo ? repo : UBIQUITY_OS,
+              ref: `refs/heads/${repo ? "development" : "main"}`,
+              sha: mostRecentDefaultHeadCommitSha,
+            });
+          } catch (err) {
+            throw new Error(`Failed to create branch:\n ${String(err)}`);
+          }
+        } else {
+          throw new Error(`Failed to handle missing storage branch or file:\n ${String(branchError)}`);
+        }
+      } else {
+        throw new Error(`Failed to handle missing storage branch or file:\n ${String(branchError)}`);
+      }
+    }
+
+    try {
+      // Create or update the file
+      await octokit.rest.repos.createOrUpdateFileContents({
+        owner,
+        repo: repo ? repo : UBIQUITY_OS,
+        path: CONFIG_PATH,
+        branch: repo ? "development" : "main",
+        message: `chore: create ${CONFIG_PATH.replace(/([A-Z])/g, " $1").toLowerCase()}`,
+        content: btoa("{\n}"),
+        sha: mostRecentDefaultHeadCommitSha,
+      });
+    } catch (err) {
+      throw new Error(`Failed to create new config file:\n ${String(err)}`);
+    }
+
+    const config = localStorage.getItem("selectedConfig");
+
+    const msgParts = ["Created an empty", config, "config in", repo ? repo : `your org: ${owner}`];
+
+    toastNotification(msgParts.join(" "), {
+      type: "success",
+      actionText: "Continue",
+    });
   }
 }

@@ -10,6 +10,7 @@ const ajv = new AJV({ allErrors: true, coerceTypes: true, strict: true });
 
 const TDV_CENTERED = "table-data-value centered";
 const PICKER_SELECT_STR = "picker-select";
+const NO_ORG_ERROR = "No selected org found";
 
 type ExtendedHtmlElement<T = HTMLElement> = {
   [key in keyof T]: T[key] extends HTMLElement["innerHTML"] ? string | null : T[key];
@@ -22,7 +23,7 @@ export class ManifestRenderer {
   private _configDefaults: { [key: string]: { type: string; value: string; items: { type: string } | null } } = {};
   private _auth: AuthService;
   private _backButton: HTMLButtonElement;
-  private _currentStep: "orgPicker" | "configSelector" | "pluginSelector" | "configEditor" = "orgPicker";
+  private _currentStep: "orgPicker" | "repoPicker" | "configSelector" | "pluginSelector" | "configEditor" = "orgPicker";
   private _orgs: string[] = [];
 
   constructor(auth: AuthService) {
@@ -66,6 +67,16 @@ export class ManifestRenderer {
         this._renderPluginSelector(selectedConfig);
         break;
       }
+      case "repoPicker": {
+        const orgRepos = JSON.parse(localStorage.getItem("orgRepos") || "{}");
+        this.renderRepoPicker(orgRepos);
+        break;
+      }
+      case "orgPicker": {
+        const orgs = JSON.parse(localStorage.getItem("userOrgs") || "[]");
+        this.renderOrgPicker(orgs);
+        break;
+      }
       default:
         break;
     }
@@ -78,6 +89,20 @@ export class ManifestRenderer {
     const selectedOrg = selectElement.value;
     if (selectedOrg) {
       localStorage.setItem("selectedOrg", selectedOrg);
+      const orgRepos = JSON.parse(localStorage.getItem("orgRepos") || "{}");
+      this.renderRepoPicker(orgRepos);
+    }
+  }
+
+  private _handleRepoSelection(event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+    const selectedRepo = selectElement.value;
+    if (selectedRepo) {
+      localStorage.setItem("selectedRepo", selectedRepo);
+      const selectedOrg = localStorage.getItem("selectedOrg");
+      if (!selectedOrg) {
+        throw new Error(NO_ORG_ERROR);
+      }
       this._renderConfigSelector(selectedOrg);
     }
   }
@@ -107,7 +132,8 @@ export class ManifestRenderer {
           if (!org || !octokit) {
             throw new Error("No org or octokit found");
           }
-          await this._configParser.fetchUserInstalledConfig(org, selectedConfig, octokit);
+          const selectedRepo = localStorage.getItem("selectedRepo");
+          await this._configParser.fetchUserInstalledConfig(org, selectedRepo, selectedConfig, octokit);
         };
         localStorage.setItem("selectedConfig", selectedConfig);
         this._renderPluginSelector(selectedConfig);
@@ -188,6 +214,85 @@ export class ManifestRenderer {
     this._manifestGui?.classList.add("rendered");
   }
 
+  public renderRepoPicker(repos: Record<string, string[]>): void {
+    this._currentStep = "repoPicker";
+    this._controlButtons(true);
+    this._backButton.style.display = "block";
+    this._manifestGui?.classList.add("rendering");
+    this._manifestGuiBody.innerHTML = null;
+
+    if (!Reflect.ownKeys(repos).length) {
+      this._updateGuiTitle("No repositories found");
+      this._manifestGuiBody.appendChild(document.createElement("tr"));
+      this._manifestGui?.classList.add("rendered");
+      return;
+    }
+
+    localStorage.setItem("orgRepos", JSON.stringify(repos));
+
+    const pickerRow = document.createElement("tr");
+    const pickerCell = document.createElement("td");
+    pickerCell.colSpan = 4;
+    pickerCell.className = TDV_CENTERED;
+
+    this._updateGuiTitle("Select a Repository");
+    const selectedOrg = localStorage.getItem("selectedOrg");
+
+    if (!selectedOrg) {
+      throw new Error(NO_ORG_ERROR);
+    }
+
+    const orgConfigButton = createElement("button", {
+      id: "org-config-button",
+      class: "button",
+      textContent: "Select Organization Configuration",
+    });
+
+    orgConfigButton.addEventListener("click", () => {
+      this._renderConfigSelector(selectedOrg);
+    });
+
+    const orgConfigRow = document.createElement("tr");
+    const orgConfigCell = document.createElement("td");
+    orgConfigCell.colSpan = 4;
+    orgConfigCell.className = TDV_CENTERED;
+    orgConfigCell.appendChild(orgConfigButton);
+    orgConfigRow.appendChild(orgConfigCell);
+    this._manifestGuiBody.appendChild(orgConfigRow);
+
+    const repoSelect = createElement("select", {
+      id: "repo-picker-select",
+      class: PICKER_SELECT_STR,
+      style: "width: 100%",
+    });
+
+    const defaultOption = createElement("option", {
+      value: null,
+      textContent: "Or select a repository...",
+    });
+    repoSelect.appendChild(defaultOption);
+
+    const orgRepos = repos[selectedOrg];
+
+    if (!orgRepos) {
+      throw new Error("No org repos found");
+    }
+
+    orgRepos.forEach((repo) => {
+      const option = createElement("option", {
+        value: repo,
+        textContent: repo,
+      });
+      repoSelect.appendChild(option);
+    });
+
+    repoSelect.addEventListener("change", this._handleRepoSelection.bind(this));
+    pickerCell.appendChild(repoSelect);
+    pickerRow.appendChild(pickerCell);
+    this._manifestGuiBody.appendChild(pickerRow);
+    this._manifestGui?.classList.add("rendered");
+  }
+
   private _renderConfigSelector(selectedOrg: string): void {
     this._currentStep = "configSelector";
     this._backButton.style.display = "block";
@@ -223,7 +328,6 @@ export class ManifestRenderer {
     configSelect.addEventListener("change", this._handleConfigSelection.bind(this));
     pickerCell.appendChild(configSelect);
     pickerRow.appendChild(pickerCell);
-
     this._updateGuiTitle(`Select a Configuration for ${selectedOrg}`);
     this._manifestGuiBody.appendChild(pickerRow);
   }
@@ -480,10 +584,11 @@ export class ManifestRenderer {
         }
 
         const org = localStorage.getItem("selectedOrg");
+        const repo = localStorage.getItem("selectedRepo");
         const config = localStorage.getItem("selectedConfig") as "development" | "production";
 
         if (!org) {
-          throw new Error("No selected org found");
+          throw new Error(NO_ORG_ERROR);
         }
 
         if (!config) {
@@ -491,7 +596,7 @@ export class ManifestRenderer {
         }
 
         try {
-          await this._configParser.updateConfig(org, config, octokit, "add");
+          await this._configParser.updateConfig(org, repo, config, octokit, "add");
         } catch (error) {
           console.error("Error pushing config to GitHub:", error);
           toastNotification("An error occurred while pushing the configuration to GitHub.", {
@@ -521,10 +626,11 @@ export class ManifestRenderer {
         }
 
         const org = localStorage.getItem("selectedOrg");
+        const repo = localStorage.getItem("selectedRepo");
         const config = localStorage.getItem("selectedConfig") as "development" | "production";
 
         if (!org) {
-          throw new Error("No selected org found");
+          throw new Error(NO_ORG_ERROR);
         }
 
         if (!config) {
@@ -532,7 +638,7 @@ export class ManifestRenderer {
         }
 
         try {
-          await this._configParser.updateConfig(org, config, octokit, "remove");
+          await this._configParser.updateConfig(org, repo, config, octokit, "remove");
         } catch (error) {
           console.error("Error pushing config to GitHub:", error);
           toastNotification("An error occurred while pushing the configuration to GitHub.", {
