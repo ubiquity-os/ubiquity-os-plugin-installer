@@ -3,6 +3,7 @@ import { ManifestDecoder } from "./scripts/decode-manifest";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
 import { OrgWithInstall } from "./types/github";
+import { toastNotification } from "./utils/toaster";
 
 async function handleAuth() {
   const auth = new AuthService();
@@ -51,7 +52,9 @@ export async function mainModule() {
           install: orgInstall,
         };
       }) as OrgWithInstall[];
+
       renderer.renderOrgPicker(orgsWithInstalls.map((org) => org.org));
+
       if (Object.keys(cache).length === 0) {
         const manifestCache = await fetcher.fetchMarketplaceManifests();
         localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
@@ -62,7 +65,11 @@ export async function mainModule() {
       renderer.renderOrgPicker([]);
     }
   } catch (error) {
-    console.error(error);
+    if (error instanceof Error) {
+      toastNotification(error.message, { type: "error" });
+    } else {
+      toastNotification(String(error), { type: "error" });
+    }
   }
 }
 
