@@ -2,17 +2,11 @@ import { AuthService } from "./scripts/authentication";
 import { ManifestDecoder } from "./scripts/decode-manifest";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
-import { OrgWithInstall } from "./types/github";
 import { toastNotification } from "./utils/toaster";
 
 async function handleAuth() {
   const auth = new AuthService();
   await auth.renderGithubLoginButton();
-  const token = await auth.getGitHubAccessToken();
-  if (!token) {
-    // await auth.signInWithGithub(); force a login?
-  }
-
   return auth;
 }
 
@@ -37,24 +31,7 @@ export async function mainModule() {
     const cache = fetcher.checkManifestCache();
     if (auth.isActiveSession()) {
       const userOrgs = await auth.getGitHubUserOrgs();
-      const appInstallations = await auth.octokit?.apps.listInstallationsForAuthenticatedUser();
-      const installs = appInstallations?.data.installations;
-
-      const orgsWithInstalls = userOrgs.map((org) => {
-        const orgInstall = installs?.find((install) => {
-          if (install.account && "login" in install.account) {
-            return install.account.login.toLowerCase() === org.toLowerCase();
-          }
-          return false;
-        });
-        return {
-          org,
-          install: orgInstall,
-        };
-      }) as OrgWithInstall[];
-
-      renderer.renderOrgPicker(orgsWithInstalls.map((org) => org.org));
-
+      renderer.renderOrgPicker(userOrgs);
       if (Object.keys(cache).length === 0) {
         const manifestCache = await fetcher.fetchMarketplaceManifests();
         localStorage.setItem("manifestCache", JSON.stringify(manifestCache));

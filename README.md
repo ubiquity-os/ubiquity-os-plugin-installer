@@ -49,7 +49,6 @@ The browser automatically URI encodes it:
 
 ###### Example from `command-start-stop/manifest.json`
 
-
 ## How to run
 
 1. Clone the repository

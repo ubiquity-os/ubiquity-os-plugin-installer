@@ -25,7 +25,7 @@ export class ConfigParser {
       this.repoConfigSha = existingConfig.data.sha;
       this.repoConfig = atob(existingConfig.data.content);
     } else {
-      throw new Error("No existing config found"); // todo create repo/dirs/files
+      throw new Error("No existing config found");
     }
   }
 
@@ -43,12 +43,7 @@ export class ConfigParser {
     let repoPlugins = this.parseConfig(this.repoConfig).plugins;
     const newPlugins = this.parseConfig().plugins;
 
-    if (!newPlugins) {
-      throw new Error("No plugins found in the config");
-    }
-
-    const newPluginNames = newPlugins.map((p) => p.uses[0].plugin);
-    if (newPluginNames.length === 0) {
+    if (!newPlugins?.length && option === "add") {
       throw new Error("No plugins found in the config");
     }
 
@@ -88,13 +83,21 @@ export class ConfigParser {
 
     const sha = "sha" in recentSha.data ? recentSha.data.sha : null;
 
+    if (!sha) {
+      throw new Error("No sha found");
+    }
+
+    if (!this.newConfigYml) {
+      throw new Error("No content to push");
+    }
+
     return octokit.repos.createOrUpdateFileContents({
       owner: org,
       repo: repo,
       path: env === "production" ? path : path.replace(".yml", ".dev.yml"),
-      message: `chore: creating ${env} config`,
-      content: btoa(`${this.newConfigYml}`),
-      sha: `${sha}`,
+      message: `chore: updating ${env} config`,
+      content: btoa(this.newConfigYml),
+      sha,
     });
   }
 

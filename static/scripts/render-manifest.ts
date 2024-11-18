@@ -150,7 +150,7 @@ export class ManifestRenderer {
     if (!orgs.length) {
       const hasSession = this._auth.isActiveSession();
       if (hasSession) {
-        this._updateGuiTitle("No installations found");
+        this._updateGuiTitle("No organizations found");
         this._manifestGuiBody.appendChild(pickerRow);
         this._manifestGui?.classList.add("rendered");
       } else {
@@ -169,7 +169,7 @@ export class ManifestRenderer {
 
     const defaultOption = createElement("option", {
       value: null,
-      textContent: "Found installations...",
+      textContent: "Found Organizations...",
     });
     orgSelect.appendChild(defaultOption);
 
