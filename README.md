@@ -53,10 +53,10 @@ The browser automatically URI encodes it:
 
 1. Clone the repository
 2. Run `yarn` to install dependencies
-3. OAuth: Obtain your _GitHub App_ client ID and secret from your `UbiquityOS` app fork, and set the callback URL to match the one given by Supabase when enabling GitHub provider OAuth. (You use your `UbiquityOS` instance because we check for installs against the authenticated user's organizations that they own.)
+3. OAuth: Obtain your _GitHub OAuth App_ client ID and secret from your OAuth app settings, and set the callback URL to match the one given by Supabase when enabling GitHub provider OAuth.
 4. Replace the hardcoded `SUPABASE_URL` and `SUPABASE_KEY` in `build/esbuild-build.ts` with your Supabase URL and key (Optionally use `.env` and use `process.env` instead.)
 5. Run `yarn start` and visit `localhost:8080` in your browser.
-6. Once logged in you should see the orgs that you own that currently have your forked `UbiquityOS` app installed.
+6. Once logged in you should see the orgs that you own.
 7. Select an org > select a config (dev | prod) > select a plugin > edit/add/remove > push to GitHub.
 
 TODO: Update readme with a better overview of the project.
