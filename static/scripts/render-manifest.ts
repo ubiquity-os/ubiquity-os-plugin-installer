@@ -113,11 +113,17 @@ export class ManifestRenderer {
   private _controlButtons(hide: boolean): void {
     const addButton = document.getElementById("add");
     const removeButton = document.getElementById("remove");
+    const resetToDefaultButton = document.getElementById("reset-to-default");
+    const hideOrDisplay = hide ? "none" : "inline-block";
     if (addButton) {
-      addButton.style.display = hide ? "none" : "inline-block";
+      addButton.style.display = hideOrDisplay;
     }
     if (removeButton) {
-      removeButton.style.display = hide ? "none" : "inline-block";
+      removeButton.style.display = hideOrDisplay;
+    }
+
+    if (resetToDefaultButton) {
+      resetToDefaultButton.style.display = hideOrDisplay;
     }
 
     this._manifestGui?.classList.add("rendered");
@@ -352,6 +358,22 @@ export class ManifestRenderer {
     }
     add.addEventListener("click", this._boundConfigAdd);
     remove.addEventListener("click", this._boundConfigRemove);
+
+    const resetToDefaultButton = document.getElementById("reset-to-default");
+
+    if (!resetToDefaultButton) {
+      throw new Error("Reset to default button not found");
+    }
+
+    resetToDefaultButton.addEventListener("click", () => {
+      this._renderConfigEditor(pluginManifest);
+      const readmeContainer = document.querySelector(".readme-container");
+      if (readmeContainer) {
+        readmeContainer.remove();
+      }
+    });
+
+    resetToDefaultButton.hidden = !!plugin;
 
     const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
     const pluginUrls = Object.keys(manifestCache);

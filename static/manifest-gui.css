@@ -130,7 +130,7 @@ header #uos-logo path {
 }
 
 #manifest-gui tfoot tr td button {
-  width: calc(50% - 4px);
+  width: calc(33% - 4px);
   display: inline-block;
   font-weight: 900;
   margin: 0 2px;
@@ -139,8 +139,6 @@ header #uos-logo path {
 #manifest-gui pre {
   margin: 0 0 16px;
 }
-
-
 
 .readme-container h1,
 .readme-container h2,
@@ -222,6 +220,26 @@ button:hover {
 }
 button:active {
   background-color: #606060;
+}
+
+button#reset-to-default {
+  background-color: #303030;
+  color: #fff;
+}
+button#reset-to-default:hover {
+  background-color: #404040;
+}
+button#reset-to-default:active {
+  background-color: #505050;
+}
+button#reset-to-default::before {
+  content: "♻️";
+}
+button#reset-to-default:hover::before {
+  content: "Use Defaults";
+}
+button#reset-to-default:active::before {
+  content: "♻️♻️♻️♻️♻️";
 }
 
 button#remove::before {
