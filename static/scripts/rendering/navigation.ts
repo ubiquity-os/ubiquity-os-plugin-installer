@@ -24,11 +24,9 @@ function handleBackButtonClick(renderer: ManifestRenderer): void {
 
   const step = renderer.currentStep;
 
-  if (step === "pluginSelector") {
+  if (step === "pluginSelector" || step === "orgPicker") {
     renderOrgPicker(renderer, renderer.orgs);
   } else if (step === "configEditor") {
     renderPluginSelector(renderer);
-  } else if (step === "orgPicker") {
-    renderOrgPicker(renderer, renderer.orgs);
   }
 }
