@@ -1,10 +1,8 @@
 import { Octokit } from "@octokit/rest";
 import { ManifestDecoder } from "./decode-manifest";
 import { ManifestPreDecode } from "../types/plugins";
+import { DEV_CONFIG_FULL_PATH, CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 
-/**
- * Given a list of repositories, fetch the manifest for each repository.
- */
 export class ManifestFetcher {
   private _orgs: string[];
   private _octokit: Octokit | null;
@@ -14,10 +12,6 @@ export class ManifestFetcher {
   actionUrlRegex = /[a-z0-9-]+\/[a-z0-9-]+(?:\/[^@]+)?@[a-z0-9-]+/g;
   workerUrls = new Set<string>();
   actionUrls = new Set<string>();
-
-  devYmlConfigPath = ".github/.ubiquity-os.config.dev.yml";
-  prodYmlConfigPath = ".github/.ubiquity-os.config.yml";
-  configRepo = ".ubiquity-os";
 
   constructor(orgs: string[], octokit: Octokit | null, decoder: ManifestDecoder) {
     this._orgs = orgs;
@@ -146,8 +140,8 @@ export class ManifestFetcher {
       try {
         const { data: devConfig } = await this._octokit.repos.getContent({
           owner: org,
-          repo: this.configRepo,
-          path: this.devYmlConfigPath,
+          repo: CONFIG_ORG_REPO,
+          path: DEV_CONFIG_FULL_PATH,
         });
 
         if ("content" in devConfig) {
@@ -160,8 +154,8 @@ export class ManifestFetcher {
       try {
         const { data: prodConfig } = await this._octokit.repos.getContent({
           owner: org,
-          repo: this.configRepo,
-          path: this.prodYmlConfigPath,
+          repo: CONFIG_ORG_REPO,
+          path: CONFIG_FULL_PATH,
         });
 
         if ("content" in prodConfig) {

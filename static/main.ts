@@ -22,10 +22,6 @@ export async function mainModule() {
   }
 
   try {
-    /**
-     * "ubiquity-os", "ubiquity-os-marketplace" === dev config
-     * "ubiquity" === prod config
-     */
     const ubiquityOrgsToFetchOfficialConfigFrom = ["ubiquity-os"];
     const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit, decoder);
     const cache = fetcher.checkManifestCache();

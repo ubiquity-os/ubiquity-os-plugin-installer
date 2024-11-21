@@ -2,9 +2,7 @@ import YAML from "yaml";
 import { Plugin, PluginConfig } from "../types/plugins";
 import { Octokit } from "@octokit/rest";
 import { toastNotification } from "../utils/toaster";
-
-const CONFIG_REPO = ".ubiquity-os";
-const CONFIG_PATH = `.github/.ubiquity-os.config.yml`;
+import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 
 export class ConfigParser {
   repoConfig: string | null = null;
@@ -63,8 +61,8 @@ export class ConfigParser {
     return null;
   }
 
-  async fetchUserInstalledConfig(org: string, env: "development" | "production", octokit: Octokit, repo = CONFIG_REPO, path = CONFIG_PATH) {
-    if (repo === CONFIG_REPO) {
+  async fetchUserInstalledConfig(org: string, env: "development" | "production", octokit: Octokit, repo = CONFIG_ORG_REPO, path = CONFIG_FULL_PATH) {
+    if (repo === CONFIG_ORG_REPO) {
       await this.configRepoExistenceCheck(org, repo, octokit);
     }
 
@@ -110,7 +108,14 @@ export class ConfigParser {
     return YAML.parse(`${this.newConfigYml}`);
   }
 
-  async updateConfig(org: string, env: "development" | "production", octokit: Octokit, option: "add" | "remove", path = CONFIG_PATH, repo = CONFIG_REPO) {
+  async updateConfig(
+    org: string,
+    env: "development" | "production",
+    octokit: Octokit,
+    option: "add" | "remove",
+    path = CONFIG_FULL_PATH,
+    repo = CONFIG_ORG_REPO
+  ) {
     let repoPlugins = this.parseConfig(this.repoConfig).plugins;
     const newPlugins = this.parseConfig().plugins;
 
@@ -195,14 +200,6 @@ export class ConfigParser {
     this.saveConfig();
   }
 
-  /**
-   * Loads the current config from local storage or
-   * creates a new one if it doesn't exist.
-   *
-   * If a new config is created, it is also saved to local storage.
-   * When a new config is created, it is a blank JS object representing
-   * the ubiquity-os.config.yml file.
-   */
   loadConfig(): string {
     if (!this.newConfigYml) {
       this.newConfigYml = localStorage.getItem("config") as string;
