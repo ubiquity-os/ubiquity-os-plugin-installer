@@ -3,6 +3,7 @@ import { ManifestDecoder } from "./scripts/decode-manifest";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
 import { ManifestPreDecode } from "./types/plugins";
+import { manifestGuiBody } from "./utils/element-helpers";
 import { toastNotification } from "./utils/toaster";
 
 async function handleAuth() {
@@ -26,16 +27,26 @@ export async function mainModule() {
     const ubiquityOrgsToFetchOfficialConfigFrom = ["ubiquity-os"];
     const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit, decoder);
     const cache = fetcher.checkManifestCache();
+    if (!manifestGuiBody) {
+      throw new Error("Manifest GUI body not found");
+    }
+    manifestGuiBody.dataset.loading = "false";
+
     if (auth.isActiveSession()) {
       const userOrgs = await auth.getGitHubUserOrgs();
       let fetchPromise: Promise<Record<string, ManifestPreDecode>> = Promise.resolve(cache);
       if (Object.keys(cache).length === 0) {
-        const killNotification = toastNotification("Fetching manifest data...", { type: "info", duration: 0 });
+        const killNotification = toastNotification("Fetching manifest data...", { type: "info", shouldAutoDismiss: true });
+        manifestGuiBody.dataset.loading = "true";
+
         fetchPromise = new Promise(async (resolve) => {
+          if (!manifestGuiBody) {
+            throw new Error("Manifest GUI body not found");
+          }
           const manifestCache = await fetcher.fetchMarketplaceManifests();
           localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
-          // this is going to extract URLs from our official config which we'll inject into `- plugin: ...`
           await fetcher.fetchOfficialPluginConfig();
+          manifestGuiBody.dataset.loading = "false";
           resolve(manifestCache);
           killNotification();
         });

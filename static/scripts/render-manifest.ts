@@ -9,7 +9,10 @@ import { toastNotification } from "../utils/toaster";
 const ajv = new AJV({ allErrors: true, coerceTypes: true, strict: true });
 
 const TDV_CENTERED = "table-data-value centered";
-const PICKER_SELECT_STR = "picker-select";
+const SELECT_ITEMS = ".select-items"
+const SELECT_SELECTED = ".select-selected"
+const SELECT_HIDE = "select-hide"
+const SELECT_ARROW_ACTIVE = "select-arrow-active"
 
 type ExtendedHtmlElement<T = HTMLElement> = {
   [key in keyof T]: T[key] extends HTMLElement["innerHTML"] ? string | null : T[key];
@@ -73,53 +76,37 @@ export class ManifestRenderer {
 
   // Event Handlers
 
-  private _handleOrgSelection(event: Event, fetchPromise?: Promise<Record<string, ManifestPreDecode>>): void {
-    const selectElement = event.target as HTMLSelectElement;
-    const selectedOrg = selectElement.value;
-    if (selectedOrg) {
-      localStorage.setItem("selectedOrg", selectedOrg);
+  private _handleOrgSelection(org: string, fetchPromise?: Promise<Record<string, ManifestPreDecode>>): void {
+    if (!org) {
+      throw new Error("No org selected");
+    }
+
+    localStorage.setItem("selectedOrg", org);
+
+    if (fetchPromise) {
+      fetchPromise.then((manifestCache) => {
+        localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
+      }).catch((error) => {
+        console.error("Error fetching manifest cache:", error);
+        toastNotification(`An error occurred while fetching the manifest cache: ${String(error)}`, {
+          type: "error",
+          shouldAutoDismiss: true,
+        });
+      });
 
       const fetchOrgConfig = async () => {
         const octokit = this._auth.octokit;
         if (!octokit) {
           throw new Error("No org or octokit found");
         }
-        await this._configParser.fetchUserInstalledConfig(selectedOrg, octokit);
-      }
-
-      fetchOrgConfig().catch(console.error);
-
-      if (fetchPromise) {
-        fetchPromise.then((manifestCache) => {
-          localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
-          this._renderPluginSelector();
-        }).catch((error) => {
-          console.error("Error fetching manifest cache:", error);
-          toastNotification(`An error occurred while fetching the manifest cache: ${String(error)}`, {
-            type: "error",
-            shouldAutoDismiss: true,
-          });
-        })
-
-
-      } else {
+        await this._configParser.fetchUserInstalledConfig(org, octokit);
         this._renderPluginSelector();
       }
+      fetchOrgConfig().catch(console.error);
+    } else {
+      this._renderPluginSelector();
     }
-  }
 
-  private _handlePluginSelection(event: Event): void {
-    try {
-      const selectElement = event.target as HTMLSelectElement;
-      const selectedPluginManifest = selectElement.value;
-      if (selectedPluginManifest) {
-        localStorage.setItem("selectedPluginManifest", selectedPluginManifest);
-        this._renderConfigEditor(selectedPluginManifest);
-      }
-    } catch (error) {
-      console.error("Error handling plugin selection:", error);
-      alert("An error occurred while selecting the plugin.");
-    }
   }
 
   // UI Rendering
@@ -150,12 +137,30 @@ export class ManifestRenderer {
     pickerCell.colSpan = 4;
     pickerCell.className = TDV_CENTERED;
 
+    const customSelect = createElement("div", { class: "custom-select" });
+
+    const selectSelected = createElement("div", {
+      class: "select-selected",
+      textContent: "Select an organization",
+    });
+
+    const selectItems = createElement("div", {
+      class: "select-items select-hide",
+    });
+
+    customSelect.appendChild(selectSelected);
+    customSelect.appendChild(selectItems);
+
+    pickerCell.appendChild(customSelect);
+    pickerRow.appendChild(pickerCell);
+
+    this._manifestGuiBody.appendChild(pickerRow);
+    this._manifestGui?.classList.add("rendered");
+
     if (!orgs.length) {
       const hasSession = this._auth.isActiveSession();
       if (hasSession) {
         this._updateGuiTitle("No organizations found");
-        this._manifestGuiBody.appendChild(pickerRow);
-        this._manifestGui?.classList.add("rendered");
       } else {
         this._updateGuiTitle("Please sign in to GitHub");
       }
@@ -164,31 +169,40 @@ export class ManifestRenderer {
 
     this._updateGuiTitle("Select an Organization");
 
-    const orgSelect = createElement("select", {
-      id: "org-picker-select",
-      class: PICKER_SELECT_STR,
-      style: "width: 100%",
-    });
-
-    const defaultOption = createElement("option", {
-      value: null,
-      textContent: "Found Organizations...",
-    });
-    orgSelect.appendChild(defaultOption);
-
     orgs.forEach((org) => {
-      const option = createElement("option", {
-        value: org,
-        textContent: org,
+      const optionDiv = createElement("div", { class: "select-option" });
+      const textSpan = createElement("span", { textContent: org });
+
+      optionDiv.appendChild(textSpan);
+
+      optionDiv.addEventListener("click", () => {
+        this._handleOrgSelection(org, fetchPromise);
+        selectSelected.textContent = org;
+        localStorage.setItem("selectedOrg", org);
       });
-      orgSelect.appendChild(option);
+
+      selectItems.appendChild(optionDiv);
     });
 
-    orgSelect.addEventListener("change", (event) => this._handleOrgSelection(event, fetchPromise));
-    pickerCell.appendChild(orgSelect);
-    pickerRow.appendChild(pickerCell);
-    this._manifestGuiBody.appendChild(pickerRow);
-    this._manifestGui?.classList.add("rendered");
+    selectSelected.addEventListener("click", (e) => {
+      e.stopPropagation();
+      closeAllSelect();
+      selectItems.classList.toggle(SELECT_HIDE);
+      selectSelected.classList.toggle(SELECT_ARROW_ACTIVE);
+    });
+
+    function closeAllSelect() {
+      const selectItemsList = document.querySelectorAll(SELECT_ITEMS);
+      const selectSelectedList = document.querySelectorAll(SELECT_SELECTED);
+      selectItemsList.forEach((item) => {
+        item.classList.add(SELECT_HIDE);
+      });
+      selectSelectedList.forEach((item) => {
+        item.classList.remove(SELECT_ARROW_ACTIVE);
+      });
+    }
+
+    document.addEventListener("click", closeAllSelect);
   }
 
   private _renderPluginSelector(): void {
@@ -205,16 +219,12 @@ export class ManifestRenderer {
     pickerCell.colSpan = 2;
     pickerCell.className = TDV_CENTERED;
 
-    const pluginSelect = createElement("select", {
-      id: "plugin-selector-select",
-      class: PICKER_SELECT_STR,
-    });
+    const userConfig = this._configParser.repoConfig;
+    let installedPlugins: string[] = [];
 
-    const defaultOption = createElement("option", {
-      value: null,
-      textContent: "Select a plugin",
-    });
-    pluginSelect.appendChild(defaultOption);
+    if (userConfig) {
+      installedPlugins = this._configParser.parseConfig(userConfig).plugins.flatMap((plugin) => plugin.uses.map((use) => use.plugin));
+    }
 
     const cleanManifestCache = Object.keys(manifestCache).reduce((acc, key) => {
       if (manifestCache[key]?.name) {
@@ -223,24 +233,74 @@ export class ManifestRenderer {
       return acc;
     }, {} as ManifestCache);
 
+    const customSelect = createElement("div", { class: "custom-select" });
+
+    const selectSelected = createElement("div", {
+      class: "select-selected",
+      textContent: "Select a plugin",
+    });
+
+    const selectItems = createElement("div", {
+      class: "select-items select-hide",
+    });
+
+    customSelect.appendChild(selectSelected);
+    customSelect.appendChild(selectItems);
+
+    pickerCell.appendChild(customSelect);
+    pickerRow.appendChild(pickerCell);
+
+    this._manifestGuiBody.appendChild(pickerRow);
+
     pluginUrls.forEach((url) => {
       if (!cleanManifestCache[url]?.name) {
         return;
       }
 
-      const option = createElement("option", {
-        value: JSON.stringify(cleanManifestCache[url]),
-        textContent: cleanManifestCache[url]?.name,
+      const [, repo] = url.replace("https://raw.githubusercontent.com/", "").split("/");
+      const reg = new RegExp(`${repo}`, "gi");
+      const isInstalled = installedPlugins.some((plugin) => reg.test(plugin));
+
+      const optionText = cleanManifestCache[url]?.name;
+      const indicator = isInstalled ? "🟢" : "🔴";
+
+      const optionDiv = createElement("div", { class: "select-option" });
+      const textSpan = createElement("span", { textContent: optionText });
+      const indicatorSpan = createElement("span", { textContent: indicator });
+
+      optionDiv.appendChild(textSpan);
+      optionDiv.appendChild(indicatorSpan);
+
+      optionDiv.addEventListener("click", () => {
+        selectSelected.textContent = optionText;
+        selectSelected.setAttribute("data-value", JSON.stringify(cleanManifestCache[url]));
+        closeAllSelect();
+        this._renderConfigEditor(JSON.stringify(cleanManifestCache[url]));
       });
-      pluginSelect.appendChild(option);
+
+      selectItems.appendChild(optionDiv);
     });
 
-    pluginSelect.addEventListener("change", this._handlePluginSelection.bind(this));
-    pickerCell.appendChild(pluginSelect);
-    pickerRow.appendChild(pickerCell);
+    selectSelected.addEventListener("click", (e) => {
+      e.stopPropagation();
+      closeAllSelect();
+      selectItems.classList.toggle(SELECT_HIDE);
+      selectSelected.classList.toggle(SELECT_ARROW_ACTIVE);
+    });
 
+    function closeAllSelect() {
+      const selectItemsList = document.querySelectorAll(SELECT_ITEMS);
+      const selectSelectedList = document.querySelectorAll(SELECT_SELECTED);
+      selectItemsList.forEach((item) => {
+        item.classList.add(SELECT_HIDE);
+      });
+      selectSelectedList.forEach((item) => {
+        item.classList.remove(SELECT_ARROW_ACTIVE);
+      });
+    }
+
+    document.addEventListener("click", closeAllSelect);
     this._updateGuiTitle(`Select a Plugin`);
-    this._manifestGuiBody.appendChild(pickerRow);
   }
 
   private _boundConfigAdd = this._writeNewConfig.bind(this, "add");
@@ -457,7 +517,8 @@ export class ManifestRenderer {
 
   private _handleAddPlugin(plugin: Plugin, pluginManifest: Manifest): void {
     this._configParser.addPlugin(plugin);
-    toastNotification(`Configuration for ${pluginManifest.name} saved successfully. Do you want to push to GitHub?`, {
+    toastNotification(`Configuration for ${pluginManifest.name
+      } saved successfully.Do you want to push to GitHub ? `, {
       type: "success",
       actionText: "Push to GitHub",
       action: async () => {
@@ -493,7 +554,7 @@ export class ManifestRenderer {
 
   private _handleRemovePlugin(plugin: Plugin, pluginManifest: Manifest): void {
     this._configParser.removePlugin(plugin);
-    toastNotification(`Configuration for ${pluginManifest.name} removed successfully. Do you want to push to GitHub?`, {
+    toastNotification(`Configuration for ${pluginManifest.name} removed successfully.Do you want to push to GitHub ? `, {
       type: "success",
       actionText: "Push to GitHub",
       action: async () => {

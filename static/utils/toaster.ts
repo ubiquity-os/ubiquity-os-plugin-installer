@@ -58,13 +58,21 @@ export function toastNotification(
     toastElement.classList.add("show");
   });
 
-  if (shouldAutoDismiss) {
-    setTimeout(() => {
+  function kill(withTimeout = false) {
+    if (withTimeout) {
+      setTimeout(() => {
+        toastElement.classList.remove("show");
+        setTimeout(() => toastElement.remove(), 250);
+      }, duration);
+    } else {
       toastElement.classList.remove("show");
       setTimeout(() => toastElement.remove(), 250);
-    }, duration);
+    }
   }
 
+  if (shouldAutoDismiss) {
+    kill(shouldAutoDismiss);
+  }
 
-  return toastElement.remove;
+  return kill;
 }

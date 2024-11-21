@@ -180,7 +180,6 @@ header #uos-logo path {
   margin-bottom: 16px;
 }
 
-/* Table Data Styles */
 .table-data-header {
   text-align: right;
   color: grey;
@@ -198,9 +197,6 @@ header #uos-logo path {
 
 .table-data-value > div {
   padding: 8px 16px;
-  border-bottom-left-radius: 4px;
-  border-left: 1px solid #303030;
-  border-bottom: 1px solid #303030;
 }
 
 #controls {
@@ -213,7 +209,7 @@ button {
   background: 0 0;
   color: #fff;
   font-size: 16px;
-  border: none; /* background-color: transparent; */
+  border: none;
   padding: 8px 16px;
   border-radius: 4px;
   opacity: 0.75;
@@ -265,7 +261,6 @@ button#add:active::before {
   content: "+++";
 }
 
-
 .picker-select {
   width: 100%;
   padding: 8px 16px;
@@ -285,6 +280,75 @@ button#add:active::before {
 .picker-select:focus {
   outline: none;
   border-color: #808080;
+}
+select option {
+  background-color: #101010;
+  color: #fff;
+  font-family: "Proxima Nova", sans-serif;
+  display: flex;
+  justify-content: space-between;
+}
+
+.custom-select {
+  position: relative;
+  font-family: "Proxima Nova", sans-serif;
+  width: inherit
+}
+
+.select-selected {
+  background-color: #101010;
+  color: #fff;
+  padding: 8px 16px;
+  border: 1px solid #303030;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.select-selected::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  border-color: #fff transparent transparent transparent;
+}
+
+.select-selected.select-arrow-active::after {
+  border-color: transparent transparent #fff transparent;
+  top: 12px;
+}
+
+.select-items {
+  background-color: #101010;
+  border: 1px solid #303030;
+  border-radius: 8px;
+  z-index: 99;
+  width: inherit;
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #303030 #101010;
+}
+
+.select-items .select-option {
+  color: #fff;
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.select-items .select-option:hover {
+  background-color: #303030;
+}
+
+.select-hide {
+  display: none;
 }
 
 .config-input {
@@ -345,23 +409,6 @@ button#add:active::before {
 .picker-body,
 .editor-body {
   margin-bottom: 16px;
-}
-
-/* Select Elements */
-.picker-select {
-  width: 100%;
-  padding: 8px 16px;
-  background-color: #101010;
-  color: #fff;
-  border: 1px solid #303030;
-  border-radius: 4px;
-  font-size: 16px;
-  font-family: "Proxima Nova", sans-serif;
-}
-
-.picker-select:focus {
-  outline: none;
-  border-color: #606060;
 }
 
 .save-button {
