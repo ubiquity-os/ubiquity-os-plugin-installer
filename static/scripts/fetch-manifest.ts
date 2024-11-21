@@ -1,22 +1,19 @@
 import { Octokit } from "@octokit/rest";
-import { ManifestDecoder } from "./decode-manifest";
-import { ManifestPreDecode } from "../types/plugins";
+import { Manifest, ManifestPreDecode } from "../types/plugins";
 import { DEV_CONFIG_FULL_PATH, CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 
 export class ManifestFetcher {
   private _orgs: string[];
   private _octokit: Octokit | null;
-  private _decoder: ManifestDecoder;
 
   workerUrlRegex = /https:\/\/([a-z0-9-]+)\.ubiquity\.workers\.dev/g;
   actionUrlRegex = /[a-z0-9-]+\/[a-z0-9-]+(?:\/[^@]+)?@[a-z0-9-]+/g;
   workerUrls = new Set<string>();
   actionUrls = new Set<string>();
 
-  constructor(orgs: string[], octokit: Octokit | null, decoder: ManifestDecoder) {
+  constructor(orgs: string[], octokit: Octokit | null) {
     this._orgs = orgs;
     this._octokit = octokit;
-    this._decoder = decoder;
   }
 
   async fetchMarketplaceManifests() {
@@ -31,7 +28,7 @@ export class ManifestFetcher {
     for (const repo of repos.data) {
       const manifestUrl = makeUrl(org, repo.name, "manifest.json");
       const manifest = await this.fetchActionManifest(manifestUrl);
-      const decoded = this._decoder.decodeManifestFromFetch(manifest);
+      const decoded = this.decodeManifestFromFetch(manifest);
       const readme = await this._fetchPluginReadme(makeUrl(org, repo.name, "README.md"));
 
       if (decoded) {
@@ -198,4 +195,20 @@ export class ManifestFetcher {
       this.captureActionUrls(config);
     }
   }
+
+  decodeManifestFromFetch(manifest: ManifestPreDecode) {
+    if (manifest.error) {
+      return null;
+    }
+
+    const decodedManifest: Manifest = {
+      name: manifest.name,
+      description: manifest.description,
+      "ubiquity:listeners": manifest["ubiquity:listeners"],
+      configuration: manifest.configuration,
+    };
+
+    return decodedManifest;
+  }
+
 }

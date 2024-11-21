@@ -1,5 +1,4 @@
 import { AuthService } from "./scripts/authentication";
-import { ManifestDecoder } from "./scripts/decode-manifest";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
 import { ManifestPreDecode } from "./types/plugins";
@@ -14,18 +13,11 @@ async function handleAuth() {
 
 export async function mainModule() {
   const auth = await handleAuth();
-  const decoder = new ManifestDecoder();
   const renderer = new ManifestRenderer(auth);
-  const search = window.location.search.substring(1);
-
-  if (search) {
-    const decodedManifest = await decoder.decodeManifestFromSearch(search);
-    return renderer.renderManifest(decodedManifest);
-  }
 
   try {
     const ubiquityOrgsToFetchOfficialConfigFrom = ["ubiquity-os"];
-    const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit, decoder);
+    const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit);
     const cache = fetcher.checkManifestCache();
     if (!manifestGuiBody) {
       throw new Error("Manifest GUI body not found");
