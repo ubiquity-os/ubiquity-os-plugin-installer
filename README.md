@@ -1,8 +1,8 @@
 # UbiquityOS Plugin Installer
 
-![_Users_nv_repos_0x4007_plugin-installer-gui_index html_manifest={%22name%22_%22Start%20_%20Stop%22,%22description%22_%22Assign%20or%20un-assign%20yourself%20from%20an%20issue %22,%22ubiquity_listeners%22_ %22issue_comment created%22,%22issu](https://github.com/user-attachments/assets/353b1e84-8c1b-48eb-9d6d-1f0e5ba80fb9)
+![_Users_nv_repos_0x4007_plugin-installer-gui_index html_manifest={%22name%22_%22Start%20_%20Stop%22,%22description%22_%22Assign%20or%20un-assign%20yourself%20from%20an%20issue %22,%22ubiquity_listeners%22_ %22issue_comment created%22,%22issue](https://github.com/user-attachments/assets/353b1e84-8c1b-48eb-9d6d-1f0e5ba80fb9)
 
-###### This was hand coded on an airplane ride with no internet. 
+###### This was hand coded on an airplane ride with no internet.
 
 ### Plan as of 16 September 2024
 
@@ -31,23 +31,32 @@ The browser automatically URI encodes it:
 
 ```json
 {
-    "name": "Start | Stop",
-    "description": "Assign or un-assign yourself from an issue.",
-    "ubiquity:listeners": [
-        "issue_comment.created",
-        "issues.assigned",
-        "pull_request.opened"
-    ],
-    "commands": {
-        "start": {
-            "ubiquity:example": "/start",
-            "description": "Assign yourself to the issue."
-        },
-        "stop": {
-            "ubiquity:example": "/stop",
-            "description": "Unassign yourself from the issue."
-        }
+  "name": "Start | Stop",
+  "description": "Assign or un-assign yourself from an issue.",
+  "ubiquity:listeners": ["issue_comment.created", "issues.assigned", "pull_request.opened"],
+  "commands": {
+    "start": {
+      "ubiquity:example": "/start",
+      "description": "Assign yourself to the issue."
+    },
+    "stop": {
+      "ubiquity:example": "/stop",
+      "description": "Unassign yourself from the issue."
     }
+  }
 }
 ```
+
 ###### Example from `command-start-stop/manifest.json`
+
+## How to run
+
+1. Clone the repository
+2. Run `yarn` to install dependencies
+3. OAuth: Obtain your _GitHub OAuth App_ client ID and secret from your OAuth app settings, and set the callback URL to match the one given by Supabase when enabling GitHub provider OAuth.
+4. Replace the hardcoded `SUPABASE_URL` and `SUPABASE_KEY` in `build/esbuild-build.ts` with your Supabase URL and key (Optionally use `.env` and use `process.env` instead.)
+5. Run `yarn start` and visit `localhost:8080` in your browser.
+6. Once logged in you should see the orgs that you own.
+7. Select an org > select a config (dev | prod) > select a plugin > edit/add/remove > push to GitHub.
+
+TODO: Update readme with a better overview of the project.

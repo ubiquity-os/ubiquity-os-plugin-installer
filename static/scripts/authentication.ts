@@ -8,13 +8,19 @@ declare const SUPABASE_STORAGE_KEY: string;
 declare const NODE_ENV: string;
 
 export class AuthService {
-  private supabase: SupabaseClient;
+  supabase: SupabaseClient;
+  octokit: Octokit | null = null;
 
   constructor() {
     this.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
 
-  private async getSessionToken(): Promise<string | null> {
+  isActiveSession(): boolean {
+    const token = localStorage.getItem(`sb-${SUPABASE_STORAGE_KEY}-auth-token`);
+    return !!token;
+  }
+
+  async getSessionToken(): Promise<string | null> {
     const localToken = localStorage.getItem(`sb-${SUPABASE_STORAGE_KEY}-auth-token`);
     if (localToken) {
       return JSON.parse(localToken).provider_token;
@@ -22,7 +28,7 @@ export class AuthService {
     return this.getNewSessionToken();
   }
 
-  private async getNewSessionToken(): Promise<string | null> {
+  async getNewSessionToken(): Promise<string | null> {
     const hash = window.location.hash;
     if (!hash) return null;
 
@@ -34,14 +40,16 @@ export class AuthService {
     return providerToken;
   }
 
-  private async getSupabaseSession(): Promise<Session | null> {
+  async getSupabaseSession(): Promise<Session | null> {
     if (NODE_ENV === "development") {
       const token = localStorage.getItem(`sb-${SUPABASE_STORAGE_KEY}-auth-token`);
       if (token) {
         return JSON.parse(token);
       }
     }
-    const { data: { session } } = await this.supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await this.supabase.auth.getSession();
     return session;
   }
 
@@ -57,12 +65,14 @@ export class AuthService {
   public async signInWithGithub(): Promise<void> {
     const search = window.location.search;
     localStorage.setItem("manifest", search);
-    const { data } = await this.supabase.auth.signInWithOAuth({ provider: "github" });
+    const { data } = await this.supabase.auth.signInWithOAuth({ provider: "github", options: { scopes: "read:org read:user user:email repo" } });
     if (!data) throw new Error("Failed to sign in with GitHub");
   }
 
   public async signOut(): Promise<void> {
     await this.supabase.auth.signOut();
+    localStorage.removeItem(`sb-${SUPABASE_STORAGE_KEY}-auth-token`);
+    window.location.reload();
   }
 
   public async renderGithubLoginButton(user?: GitHubUser | null): Promise<void> {
@@ -70,7 +80,7 @@ export class AuthService {
     if (!button) throw new Error("Missing sign in button");
 
     const session = await this.getSupabaseSession();
-    user = user || await this.getNewGitHubUser(session?.provider_token || null);
+    user = user || (await this.getNewGitHubUser(session?.provider_token || null));
 
     const preAuthManifest = localStorage.getItem("manifest");
     const isUrlEmpty = !window.location.search || !window.location.hash;
@@ -99,11 +109,12 @@ export class AuthService {
     return this.getNewGitHubUser(token);
   }
 
-  private async getNewGitHubUser(token: string | null): Promise<GitHubUser | null> {
+  async getNewGitHubUser(token: string | null): Promise<GitHubUser | null> {
     if (!token) return null;
     const octokit = new Octokit({ auth: token });
     try {
       const response = await octokit.request("GET /user");
+      this.octokit = octokit;
       return response.data as GitHubUser;
     } catch (error) {
       console.error("Failed to get user", error);
@@ -111,5 +122,17 @@ export class AuthService {
       await this.renderGithubLoginButton(null);
       return null;
     }
+  }
+
+  public async getGitHubUserOrgs(): Promise<string[]> {
+    const octokit = await this.getOctokit();
+    const response = await octokit.rest.orgs.listForAuthenticatedUser();
+    return response.data.map((org: { login: string }) => org.login);
+  }
+
+  public async getOctokit(): Promise<Octokit> {
+    if (this.octokit) return this.octokit;
+    const token = await this.getSessionToken();
+    return new Octokit({ auth: token });
   }
 }
