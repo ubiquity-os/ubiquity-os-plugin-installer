@@ -1,9 +1,9 @@
-import { createElement, manifestGuiBody } from "../../utils/element-helpers";
+import { createElement } from "../../utils/element-helpers";
 import { ManifestRenderer } from "../render-manifest";
 import { renderOrgPicker } from "./org-select";
 import { renderPluginSelector } from "./plugin-select";
 
-export function createBackButton(renderer: ManifestRenderer, step: string): HTMLButtonElement {
+export function createBackButton(renderer: ManifestRenderer): HTMLButtonElement {
   const backButton = createElement("button", {
     id: "back-button",
     class: "button",
@@ -11,20 +11,24 @@ export function createBackButton(renderer: ManifestRenderer, step: string): HTML
   }) as HTMLButtonElement;
 
   backButton.style.display = "none";
-  backButton.addEventListener("click", handleBackButtonClick.bind(null, renderer, step));
+  backButton.addEventListener("click", () => handleBackButtonClick(renderer));
   return backButton;
 }
 
-function handleBackButtonClick(renderer: ManifestRenderer, step: string): void {
+function handleBackButtonClick(renderer: ManifestRenderer): void {
+  const readmeContainer = document.querySelector(".readme-container");
+  if (readmeContainer) {
+    readmeContainer.remove();
+    renderer.manifestGuiBody?.classList.remove("plugin-editor");
+  }
+
+  const step = renderer.currentStep;
+
   if (step === "pluginSelector") {
     renderOrgPicker(renderer, renderer.orgs);
   } else if (step === "configEditor") {
     renderPluginSelector(renderer);
-  }
-
-  const readmeContainer = document.querySelector(".readme-container");
-  if (readmeContainer) {
-    readmeContainer.remove();
-    manifestGuiBody?.classList.remove("plugin-editor");
+  } else if (step === "orgPicker") {
+    renderOrgPicker(renderer, renderer.orgs);
   }
 }

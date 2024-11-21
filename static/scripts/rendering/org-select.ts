@@ -13,7 +13,7 @@ export function renderOrgPicker(renderer: ManifestRenderer, orgs: string[], fetc
   renderer.backButton.style.display = "none";
   renderer.manifestGui?.classList.add("rendering");
   renderer.manifestGuiBody.innerHTML = null;
-
+  renderer.orgs = orgs;
 
   const pickerRow = document.createElement("tr");
   const pickerCell = document.createElement("td");
@@ -39,8 +39,6 @@ export function renderOrgPicker(renderer: ManifestRenderer, orgs: string[], fetc
 
   renderer.manifestGuiBody.appendChild(pickerRow);
   renderer.manifestGui?.classList.add("rendered");
-
-
 
   if (!orgs.length) {
     const hasSession = renderer.auth.isActiveSession();
@@ -99,16 +97,17 @@ function handleOrgSelection(renderer: ManifestRenderer, org: string, fetchPromis
         });
       });
 
-    const fetchOrgConfig = async () => {
-      const octokit = renderer.auth.octokit;
-      if (!octokit) {
-        throw new Error("No org or octokit found");
-      }
-      await renderer.configParser.fetchUserInstalledConfig(org, octokit);
-      renderPluginSelector(renderer);
-    };
-    fetchOrgConfig().catch(console.error);
+    fetchOrgConfig(renderer, org).catch(console.error);
   } else {
     renderPluginSelector(renderer);
   }
+}
+
+async function fetchOrgConfig(renderer: ManifestRenderer, org: string): Promise<void> {
+  const octokit = renderer.auth.octokit;
+  if (!octokit) {
+    throw new Error("No org or octokit found");
+  }
+  await renderer.configParser.fetchUserInstalledConfig(org, octokit);
+  renderPluginSelector(renderer);
 }

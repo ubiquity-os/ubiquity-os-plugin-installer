@@ -66,7 +66,7 @@ header #uos-logo path {
 
 #viewport-cell {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   width: 100%;
 }
@@ -77,15 +77,47 @@ header #uos-logo path {
   user-select: text;
   background-image: linear-gradient(0deg, #101010, #202020);
   border-radius: 4px;
-  margin: 16px auto;
+  margin: 0 auto;
   box-shadow: 0 24px 48px #000000;
   overflow: auto;
-  padding: 16px;
+  padding: 16px 24px;
   color: #fff;
   font-family: "Proxima Nova", sans-serif;
   line-height: 1.6;
   opacity: 0.85;
-  overflow-y: auto;
+  max-height: calc(100vh - 192px);
+  scrollbar-width: thin;
+  scrollbar-color: #303030 #101010;
+}
+
+.readme-container p {
+  color: #ccc;
+  margin-bottom: 16px;
+}
+
+.readme-container a {
+  color: #1e90ff;
+  text-decoration: none;
+}
+
+.readme-container a:hover {
+  text-decoration: underline;
+}
+
+.readme-container code {
+  background-color: #202020;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #1e90ff;
+}
+
+.readme-container pre {
+  background-color: #202020;
+  padding: 16px;
+  border-radius: 4px;
+  overflow: auto;
+  color: #ccc;
+  margin-bottom: 16px;
 }
 
 #manifest-gui {
@@ -140,52 +172,36 @@ header #uos-logo path {
   margin: 0 0 16px;
 }
 
-.readme-container h1,
-.readme-container h2,
-.readme-container h3 {
+.config-input {
+  width: calc(100% - 32px);
+  padding: 8px 16px;
+  background-color: #101010;
   color: #fff;
-  font-weight: bold;
-  margin-top: 24px;
-}
-
-.readme-container p {
-  color: #ccc;
-  margin-bottom: 16px;
-}
-
-.readme-container a {
-  color: #1e90ff;
-  text-decoration: none;
-}
-
-.readme-container a:hover {
-  text-decoration: underline;
-}
-
-.readme-container code {
-  background-color: #202020;
-  padding: 2px 4px;
   border-radius: 4px;
-  color: #1e90ff;
+  font-size: 16px;
+  font-family: "Proxima Nova", sans-serif;
+  border-bottom: 1px solid #303030;
 }
 
-.readme-container pre {
-  background-color: #202020;
-  padding: 16px;
-  border-radius: 4px;
-  overflow: auto;
-  color: #ccc;
-  margin-bottom: 16px;
+.config-input:hover {
+  border-color: #606060;
+}
+
+.config-input:focus {
+  outline: none;
+  border-color: #808080;
 }
 
 .table-data-header {
-  text-align: right;
   color: grey;
   text-transform: capitalize;
   text-rendering: geometricPrecision;
+  display: flex;
+  justify-content: right;
+  border-top: 1px solid #303030;
 }
 
-.table-data-header > div {
+.table-data-header {
   padding: 8px 16px;
 }
 
@@ -193,7 +209,8 @@ header #uos-logo path {
   user-select: text;
 }
 
-.table-data-value > div {
+.table-data-value > input,
+textarea {
   padding: 8px 16px;
 }
 
@@ -367,26 +384,6 @@ select option {
 
 .select-hide {
   display: none;
-}
-
-.config-input {
-  width: calc(100% - 32px);
-  padding: 8px 16px;
-  background-color: #101010;
-  color: #fff;
-  border: 1px solid #303030;
-  border-radius: 4px;
-  font-size: 16px;
-  font-family: "Proxima Nova", sans-serif;
-}
-
-.config-input:hover {
-  border-color: #606060;
-}
-
-.config-input:focus {
-  outline: none;
-  border-color: #808080;
 }
 
 .picker-container,

@@ -27,8 +27,9 @@ export class ManifestRenderer {
     this._manifestGuiBody = manifestGuiBody as HTMLElement;
     controlButtons({ hide: true });
 
+    this.currentStep = "orgPicker";
     const title = manifestGui.querySelector("#manifest-gui-title");
-    this._backButton = createBackButton(this, this._currentStep);
+    this._backButton = createBackButton(this);
     title?.previousSibling?.appendChild(this._backButton);
   }
 

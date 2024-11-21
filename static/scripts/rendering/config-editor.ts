@@ -4,6 +4,8 @@ import { ManifestRenderer } from "../render-manifest";
 import { processProperties } from "./input-parsing";
 import { updateGuiTitle } from "./utils";
 import { writeNewConfig } from "./write-add-remove";
+import MarkdownIt from "markdown-it";
+const md = new MarkdownIt();
 
 export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: Manifest | null, plugin?: Plugin["uses"][0]["with"]): void {
   renderer.currentStep = "configEditor";
@@ -86,8 +88,8 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
     }
     const readmeContainer = document.createElement("div");
     readmeContainer.className = "readme-container";
-    readmeContainer.innerHTML = readme;
-    viewportCell.insertAdjacentElement("afterend", readmeContainer);
+    readmeContainer.innerHTML = md.render(readme);
+    viewportCell.appendChild(readmeContainer);
   }
 
   updateGuiTitle(`Editing Configuration for ${pluginManifest?.name}`);

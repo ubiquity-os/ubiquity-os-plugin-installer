@@ -20,10 +20,7 @@ export function processProperties(renderer: ManifestRenderer, props: Record<stri
   });
 }
 
-export function parseConfigInputs(
-  configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement>,
-  manifest: Manifest
-): { [key: string]: unknown } {
+export function parseConfigInputs(configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement>, manifest: Manifest): { [key: string]: unknown } {
   const config: Record<string, unknown> = {};
   const schema = manifest.configuration;
   if (!schema) {

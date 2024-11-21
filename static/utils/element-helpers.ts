@@ -29,7 +29,7 @@ export function createInputRow(
 
   const headerCell = document.createElement("td");
   headerCell.className = "table-data-header";
-  headerCell.textContent = key;
+  headerCell.textContent = key.replace(/([A-Z])/g, " $1");
   row.appendChild(headerCell);
 
   const valueCell = document.createElement("td");
