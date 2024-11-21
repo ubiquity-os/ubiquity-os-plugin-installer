@@ -1,13 +1,8 @@
-import { ManifestCache, ManifestPreDecode, Plugin, Manifest } from "../types/plugins";
 import { ConfigParser } from "./config-parser";
 import { AuthService } from "./authentication";
-import AJV, { AnySchemaObject } from "ajv";
-import { createElement, createInputRow } from "../utils/element-helpers";
-import { toastNotification } from "../utils/toaster";
 import { ExtendedHtmlElement } from "../types/github";
-import { STRINGS } from "../utils/strings";
-
-const ajv = new AJV({ allErrors: true, coerceTypes: true, strict: true });
+import { controlButtons } from "./rendering/control-buttons";
+import { createBackButton } from "./rendering/navigation";
 
 export class ManifestRenderer {
   private _manifestGui: HTMLElement;
@@ -30,556 +25,66 @@ export class ManifestRenderer {
 
     this._manifestGui = manifestGui as HTMLElement;
     this._manifestGuiBody = manifestGuiBody as HTMLElement;
-    this._controlButtons(true);
-
-    this._backButton = createElement("button", {
-      id: "back-button",
-      class: "button",
-      textContent: "Back",
-    }) as HTMLButtonElement;
+    controlButtons({ hide: true });
 
     const title = manifestGui.querySelector("#manifest-gui-title");
+    this._backButton = createBackButton(this, this._currentStep);
     title?.previousSibling?.appendChild(this._backButton);
-    this._backButton.style.display = "none";
-    this._backButton.addEventListener("click", this._handleBackButtonClick.bind(this));
   }
 
-  private _handleBackButtonClick(): void {
-    switch (this._currentStep) {
-      case "pluginSelector": {
-        this.renderOrgPicker(this._orgs);
-        break;
-      }
-      case "configEditor": {
-        this._renderPluginSelector();
-        break;
-      }
-      default:
-        break;
-    }
-
-    const readmeContainer = document.querySelector(".readme-container");
-    if (readmeContainer) {
-      readmeContainer.remove();
-      this._manifestGui?.classList.remove("plugin-editor");
-    }
+  get orgs(): string[] {
+    return this._orgs;
   }
 
-  // Event Handlers
-
-  private _handleOrgSelection(org: string, fetchPromise?: Promise<Record<string, ManifestPreDecode>>): void {
-    if (!org) {
-      throw new Error("No org selected");
-    }
-
-    localStorage.setItem("selectedOrg", org);
-
-    if (fetchPromise) {
-      fetchPromise
-        .then((manifestCache) => {
-          localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
-        })
-        .catch((error) => {
-          console.error("Error fetching manifest cache:", error);
-          toastNotification(`An error occurred while fetching the manifest cache: ${String(error)}`, {
-            type: "error",
-            shouldAutoDismiss: true,
-          });
-        });
-
-      const fetchOrgConfig = async () => {
-        const octokit = this._auth.octokit;
-        if (!octokit) {
-          throw new Error("No org or octokit found");
-        }
-        await this._configParser.fetchUserInstalledConfig(org, octokit);
-        this._renderPluginSelector();
-      };
-      fetchOrgConfig().catch(console.error);
-    } else {
-      this._renderPluginSelector();
-    }
-  }
-
-  // UI Rendering
-
-  private _controlButtons(hide: boolean): void {
-    const addButton = document.getElementById("add");
-    const removeButton = document.getElementById("remove");
-    const resetToDefaultButton = document.getElementById("reset-to-default");
-    const hideOrDisplay = hide ? "none" : "inline-block";
-    if (addButton) {
-      addButton.style.display = hideOrDisplay;
-    }
-    if (removeButton) {
-      removeButton.style.display = hideOrDisplay;
-    }
-
-    if (resetToDefaultButton) {
-      resetToDefaultButton.style.display = hideOrDisplay;
-    }
-
-    this._manifestGui?.classList.add("rendered");
-  }
-
-  public renderOrgPicker(orgs: string[], fetchPromise?: Promise<Record<string, ManifestPreDecode>>): void {
+  set orgs(orgs: string[]) {
     this._orgs = orgs;
-    this._currentStep = "orgPicker";
-    this._controlButtons(true);
-    this._backButton.style.display = "none";
-    this._manifestGui?.classList.add("rendering");
-    this._manifestGuiBody.innerHTML = null;
-
-    const pickerRow = document.createElement("tr");
-    const pickerCell = document.createElement("td");
-    pickerCell.colSpan = 4;
-    pickerCell.className = STRINGS.TDV_CENTERED;
-
-    const customSelect = createElement("div", { class: "custom-select" });
-
-    const selectSelected = createElement("div", {
-      class: "select-selected",
-      textContent: "Select an organization",
-    });
-
-    const selectItems = createElement("div", {
-      class: "select-items select-hide",
-    });
-
-    customSelect.appendChild(selectSelected);
-    customSelect.appendChild(selectItems);
-
-    pickerCell.appendChild(customSelect);
-    pickerRow.appendChild(pickerCell);
-
-    this._manifestGuiBody.appendChild(pickerRow);
-    this._manifestGui?.classList.add("rendered");
-
-    if (!orgs.length) {
-      const hasSession = this._auth.isActiveSession();
-      if (hasSession) {
-        this._updateGuiTitle("No organizations found");
-      } else {
-        this._updateGuiTitle("Please sign in to GitHub");
-      }
-      return;
-    }
-
-    this._updateGuiTitle("Select an Organization");
-
-    orgs.forEach((org) => {
-      const optionDiv = createElement("div", { class: "select-option" });
-      const textSpan = createElement("span", { textContent: org });
-
-      optionDiv.appendChild(textSpan);
-
-      optionDiv.addEventListener("click", () => {
-        this._handleOrgSelection(org, fetchPromise);
-        selectSelected.textContent = org;
-        localStorage.setItem("selectedOrg", org);
-      });
-
-      selectItems.appendChild(optionDiv);
-    });
-
-    selectSelected.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this._closeAllSelect();
-      selectItems.classList.toggle(STRINGS.SELECT_HIDE);
-      selectSelected.classList.toggle(STRINGS.SELECT_ARROW_ACTIVE);
-    });
-
-    document.addEventListener("click", this._closeAllSelect);
   }
 
-  private _renderPluginSelector(): void {
-    this._currentStep = "pluginSelector";
-    this._backButton.style.display = "block";
-    this._manifestGuiBody.innerHTML = null;
-    this._controlButtons(true);
-
-    const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
-    const pluginUrls = Object.keys(manifestCache);
-
-    const pickerRow = document.createElement("tr");
-    const pickerCell = document.createElement("td");
-    pickerCell.colSpan = 2;
-    pickerCell.className = STRINGS.TDV_CENTERED;
-
-    const userConfig = this._configParser.repoConfig;
-    let installedPlugins: Plugin[] = [];
-
-    if (userConfig) {
-      installedPlugins = this._configParser.parseConfig(userConfig).plugins;
-    }
-
-    const cleanManifestCache = Object.keys(manifestCache).reduce((acc, key) => {
-      if (manifestCache[key]?.name) {
-        acc[key] = manifestCache[key];
-      }
-      return acc;
-    }, {} as ManifestCache);
-
-    const customSelect = createElement("div", { class: "custom-select" });
-
-    const selectSelected = createElement("div", {
-      class: "select-selected",
-      textContent: "Select a plugin",
-    });
-
-    const selectItems = createElement("div", {
-      class: "select-items select-hide",
-    });
-
-    customSelect.appendChild(selectSelected);
-    customSelect.appendChild(selectItems);
-
-    pickerCell.appendChild(customSelect);
-    pickerRow.appendChild(pickerCell);
-
-    this._manifestGuiBody.appendChild(pickerRow);
-
-    pluginUrls.forEach((url) => {
-      if (!cleanManifestCache[url]?.name) {
-        return;
-      }
-
-      const [, repo] = url.replace("https://raw.githubusercontent.com/", "").split("/");
-      const reg = new RegExp(`${repo}`, "gi");
-      const installedPlugin: Plugin | undefined = installedPlugins.find((plugin) => plugin.uses[0].plugin.match(reg));
-      const defaultForInstalled: ManifestPreDecode | null = cleanManifestCache[url];
-      const optionText = defaultForInstalled.name;
-      const indicator = installedPlugin ? "🟢" : "🔴";
-
-      const optionDiv = createElement("div", { class: "select-option" });
-      const textSpan = createElement("span", { textContent: optionText });
-      const indicatorSpan = createElement("span", { textContent: indicator });
-
-      optionDiv.appendChild(textSpan);
-      optionDiv.appendChild(indicatorSpan);
-
-      optionDiv.addEventListener("click", () => {
-        selectSelected.textContent = optionText;
-        this._closeAllSelect();
-        localStorage.setItem("selectedPluginManifest", JSON.stringify(defaultForInstalled));
-        this._renderConfigEditor(defaultForInstalled, installedPlugin?.uses[0].with);
-      });
-
-      selectItems.appendChild(optionDiv);
-    });
-
-    selectSelected.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this._closeAllSelect();
-      selectItems.classList.toggle(STRINGS.SELECT_HIDE);
-      selectSelected.classList.toggle(STRINGS.SELECT_ARROW_ACTIVE);
-    });
-
-    this._updateGuiTitle(`Select a Plugin`);
+  get currentStep(): "orgPicker" | "pluginSelector" | "configEditor" {
+    return this._currentStep;
   }
 
-  private _closeAllSelect() {
-    const selectItemsList = document.querySelectorAll(STRINGS.SELECT_ITEMS);
-    const selectSelectedList = document.querySelectorAll(STRINGS.SELECT_SELECTED);
-    selectItemsList.forEach((item) => {
-      item.classList.add(STRINGS.SELECT_HIDE);
-    });
-    selectSelectedList.forEach((item) => {
-      item.classList.remove(STRINGS.SELECT_ARROW_ACTIVE);
-    });
+  set currentStep(step: "orgPicker" | "pluginSelector" | "configEditor") {
+    this._currentStep = step;
   }
 
-  private _boundConfigAdd = this._writeNewConfig.bind(this, "add");
-  private _boundConfigRemove = this._writeNewConfig.bind(this, "remove");
-  private _renderConfigEditor(pluginManifest: Manifest | null, plugin?: Plugin["uses"][0]["with"]): void {
-    this._currentStep = "configEditor";
-    this._backButton.style.display = "block";
-    this._manifestGuiBody.innerHTML = null;
-    this._controlButtons(false);
-    this._processProperties(pluginManifest?.configuration?.properties || {});
-    const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
-
-    if (plugin) {
-      configInputs.forEach((input) => {
-        const key = input.getAttribute("data-config-key");
-        if (!key) {
-          throw new Error("Input key is required");
-        }
-
-        const keys = key.split(".");
-        let currentObj = plugin;
-        for (let i = 0; i < keys.length; i++) {
-          if (!currentObj[keys[i]]) {
-            break;
-          }
-          currentObj = currentObj[keys[i]] as Record<string, unknown>;
-        }
-
-        let value: string;
-
-        if (typeof currentObj === "object") {
-          value = JSON.stringify(currentObj, null, 2);
-        } else {
-          value = currentObj as string;
-        }
-
-        if (input.tagName === "TEXTAREA") {
-          (input as HTMLTextAreaElement).value = value;
-        } else {
-          (input as HTMLInputElement).value = value;
-        }
-      });
-    }
-
-    const add = document.getElementById("add");
-    const remove = document.getElementById("remove");
-    if (!add || !remove) {
-      throw new Error("Add or remove button not found");
-    }
-    add.addEventListener("click", this._boundConfigAdd);
-    remove.addEventListener("click", this._boundConfigRemove);
-
-    const resetToDefaultButton = document.getElementById("reset-to-default");
-
-    if (!resetToDefaultButton) {
-      throw new Error("Reset to default button not found");
-    }
-
-    resetToDefaultButton.addEventListener("click", () => {
-      this._renderConfigEditor(pluginManifest);
-      const readmeContainer = document.querySelector(".readme-container");
-      if (readmeContainer) {
-        readmeContainer.remove();
-      }
-    });
-
-    resetToDefaultButton.hidden = !!plugin;
-
-    const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
-    const pluginUrls = Object.keys(manifestCache);
-    const pluginUrl = pluginUrls.find((url) => {
-      return manifestCache[url].name === pluginManifest?.name;
-    });
-
-    if (!pluginUrl) {
-      throw new Error("Plugin URL not found");
-    }
-    const readme = manifestCache[pluginUrl].readme;
-
-    if (readme) {
-      const viewportCell = document.getElementById("viewport-cell");
-      if (!viewportCell) {
-        throw new Error("Viewport cell not found");
-      }
-      const readmeContainer = document.createElement("div");
-      readmeContainer.className = "readme-container";
-      readmeContainer.innerHTML = readme;
-      viewportCell.insertAdjacentElement("afterend", readmeContainer);
-    }
-
-    this._updateGuiTitle(`Editing Configuration for ${pluginManifest?.name}`);
-    this._manifestGui?.classList.add("plugin-editor");
-    this._manifestGui?.classList.add("rendered");
+  get backButton(): HTMLButtonElement {
+    return this._backButton;
   }
 
-  private _updateGuiTitle(title: string): void {
-    const guiTitle = document.querySelector("#manifest-gui-title");
-    if (!guiTitle) {
-      throw new Error("GUI Title not found");
-    }
-    guiTitle.textContent = title;
+  set backButton(button: HTMLButtonElement) {
+    this._backButton = button;
   }
 
-  // Configuration Parsing
-
-  private _processProperties(props: Record<string, Manifest["configuration"]>, prefix: string | null = null) {
-    Object.keys(props).forEach((key) => {
-      const fullKey = prefix ? `${prefix}.${key}` : key;
-      const prop = props[key];
-
-      if (prop.type === "object" && prop.properties) {
-        this._processProperties(prop.properties, fullKey);
-      } else {
-        createInputRow(fullKey, prop, this._configDefaults);
-      }
-    });
+  get manifestGui(): HTMLElement {
+    return this._manifestGui;
   }
 
-  private _parseConfigInputs(configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement>, manifest: Manifest): { [key: string]: unknown } {
-    const config: Record<string, unknown> = {};
-    const schema = manifest.configuration;
-    if (!schema) {
-      throw new Error("No schema found in manifest");
-    }
-    const validate = ajv.compile(schema as AnySchemaObject);
-
-    configInputs.forEach((input) => {
-      const key = input.getAttribute("data-config-key");
-      if (!key) {
-        throw new Error("Input key is required");
-      }
-
-      const keys = key.split(".");
-
-      let currentObj = config;
-      for (let i = 0; i < keys.length - 1; i++) {
-        const part = keys[i];
-        if (!currentObj[part] || typeof currentObj[part] !== "object") {
-          currentObj[part] = {};
-        }
-        currentObj = currentObj[part] as Record<string, unknown>;
-      }
-
-      let value: unknown;
-      const expectedType = input.getAttribute("data-type");
-
-      if (expectedType === "boolean") {
-        value = (input as HTMLInputElement).checked;
-      } else if (expectedType === "object" || expectedType === "array") {
-        try {
-          value = JSON.parse((input as HTMLTextAreaElement).value);
-        } catch (e) {
-          console.error(e);
-          throw new Error(`Invalid JSON input for ${expectedType} at key "${key}": ${input.value}`);
-        }
-      } else {
-        value = (input as HTMLInputElement).value;
-      }
-
-      currentObj[keys[keys.length - 1]] = value;
-    });
-
-    if (validate(config)) {
-      return config;
-    } else {
-      throw new Error("Invalid configuration: " + JSON.stringify(validate.errors, null, 2));
-    }
+  set manifestGui(gui: HTMLElement) {
+    this._manifestGui = gui;
   }
 
-  private _writeNewConfig(option: "add" | "remove"): void {
-    const selectedManifest = localStorage.getItem("selectedPluginManifest");
-    if (!selectedManifest) {
-      toastNotification("No selected plugin manifest found.", {
-        type: "error",
-        shouldAutoDismiss: true,
-      });
-      throw new Error("No selected plugin manifest found");
-    }
-    const pluginManifest = JSON.parse(selectedManifest) as Manifest;
-    const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
-
-    const newConfig = this._parseConfigInputs(configInputs, pluginManifest);
-
-    this._configParser.loadConfig();
-
-    const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}");
-
-    const pluginName = pluginManifest.name;
-
-    // this relies on the manifest matching the repo name
-    const normalizedPluginName = pluginName
-      .toLowerCase()
-      .replace(/ /g, "-")
-      .replace(/[^a-z0-9-]/g, "")
-      .replace(/-+/g, "-");
-
-    const pluginUrl = Object.keys(officialPluginConfig).find((url) => {
-      return url.includes(normalizedPluginName);
-    });
-
-    if (!pluginUrl) {
-      toastNotification(`No plugin URL found for ${pluginName}.`, {
-        type: "error",
-        shouldAutoDismiss: true,
-      });
-      throw new Error("No plugin URL found");
-    }
-
-    const plugin: Plugin = {
-      uses: [
-        {
-          plugin: pluginUrl,
-          with: newConfig,
-        },
-      ],
-    };
-
-    if (option === "add") {
-      this._handleAddPlugin(plugin, pluginManifest);
-    } else {
-      this._handleRemovePlugin(plugin, pluginManifest);
-    }
+  get manifestGuiBody(): ExtendedHtmlElement {
+    return this._manifestGuiBody;
   }
 
-  private _handleAddPlugin(plugin: Plugin, pluginManifest: Manifest): void {
-    this._configParser.addPlugin(plugin);
-    toastNotification(`Configuration for ${pluginManifest.name} saved successfully.Do you want to push to GitHub ? `, {
-      type: "success",
-      actionText: "Push to GitHub",
-      action: async () => {
-        const octokit = this._auth.octokit;
-        if (!octokit) {
-          throw new Error("Octokit not found");
-        }
-
-        const org = localStorage.getItem("selectedOrg");
-
-        if (!org) {
-          throw new Error("No selected org found");
-        }
-
-        try {
-          await this._configParser.updateConfig(org, octokit, "add");
-        } catch (error) {
-          console.error("Error pushing config to GitHub:", error);
-          toastNotification("An error occurred while pushing the configuration to GitHub.", {
-            type: "error",
-            shouldAutoDismiss: true,
-          });
-          return;
-        }
-
-        toastNotification("Configuration pushed to GitHub successfully.", {
-          type: "success",
-          shouldAutoDismiss: true,
-        });
-      },
-    });
+  set manifestGuiBody(body: ExtendedHtmlElement) {
+    this._manifestGuiBody = body;
   }
 
-  private _handleRemovePlugin(plugin: Plugin, pluginManifest: Manifest): void {
-    this._configParser.removePlugin(plugin);
-    toastNotification(`Configuration for ${pluginManifest.name} removed successfully.Do you want to push to GitHub ? `, {
-      type: "success",
-      actionText: "Push to GitHub",
-      action: async () => {
-        const octokit = this._auth.octokit;
-        if (!octokit) {
-          throw new Error("Octokit not found");
-        }
+  get auth(): AuthService {
+    return this._auth;
+  }
 
-        const org = localStorage.getItem("selectedOrg");
+  get configParser(): ConfigParser {
+    return this._configParser;
+  }
 
-        if (!org) {
-          throw new Error("No selected org found");
-        }
+  get configDefaults(): { [key: string]: { type: string; value: string; items: { type: string } | null } } {
+    return this._configDefaults;
+  }
 
-        try {
-          await this._configParser.updateConfig(org, octokit, "remove");
-        } catch (error) {
-          console.error("Error pushing config to GitHub:", error);
-          toastNotification("An error occurred while pushing the configuration to GitHub.", {
-            type: "error",
-            shouldAutoDismiss: true,
-          });
-          return;
-        }
-
-        toastNotification("Configuration pushed to GitHub successfully.", {
-          type: "success",
-          shouldAutoDismiss: true,
-        });
-      },
-    });
+  set configDefaults(defaults: { [key: string]: { type: string; value: string; items: { type: string } | null } }) {
+    this._configDefaults = defaults;
   }
 }
