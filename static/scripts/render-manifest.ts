@@ -22,7 +22,7 @@ export class ManifestRenderer {
   private _configDefaults: { [key: string]: { type: string; value: string; items: { type: string } | null } } = {};
   private _auth: AuthService;
   private _backButton: HTMLButtonElement;
-  private _currentStep: "orgPicker" | "configSelector" | "pluginSelector" | "configEditor" = "orgPicker";
+  private _currentStep: "orgPicker" | "pluginSelector" | "configEditor" = "orgPicker";
   private _orgs: string[] = [];
 
   constructor(auth: AuthService) {
@@ -52,18 +52,12 @@ export class ManifestRenderer {
 
   private _handleBackButtonClick(): void {
     switch (this._currentStep) {
-      case "configSelector": {
+      case "pluginSelector": {
         this.renderOrgPicker(this._orgs);
         break;
       }
-      case "pluginSelector": {
-        const selectedConfig = localStorage.getItem("selectedConfig") as "development" | "production";
-        this._renderConfigSelector(selectedConfig);
-        break;
-      }
       case "configEditor": {
-        const selectedConfig = localStorage.getItem("selectedConfig") as "development" | "production";
-        this._renderPluginSelector(selectedConfig);
+        this._renderPluginSelector();
         break;
       }
       default:
@@ -78,7 +72,17 @@ export class ManifestRenderer {
     const selectedOrg = selectElement.value;
     if (selectedOrg) {
       localStorage.setItem("selectedOrg", selectedOrg);
-      this._renderConfigSelector(selectedOrg);
+
+      const fetchOrgConfig = async () => {
+        const octokit = this._auth.octokit;
+        if (!octokit) {
+          throw new Error("No org or octokit found");
+        }
+        await this._configParser.fetchUserInstalledConfig(selectedOrg, octokit);
+      }
+
+      fetchOrgConfig().catch(console.error);
+      this._renderPluginSelector();
     }
   }
 
@@ -96,28 +100,6 @@ export class ManifestRenderer {
     }
   }
 
-  private _handleConfigSelection(event: Event): void {
-    try {
-      const selectElement = event.target as HTMLSelectElement;
-      const selectedConfig = selectElement.value as "development" | "production";
-      if (selectedConfig) {
-        const fetchOrgConfig = async () => {
-          const org = localStorage.getItem("selectedOrg");
-          const octokit = this._auth.octokit;
-          if (!org || !octokit) {
-            throw new Error("No org or octokit found");
-          }
-          await this._configParser.fetchUserInstalledConfig(org, selectedConfig, octokit);
-        };
-        localStorage.setItem("selectedConfig", selectedConfig);
-        this._renderPluginSelector(selectedConfig);
-        fetchOrgConfig().catch(console.error);
-      }
-    } catch (error) {
-      console.error("Error handling configuration selection:", error);
-      alert("An error occurred while selecting the configuration.");
-    }
-  }
 
   // UI Rendering
 
@@ -188,47 +170,7 @@ export class ManifestRenderer {
     this._manifestGui?.classList.add("rendered");
   }
 
-  private _renderConfigSelector(selectedOrg: string): void {
-    this._currentStep = "configSelector";
-    this._backButton.style.display = "block";
-    this._manifestGuiBody.innerHTML = null;
-    this._controlButtons(true);
-
-    const pickerRow = document.createElement("tr");
-    const pickerCell = document.createElement("td");
-    pickerCell.colSpan = 2;
-    pickerCell.className = TDV_CENTERED;
-
-    const configSelect = createElement("select", {
-      id: "config-selector-select",
-      class: PICKER_SELECT_STR,
-    });
-
-    const defaultOption = createElement("option", {
-      value: null,
-      textContent: "Select a configuration",
-    });
-    configSelect.appendChild(defaultOption);
-
-    const configs = ["development", "production"];
-    configs.forEach((config) => {
-      const option = createElement("option", {
-        value: config,
-        textContent: config.charAt(0).toUpperCase() + config.slice(1),
-      });
-      configSelect.appendChild(option);
-    });
-
-    configSelect.removeEventListener("change", this._handleConfigSelection.bind(this));
-    configSelect.addEventListener("change", this._handleConfigSelection.bind(this));
-    pickerCell.appendChild(configSelect);
-    pickerRow.appendChild(pickerCell);
-
-    this._updateGuiTitle(`Select a Configuration for ${selectedOrg}`);
-    this._manifestGuiBody.appendChild(pickerRow);
-  }
-
-  private _renderPluginSelector(selectedConfig: "development" | "production"): void {
+  private _renderPluginSelector(): void {
     this._currentStep = "pluginSelector";
     this._backButton.style.display = "block";
     this._manifestGuiBody.innerHTML = null;
@@ -275,7 +217,7 @@ export class ManifestRenderer {
     pickerCell.appendChild(pluginSelect);
     pickerRow.appendChild(pickerCell);
 
-    this._updateGuiTitle(`Select a Plugin for ${selectedConfig}`);
+    this._updateGuiTitle(`Select a Plugin`);
     this._manifestGuiBody.appendChild(pickerRow);
   }
 
@@ -480,18 +422,13 @@ export class ManifestRenderer {
         }
 
         const org = localStorage.getItem("selectedOrg");
-        const config = localStorage.getItem("selectedConfig") as "development" | "production";
 
         if (!org) {
           throw new Error("No selected org found");
         }
 
-        if (!config) {
-          throw new Error("No selected config found");
-        }
-
         try {
-          await this._configParser.updateConfig(org, config, octokit, "add");
+          await this._configParser.updateConfig(org, octokit, "add");
         } catch (error) {
           console.error("Error pushing config to GitHub:", error);
           toastNotification("An error occurred while pushing the configuration to GitHub.", {
@@ -521,18 +458,13 @@ export class ManifestRenderer {
         }
 
         const org = localStorage.getItem("selectedOrg");
-        const config = localStorage.getItem("selectedConfig") as "development" | "production";
 
         if (!org) {
           throw new Error("No selected org found");
         }
 
-        if (!config) {
-          throw new Error("No selected config found");
-        }
-
         try {
-          await this._configParser.updateConfig(org, config, octokit, "remove");
+          await this._configParser.updateConfig(org, octokit, "remove");
         } catch (error) {
           console.error("Error pushing config to GitHub:", error);
           toastNotification("An error occurred while pushing the configuration to GitHub.", {
