@@ -38,6 +38,7 @@ export type Manifest = {
       };
     };
   };
+  readme?: string;
 };
 
 export type ManifestProps = { type: string; default: string; items?: { type: string }; properties?: Record<string, ManifestProps> };

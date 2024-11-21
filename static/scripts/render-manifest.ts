@@ -63,11 +63,17 @@ export class ManifestRenderer {
       default:
         break;
     }
+
+    const readmeContainer = document.querySelector(".readme-container");
+    if (readmeContainer) {
+      readmeContainer.remove();
+      this._manifestGui?.classList.remove("plugin-editor");
+    }
   }
 
   // Event Handlers
 
-  private _handleOrgSelection(event: Event): void {
+  private _handleOrgSelection(event: Event, fetchPromise?: Promise<Record<string, ManifestPreDecode>>): void {
     const selectElement = event.target as HTMLSelectElement;
     const selectedOrg = selectElement.value;
     if (selectedOrg) {
@@ -82,7 +88,23 @@ export class ManifestRenderer {
       }
 
       fetchOrgConfig().catch(console.error);
-      this._renderPluginSelector();
+
+      if (fetchPromise) {
+        fetchPromise.then((manifestCache) => {
+          localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
+          this._renderPluginSelector();
+        }).catch((error) => {
+          console.error("Error fetching manifest cache:", error);
+          toastNotification(`An error occurred while fetching the manifest cache: ${String(error)}`, {
+            type: "error",
+            shouldAutoDismiss: true,
+          });
+        })
+
+
+      } else {
+        this._renderPluginSelector();
+      }
     }
   }
 
@@ -100,7 +122,6 @@ export class ManifestRenderer {
     }
   }
 
-
   // UI Rendering
 
   private _controlButtons(hide: boolean): void {
@@ -116,7 +137,7 @@ export class ManifestRenderer {
     this._manifestGui?.classList.add("rendered");
   }
 
-  public renderOrgPicker(orgs: string[]): void {
+  public renderOrgPicker(orgs: string[], fetchPromise?: Promise<Record<string, ManifestPreDecode>>): void {
     this._orgs = orgs;
     this._currentStep = "orgPicker";
     this._controlButtons(true);
@@ -163,7 +184,7 @@ export class ManifestRenderer {
       orgSelect.appendChild(option);
     });
 
-    orgSelect.addEventListener("change", this._handleOrgSelection.bind(this));
+    orgSelect.addEventListener("change", (event) => this._handleOrgSelection(event, fetchPromise));
     pickerCell.appendChild(orgSelect);
     pickerRow.appendChild(pickerCell);
     this._manifestGuiBody.appendChild(pickerRow);
@@ -206,6 +227,7 @@ export class ManifestRenderer {
       if (!cleanManifestCache[url]?.name) {
         return;
       }
+
       const option = createElement("option", {
         value: JSON.stringify(cleanManifestCache[url]),
         textContent: cleanManifestCache[url]?.name,
@@ -219,6 +241,61 @@ export class ManifestRenderer {
 
     this._updateGuiTitle(`Select a Plugin`);
     this._manifestGuiBody.appendChild(pickerRow);
+  }
+
+  private _boundConfigAdd = this._writeNewConfig.bind(this, "add");
+  private _boundConfigRemove = this._writeNewConfig.bind(this, "remove");
+  private _renderConfigEditor(manifestStr: string): void {
+    this._currentStep = "configEditor";
+    this._backButton.style.display = "block";
+    this._manifestGuiBody.innerHTML = null;
+    this._controlButtons(false);
+
+    const pluginManifest = JSON.parse(manifestStr) as Manifest;
+    const configProps = pluginManifest.configuration?.properties || {};
+    this._processProperties(configProps);
+
+    const add = document.getElementById("add");
+    const remove = document.getElementById("remove");
+    if (!add || !remove) {
+      throw new Error("Add or remove button not found");
+    }
+    add.addEventListener("click", this._boundConfigAdd);
+    remove.addEventListener("click", this._boundConfigRemove);
+
+    const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
+    const pluginUrls = Object.keys(manifestCache);
+    const pluginUrl = pluginUrls.find((url) => {
+      return manifestCache[url].name === pluginManifest.name;
+    })
+
+    if (!pluginUrl) {
+      throw new Error("Plugin URL not found");
+    }
+    const readme = manifestCache[pluginUrl].readme;
+
+    if (readme) {
+      const viewportCell = document.getElementById("viewport-cell");
+      if (!viewportCell) {
+        throw new Error("Viewport cell not found");
+      }
+      const readmeContainer = document.createElement("div");
+      readmeContainer.className = 'readme-container';
+      readmeContainer.innerHTML = readme;
+      viewportCell.insertAdjacentElement("afterend", readmeContainer);
+    }
+
+    this._updateGuiTitle(`Editing Configuration for ${pluginManifest.name}`);
+    this._manifestGui?.classList.add("plugin-editor");
+    this._manifestGui?.classList.add("rendered");
+  }
+
+  private _updateGuiTitle(title: string): void {
+    const guiTitle = document.querySelector("#manifest-gui-title");
+    if (!guiTitle) {
+      throw new Error("GUI Title not found");
+    }
+    guiTitle.textContent = title;
   }
 
   renderManifest(decodedManifest: ManifestPreDecode) {
@@ -253,40 +330,8 @@ export class ManifestRenderer {
     });
 
     this._manifestGuiBody.appendChild(table);
+
     this._manifestGui?.classList.add("rendered");
-  }
-
-  private _boundConfigAdd = this._writeNewConfig.bind(this, "add");
-  private _boundConfigRemove = this._writeNewConfig.bind(this, "remove");
-  private _renderConfigEditor(manifestStr: string): void {
-    this._currentStep = "configEditor";
-    this._backButton.style.display = "block";
-    this._manifestGuiBody.innerHTML = null;
-    this._controlButtons(false);
-
-    const pluginManifest = JSON.parse(manifestStr) as Manifest;
-    const configProps = pluginManifest.configuration?.properties || {};
-    this._processProperties(configProps);
-
-    const add = document.getElementById("add");
-    const remove = document.getElementById("remove");
-    if (!add || !remove) {
-      throw new Error("Add or remove button not found");
-    }
-    add.addEventListener("click", this._boundConfigAdd);
-    remove.addEventListener("click", this._boundConfigRemove);
-
-    this._updateGuiTitle(`Editing Configuration for ${pluginManifest.name}`);
-    this._manifestGui?.classList.add("plugin-editor");
-    this._manifestGui?.classList.add("rendered");
-  }
-
-  private _updateGuiTitle(title: string): void {
-    const guiTitle = document.querySelector("#manifest-gui-title");
-    if (!guiTitle) {
-      throw new Error("GUI Title not found");
-    }
-    guiTitle.textContent = title;
   }
 
   // Configuration Parsing

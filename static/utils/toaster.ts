@@ -9,7 +9,7 @@ export function toastNotification(
     shouldAutoDismiss?: boolean;
     duration?: number;
   } = {}
-): void {
+): () => void {
   const { type = "info", actionText, action, shouldAutoDismiss = false, duration = 5000 } = options;
 
   const toastElement = createElement("div", {
@@ -64,4 +64,7 @@ export function toastNotification(
       setTimeout(() => toastElement.remove(), 250);
     }, duration);
   }
+
+
+  return toastElement.remove;
 }

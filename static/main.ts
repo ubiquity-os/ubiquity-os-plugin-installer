@@ -2,6 +2,7 @@ import { AuthService } from "./scripts/authentication";
 import { ManifestDecoder } from "./scripts/decode-manifest";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
+import { ManifestPreDecode } from "./types/plugins";
 import { toastNotification } from "./utils/toaster";
 
 async function handleAuth() {
@@ -27,13 +28,20 @@ export async function mainModule() {
     const cache = fetcher.checkManifestCache();
     if (auth.isActiveSession()) {
       const userOrgs = await auth.getGitHubUserOrgs();
-      renderer.renderOrgPicker(userOrgs);
+      let fetchPromise: Promise<Record<string, ManifestPreDecode>> = Promise.resolve(cache);
       if (Object.keys(cache).length === 0) {
-        const manifestCache = await fetcher.fetchMarketplaceManifests();
-        localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
-        // this is going to extract URLs from our official config which we'll inject into `- plugin: ...`
-        await fetcher.fetchOfficialPluginConfig();
+        const killNotification = toastNotification("Fetching manifest data...", { type: "info", duration: 0 });
+        fetchPromise = new Promise(async (resolve) => {
+          const manifestCache = await fetcher.fetchMarketplaceManifests();
+          localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
+          // this is going to extract URLs from our official config which we'll inject into `- plugin: ...`
+          await fetcher.fetchOfficialPluginConfig();
+          resolve(manifestCache);
+          killNotification();
+        });
       }
+
+      renderer.renderOrgPicker(userOrgs, fetchPromise);
     } else {
       renderer.renderOrgPicker([]);
     }

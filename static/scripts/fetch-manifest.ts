@@ -26,14 +26,16 @@ export class ManifestFetcher {
     }
     const repos = await this._octokit.repos.listForOrg({ org });
     const manifestCache = this.checkManifestCache();
+    function makeUrl(org: string, repo: string, file: string) { return `https://raw.githubusercontent.com/${org}/${repo}/development/${file}` };
 
     for (const repo of repos.data) {
-      const manifestUrl = `https://raw.githubusercontent.com/${org}/${repo.name}/development/manifest.json`;
+      const manifestUrl = makeUrl(org, repo.name, "manifest.json");
       const manifest = await this.fetchActionManifest(manifestUrl);
       const decoded = this._decoder.decodeManifestFromFetch(manifest);
+      const readme = await this._fetchPluginReadme(makeUrl(org, repo.name, "README.md"));
 
       if (decoded) {
-        manifestCache[manifestUrl] = decoded;
+        manifestCache[manifestUrl] = { ...decoded, readme };
       }
     }
 
@@ -126,6 +128,31 @@ export class ManifestFetcher {
       }
       console.error(e);
       return { actionUrl, error: String(e) };
+    }
+  }
+
+  private async _fetchPluginReadme(pluginUrl: string) {
+    try {
+      const response = await fetch(pluginUrl, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "GET",
+      });
+      return await response.text();
+    } catch (e) {
+      let error = e;
+      try {
+        const res = await fetch(pluginUrl.replace(/development/g, "main"));
+        return await res.text();
+      } catch (e) {
+        error = e;
+      }
+      console.error(error);
+      if (error instanceof Error) {
+        return error.message;
+      }
+      return String(error);
     }
   }
 
