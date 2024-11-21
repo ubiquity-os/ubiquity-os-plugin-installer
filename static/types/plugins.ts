@@ -31,11 +31,11 @@ export type Manifest = {
   };
   configuration: {
     type: string;
-    default: string;
+    default: object;
     items?: {
       type: string;
     };
     properties?: Record<string, Manifest["configuration"]>;
-  }
+  };
   readme?: string;
 };

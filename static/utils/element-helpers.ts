@@ -4,7 +4,10 @@ const CONFIG_INPUT_STR = "config-input";
 
 export const manifestGuiBody = document.getElementById("manifest-gui-body");
 
-export function createElement<TK extends keyof HTMLElementTagNameMap>(tagName: TK, attributes: { [key: string]: string | boolean | null }): HTMLElementTagNameMap[TK] {
+export function createElement<TK extends keyof HTMLElementTagNameMap>(
+  tagName: TK,
+  attributes: { [key: string]: string | boolean | null }
+): HTMLElementTagNameMap[TK] {
   const element = document.createElement(tagName);
   Object.keys(attributes).forEach((key) => {
     if (key === "textContent") {

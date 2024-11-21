@@ -58,16 +58,16 @@ header #uos-logo path {
 
 #viewport {
   display: flex;
-  align-items: center;     
-  justify-content: center; 
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  height: calc(100vh - 96px); 
+  height: calc(100vh - 96px);
 }
 
 #viewport-cell {
   display: flex;
   flex-direction: column;
-  align-items: center;    
+  align-items: center;
   width: 100%;
 }
 
@@ -310,7 +310,7 @@ select option {
 .custom-select {
   position: relative;
   font-family: "Proxima Nova", sans-serif;
-  width: inherit
+  width: inherit;
 }
 
 .select-selected {

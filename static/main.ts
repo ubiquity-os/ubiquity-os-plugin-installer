@@ -31,6 +31,7 @@ export async function mainModule() {
         const killNotification = toastNotification("Fetching manifest data...", { type: "info", shouldAutoDismiss: true });
         manifestGuiBody.dataset.loading = "true";
 
+        // eslint-disable-next-line no-async-promise-executor
         fetchPromise = new Promise(async (resolve) => {
           if (!manifestGuiBody) {
             throw new Error("Manifest GUI body not found");

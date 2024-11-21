@@ -23,7 +23,9 @@ export class ManifestFetcher {
     }
     const repos = await this._octokit.repos.listForOrg({ org });
     const manifestCache = this.checkManifestCache();
-    function makeUrl(org: string, repo: string, file: string) { return `https://raw.githubusercontent.com/${org}/${repo}/development/${file}` };
+    function makeUrl(org: string, repo: string, file: string) {
+      return `https://raw.githubusercontent.com/${org}/${repo}/development/${file}`;
+    }
 
     for (const repo of repos.data) {
       const manifestUrl = makeUrl(org, repo.name, "manifest.json");
@@ -210,5 +212,4 @@ export class ManifestFetcher {
 
     return decodedManifest;
   }
-
 }

@@ -50,7 +50,7 @@ export class ConfigParser {
       const { data } = await octokit.repos.getContent({
         owner: org,
         repo,
-        path
+        path,
       });
 
       return data;
@@ -108,13 +108,7 @@ export class ConfigParser {
     return YAML.parse(`${this.newConfigYml}`);
   }
 
-  async updateConfig(
-    org: string,
-    octokit: Octokit,
-    option: "add" | "remove",
-    path = CONFIG_FULL_PATH,
-    repo = CONFIG_ORG_REPO
-  ) {
+  async updateConfig(org: string, octokit: Octokit, option: "add" | "remove", path = CONFIG_FULL_PATH, repo = CONFIG_ORG_REPO) {
     let repoPlugins = this.parseConfig(this.repoConfig).plugins;
     const newPlugins = this.parseConfig().plugins;
 

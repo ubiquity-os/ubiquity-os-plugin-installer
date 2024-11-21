@@ -4,18 +4,10 @@ import { AuthService } from "./authentication";
 import AJV, { AnySchemaObject } from "ajv";
 import { createElement, createInputRow } from "../utils/element-helpers";
 import { toastNotification } from "../utils/toaster";
+import { ExtendedHtmlElement } from "../types/github";
+import { STRINGS } from "../utils/strings";
 
 const ajv = new AJV({ allErrors: true, coerceTypes: true, strict: true });
-
-const TDV_CENTERED = "table-data-value centered";
-const SELECT_ITEMS = ".select-items"
-const SELECT_SELECTED = ".select-selected"
-const SELECT_HIDE = "select-hide"
-const SELECT_ARROW_ACTIVE = "select-arrow-active"
-
-type ExtendedHtmlElement<T = HTMLElement> = {
-  [key in keyof T]: T[key] extends HTMLElement["innerHTML"] ? string | null : T[key];
-};
 
 export class ManifestRenderer {
   private _manifestGui: HTMLElement;
@@ -83,15 +75,17 @@ export class ManifestRenderer {
     localStorage.setItem("selectedOrg", org);
 
     if (fetchPromise) {
-      fetchPromise.then((manifestCache) => {
-        localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
-      }).catch((error) => {
-        console.error("Error fetching manifest cache:", error);
-        toastNotification(`An error occurred while fetching the manifest cache: ${String(error)}`, {
-          type: "error",
-          shouldAutoDismiss: true,
+      fetchPromise
+        .then((manifestCache) => {
+          localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
+        })
+        .catch((error) => {
+          console.error("Error fetching manifest cache:", error);
+          toastNotification(`An error occurred while fetching the manifest cache: ${String(error)}`, {
+            type: "error",
+            shouldAutoDismiss: true,
+          });
         });
-      });
 
       const fetchOrgConfig = async () => {
         const octokit = this._auth.octokit;
@@ -100,12 +94,11 @@ export class ManifestRenderer {
         }
         await this._configParser.fetchUserInstalledConfig(org, octokit);
         this._renderPluginSelector();
-      }
+      };
       fetchOrgConfig().catch(console.error);
     } else {
       this._renderPluginSelector();
     }
-
   }
 
   // UI Rendering
@@ -140,7 +133,7 @@ export class ManifestRenderer {
     const pickerRow = document.createElement("tr");
     const pickerCell = document.createElement("td");
     pickerCell.colSpan = 4;
-    pickerCell.className = TDV_CENTERED;
+    pickerCell.className = STRINGS.TDV_CENTERED;
 
     const customSelect = createElement("div", { class: "custom-select" });
 
@@ -191,23 +184,12 @@ export class ManifestRenderer {
 
     selectSelected.addEventListener("click", (e) => {
       e.stopPropagation();
-      closeAllSelect();
-      selectItems.classList.toggle(SELECT_HIDE);
-      selectSelected.classList.toggle(SELECT_ARROW_ACTIVE);
+      this._closeAllSelect();
+      selectItems.classList.toggle(STRINGS.SELECT_HIDE);
+      selectSelected.classList.toggle(STRINGS.SELECT_ARROW_ACTIVE);
     });
 
-    function closeAllSelect() {
-      const selectItemsList = document.querySelectorAll(SELECT_ITEMS);
-      const selectSelectedList = document.querySelectorAll(SELECT_SELECTED);
-      selectItemsList.forEach((item) => {
-        item.classList.add(SELECT_HIDE);
-      });
-      selectSelectedList.forEach((item) => {
-        item.classList.remove(SELECT_ARROW_ACTIVE);
-      });
-    }
-
-    document.addEventListener("click", closeAllSelect);
+    document.addEventListener("click", this._closeAllSelect);
   }
 
   private _renderPluginSelector(): void {
@@ -222,13 +204,13 @@ export class ManifestRenderer {
     const pickerRow = document.createElement("tr");
     const pickerCell = document.createElement("td");
     pickerCell.colSpan = 2;
-    pickerCell.className = TDV_CENTERED;
+    pickerCell.className = STRINGS.TDV_CENTERED;
 
     const userConfig = this._configParser.repoConfig;
     let installedPlugins: Plugin[] = [];
 
     if (userConfig) {
-      installedPlugins = this._configParser.parseConfig(userConfig).plugins
+      installedPlugins = this._configParser.parseConfig(userConfig).plugins;
     }
 
     const cleanManifestCache = Object.keys(manifestCache).reduce((acc, key) => {
@@ -278,7 +260,7 @@ export class ManifestRenderer {
 
       optionDiv.addEventListener("click", () => {
         selectSelected.textContent = optionText;
-        closeAllSelect();
+        this._closeAllSelect();
         localStorage.setItem("selectedPluginManifest", JSON.stringify(defaultForInstalled));
         this._renderConfigEditor(defaultForInstalled, installedPlugin?.uses[0].with);
       });
@@ -288,24 +270,23 @@ export class ManifestRenderer {
 
     selectSelected.addEventListener("click", (e) => {
       e.stopPropagation();
-      closeAllSelect();
-      selectItems.classList.toggle(SELECT_HIDE);
-      selectSelected.classList.toggle(SELECT_ARROW_ACTIVE);
+      this._closeAllSelect();
+      selectItems.classList.toggle(STRINGS.SELECT_HIDE);
+      selectSelected.classList.toggle(STRINGS.SELECT_ARROW_ACTIVE);
     });
 
-    function closeAllSelect() {
-      const selectItemsList = document.querySelectorAll(SELECT_ITEMS);
-      const selectSelectedList = document.querySelectorAll(SELECT_SELECTED);
-      selectItemsList.forEach((item) => {
-        item.classList.add(SELECT_HIDE);
-      });
-      selectSelectedList.forEach((item) => {
-        item.classList.remove(SELECT_ARROW_ACTIVE);
-      });
-    }
-
-    document.addEventListener("click", closeAllSelect);
     this._updateGuiTitle(`Select a Plugin`);
+  }
+
+  private _closeAllSelect() {
+    const selectItemsList = document.querySelectorAll(STRINGS.SELECT_ITEMS);
+    const selectSelectedList = document.querySelectorAll(STRINGS.SELECT_SELECTED);
+    selectItemsList.forEach((item) => {
+      item.classList.add(STRINGS.SELECT_HIDE);
+    });
+    selectSelectedList.forEach((item) => {
+      item.classList.remove(STRINGS.SELECT_ARROW_ACTIVE);
+    });
   }
 
   private _boundConfigAdd = this._writeNewConfig.bind(this, "add");
@@ -326,7 +307,7 @@ export class ManifestRenderer {
         }
 
         const keys = key.split(".");
-        let currentObj = plugin
+        let currentObj = plugin;
         for (let i = 0; i < keys.length; i++) {
           if (!currentObj[keys[i]]) {
             break;
@@ -347,8 +328,7 @@ export class ManifestRenderer {
         } else {
           (input as HTMLInputElement).value = value;
         }
-      }
-      );
+      });
     }
 
     const add = document.getElementById("add");
@@ -379,7 +359,7 @@ export class ManifestRenderer {
     const pluginUrls = Object.keys(manifestCache);
     const pluginUrl = pluginUrls.find((url) => {
       return manifestCache[url].name === pluginManifest?.name;
-    })
+    });
 
     if (!pluginUrl) {
       throw new Error("Plugin URL not found");
@@ -392,7 +372,7 @@ export class ManifestRenderer {
         throw new Error("Viewport cell not found");
       }
       const readmeContainer = document.createElement("div");
-      readmeContainer.className = 'readme-container';
+      readmeContainer.className = "readme-container";
       readmeContainer.innerHTML = readme;
       viewportCell.insertAdjacentElement("afterend", readmeContainer);
     }
@@ -408,42 +388,6 @@ export class ManifestRenderer {
       throw new Error("GUI Title not found");
     }
     guiTitle.textContent = title;
-  }
-
-  renderManifest(decodedManifest: ManifestPreDecode) {
-    if (!decodedManifest) {
-      throw new Error("No decoded manifest found!");
-    }
-    this._manifestGui?.classList.add("rendering");
-    this._manifestGuiBody.innerHTML = null;
-
-    const table = document.createElement("table");
-    Object.entries(decodedManifest).forEach(([key, value]) => {
-      const row = document.createElement("tr");
-
-      const headerCell = document.createElement("td");
-      headerCell.className = "table-data-header";
-      headerCell.textContent = key.replace("ubiquity:", "");
-      row.appendChild(headerCell);
-
-      const valueCell = document.createElement("td");
-      valueCell.className = "table-data-value";
-
-      if (typeof value === "string") {
-        valueCell.textContent = value;
-      } else {
-        const pre = document.createElement("pre");
-        pre.textContent = JSON.stringify(value, null, 2);
-        valueCell.appendChild(pre);
-      }
-
-      row.appendChild(valueCell);
-      table.appendChild(row);
-    });
-
-    this._manifestGuiBody.appendChild(table);
-
-    this._manifestGui?.classList.add("rendered");
   }
 
   // Configuration Parsing
@@ -569,8 +513,7 @@ export class ManifestRenderer {
 
   private _handleAddPlugin(plugin: Plugin, pluginManifest: Manifest): void {
     this._configParser.addPlugin(plugin);
-    toastNotification(`Configuration for ${pluginManifest.name
-      } saved successfully.Do you want to push to GitHub ? `, {
+    toastNotification(`Configuration for ${pluginManifest.name} saved successfully.Do you want to push to GitHub ? `, {
       type: "success",
       actionText: "Push to GitHub",
       action: async () => {
