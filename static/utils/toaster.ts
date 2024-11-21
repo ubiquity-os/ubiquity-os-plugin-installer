@@ -1,4 +1,4 @@
-import { createElement } from "./ele-helpers";
+import { createElement } from "./element-helpers";
 
 export function toastNotification(
   message: string,

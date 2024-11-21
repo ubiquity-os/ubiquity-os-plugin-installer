@@ -3,7 +3,7 @@ import { ManifestCache, ManifestPreDecode, ManifestProps, Plugin } from "../type
 import { ConfigParser } from "./config-parser";
 import { AuthService } from "./authentication";
 import AJV, { AnySchemaObject } from "ajv";
-import { createElement, createInputRow } from "../utils/ele-helpers";
+import { createElement, createInputRow } from "../utils/element-helpers";
 import { toastNotification } from "../utils/toaster";
 
 const ajv = new AJV({ allErrors: true, coerceTypes: true, strict: true });
