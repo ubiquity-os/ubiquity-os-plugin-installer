@@ -1,5 +1,4 @@
-import { Manifest } from "@ubiquity-os/ubiquity-os-kernel";
-import { ManifestCache, ManifestPreDecode, ManifestProps, Plugin } from "../types/plugins";
+import { ManifestCache, ManifestPreDecode, Plugin, Manifest } from "../types/plugins";
 import { ConfigParser } from "./config-parser";
 import { AuthService } from "./authentication";
 import AJV, { AnySchemaObject } from "ajv";
@@ -220,10 +219,10 @@ export class ManifestRenderer {
     pickerCell.className = TDV_CENTERED;
 
     const userConfig = this._configParser.repoConfig;
-    let installedPlugins: string[] = [];
+    let installedPlugins: Plugin[] = [];
 
     if (userConfig) {
-      installedPlugins = this._configParser.parseConfig(userConfig).plugins.flatMap((plugin) => plugin.uses.map((use) => use.plugin));
+      installedPlugins = this._configParser.parseConfig(userConfig).plugins
     }
 
     const cleanManifestCache = Object.keys(manifestCache).reduce((acc, key) => {
@@ -259,10 +258,10 @@ export class ManifestRenderer {
 
       const [, repo] = url.replace("https://raw.githubusercontent.com/", "").split("/");
       const reg = new RegExp(`${repo}`, "gi");
-      const isInstalled = installedPlugins.some((plugin) => reg.test(plugin));
-
-      const optionText = cleanManifestCache[url]?.name;
-      const indicator = isInstalled ? "🟢" : "🔴";
+      const installedPlugin: Plugin | undefined = installedPlugins.find((plugin) => plugin.uses[0].plugin.match(reg));
+      const defaultForInstalled: ManifestPreDecode | null = cleanManifestCache[url];
+      const optionText = defaultForInstalled.name;
+      const indicator = installedPlugin ? "🟢" : "🔴";
 
       const optionDiv = createElement("div", { class: "select-option" });
       const textSpan = createElement("span", { textContent: optionText });
@@ -273,9 +272,9 @@ export class ManifestRenderer {
 
       optionDiv.addEventListener("click", () => {
         selectSelected.textContent = optionText;
-        selectSelected.setAttribute("data-value", JSON.stringify(cleanManifestCache[url]));
         closeAllSelect();
-        this._renderConfigEditor(JSON.stringify(cleanManifestCache[url]));
+        localStorage.setItem("selectedPluginManifest", JSON.stringify(defaultForInstalled));
+        this._renderConfigEditor(defaultForInstalled, installedPlugin?.uses[0].with);
       });
 
       selectItems.appendChild(optionDiv);
@@ -305,15 +304,46 @@ export class ManifestRenderer {
 
   private _boundConfigAdd = this._writeNewConfig.bind(this, "add");
   private _boundConfigRemove = this._writeNewConfig.bind(this, "remove");
-  private _renderConfigEditor(manifestStr: string): void {
+  private _renderConfigEditor(pluginManifest: Manifest | null, plugin?: Plugin["uses"][0]["with"]): void {
     this._currentStep = "configEditor";
     this._backButton.style.display = "block";
     this._manifestGuiBody.innerHTML = null;
     this._controlButtons(false);
+    this._processProperties(pluginManifest?.configuration?.properties || {});
+    const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
-    const pluginManifest = JSON.parse(manifestStr) as Manifest;
-    const configProps = pluginManifest.configuration?.properties || {};
-    this._processProperties(configProps);
+    if (plugin) {
+      configInputs.forEach((input) => {
+        const key = input.getAttribute("data-config-key");
+        if (!key) {
+          throw new Error("Input key is required");
+        }
+
+        const keys = key.split(".");
+        let currentObj = plugin
+        for (let i = 0; i < keys.length; i++) {
+          if (!currentObj[keys[i]]) {
+            break;
+          }
+          currentObj = currentObj[keys[i]] as Record<string, unknown>;
+        }
+
+        let value: string;
+
+        if (typeof currentObj === "object") {
+          value = JSON.stringify(currentObj, null, 2);
+        } else {
+          value = currentObj as string;
+        }
+
+        if (input.tagName === "TEXTAREA") {
+          (input as HTMLTextAreaElement).value = value;
+        } else {
+          (input as HTMLInputElement).value = value;
+        }
+      }
+      );
+    }
 
     const add = document.getElementById("add");
     const remove = document.getElementById("remove");
@@ -326,7 +356,7 @@ export class ManifestRenderer {
     const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
     const pluginUrls = Object.keys(manifestCache);
     const pluginUrl = pluginUrls.find((url) => {
-      return manifestCache[url].name === pluginManifest.name;
+      return manifestCache[url].name === pluginManifest?.name;
     })
 
     if (!pluginUrl) {
@@ -345,7 +375,7 @@ export class ManifestRenderer {
       viewportCell.insertAdjacentElement("afterend", readmeContainer);
     }
 
-    this._updateGuiTitle(`Editing Configuration for ${pluginManifest.name}`);
+    this._updateGuiTitle(`Editing Configuration for ${pluginManifest?.name}`);
     this._manifestGui?.classList.add("plugin-editor");
     this._manifestGui?.classList.add("rendered");
   }
@@ -396,7 +426,7 @@ export class ManifestRenderer {
 
   // Configuration Parsing
 
-  private _processProperties(props: Record<string, ManifestProps>, prefix: string | null = null) {
+  private _processProperties(props: Record<string, Manifest["configuration"]>, prefix: string | null = null) {
     Object.keys(props).forEach((key) => {
       const fullKey = prefix ? `${prefix}.${key}` : key;
       const prop = props[key];

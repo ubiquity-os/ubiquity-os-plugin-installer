@@ -1,4 +1,4 @@
-import { ManifestProps } from "../types/plugins";
+import { Manifest } from "../types/plugins";
 
 const CONFIG_INPUT_STR = "config-input";
 
@@ -19,7 +19,7 @@ export function createElement<TK extends keyof HTMLElementTagNameMap>(tagName: T
 }
 export function createInputRow(
   key: string,
-  prop: ManifestProps,
+  prop: Manifest["configuration"],
   configDefaults: Record<string, { type: string; value: unknown; items: { type: string } | null }>
 ): void {
   const row = document.createElement("tr");
@@ -44,7 +44,7 @@ export function createInputRow(
     items: prop.items ? { type: prop.items.type } : null,
   };
 }
-export function createInput(key: string, defaultValue: unknown, prop: ManifestProps): HTMLElement {
+export function createInput(key: string, defaultValue: unknown, prop: Manifest["configuration"]): HTMLElement {
   if (!key) {
     throw new Error("Input name is required");
   }
