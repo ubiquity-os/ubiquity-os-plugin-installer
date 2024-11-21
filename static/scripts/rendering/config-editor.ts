@@ -1,5 +1,4 @@
-import { Manifest } from "@ubiquity-os/ubiquity-os-kernel";
-import { ManifestCache, Plugin } from "../../types/plugins";
+import { Manifest, ManifestCache, Plugin } from "../../types/plugins";
 import { controlButtons } from "./control-buttons";
 import { ManifestRenderer } from "../render-manifest";
 import { processProperties } from "./input-parsing";

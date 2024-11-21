@@ -2,6 +2,7 @@ import { ManifestCache, ManifestPreDecode, Plugin } from "../../types/plugins";
 import { createElement } from "../../utils/element-helpers";
 import { STRINGS } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
+import { renderConfigEditor } from "./config-editor";
 import { controlButtons } from "./control-buttons";
 import { closeAllSelect, updateGuiTitle } from "./utils";
 
@@ -75,7 +76,7 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
       selectSelected.textContent = optionText;
       closeAllSelect();
       localStorage.setItem("selectedPluginManifest", JSON.stringify(defaultForInstalled));
-      renderer.renderConfigEditor(defaultForInstalled, installedPlugin?.uses[0].with);
+      renderConfigEditor(renderer, defaultForInstalled, installedPlugin?.uses[0].with);
     });
 
     selectItems.appendChild(optionDiv);

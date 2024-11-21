@@ -21,7 +21,6 @@ export function processProperties(renderer: ManifestRenderer, props: Record<stri
 }
 
 export function parseConfigInputs(
-  renderer: ManifestRenderer,
   configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement>,
   manifest: Manifest
 ): { [key: string]: unknown } {

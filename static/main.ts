@@ -1,6 +1,7 @@
 import { AuthService } from "./scripts/authentication";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
+import { renderOrgPicker } from "./scripts/rendering/org-select";
 import { ManifestPreDecode } from "./types/plugins";
 import { manifestGuiBody } from "./utils/element-helpers";
 import { toastNotification } from "./utils/toaster";
@@ -45,9 +46,9 @@ export async function mainModule() {
         });
       }
 
-      renderer.renderOrgPicker(userOrgs, fetchPromise);
+      renderOrgPicker(renderer, userOrgs, fetchPromise);
     } else {
-      renderer.renderOrgPicker([]);
+      renderOrgPicker(renderer, []);
     }
   } catch (error) {
     if (error instanceof Error) {

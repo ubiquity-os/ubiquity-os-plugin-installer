@@ -14,12 +14,13 @@ export function renderOrgPicker(renderer: ManifestRenderer, orgs: string[], fetc
   renderer.manifestGui?.classList.add("rendering");
   renderer.manifestGuiBody.innerHTML = null;
 
+
   const pickerRow = document.createElement("tr");
   const pickerCell = document.createElement("td");
   pickerCell.colSpan = 4;
   pickerCell.className = STRINGS.TDV_CENTERED;
 
-  const customSelect = createElement("div", { class: "custom-select" });
+  const customSelect = createElement("div", { class: "custom-select", style: `display: ${orgs.length ? "block" : "none"}` });
 
   const selectSelected = createElement("div", {
     class: "select-selected",
@@ -38,6 +39,8 @@ export function renderOrgPicker(renderer: ManifestRenderer, orgs: string[], fetc
 
   renderer.manifestGuiBody.appendChild(pickerRow);
   renderer.manifestGui?.classList.add("rendered");
+
+
 
   if (!orgs.length) {
     const hasSession = renderer.auth.isActiveSession();

@@ -15,7 +15,7 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
   const pluginManifest = JSON.parse(selectedManifest) as Manifest;
   const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
-  const newConfig = parseConfigInputs(renderer, configInputs, pluginManifest);
+  const newConfig = parseConfigInputs(configInputs, pluginManifest);
 
   renderer.configParser.loadConfig();
 
