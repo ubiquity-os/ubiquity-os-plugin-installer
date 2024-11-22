@@ -4,6 +4,8 @@ import { ExtendedHtmlElement } from "../types/github";
 import { controlButtons } from "./rendering/control-buttons";
 import { createBackButton } from "./rendering/navigation";
 
+type NavSteps = "orgSelector" | "pluginSelector" | "structureSelector" | "configEditor";
+
 export class ManifestRenderer {
   private _manifestGui: HTMLElement;
   private _manifestGuiBody: ExtendedHtmlElement;
@@ -11,7 +13,7 @@ export class ManifestRenderer {
   private _configDefaults: { [key: string]: { type: string; value: string; items: { type: string } | null } } = {};
   private _auth: AuthService;
   private _backButton: HTMLButtonElement;
-  private _currentStep: "orgPicker" | "pluginSelector" | "configEditor" = "orgPicker";
+  private _currentStep: NavSteps = "orgSelector";
   private _orgs: string[] = [];
 
   constructor(auth: AuthService) {
@@ -27,7 +29,7 @@ export class ManifestRenderer {
     this._manifestGuiBody = manifestGuiBody as HTMLElement;
     controlButtons({ hide: true });
 
-    this.currentStep = "orgPicker";
+    this.currentStep = "orgSelector";
     const title = manifestGui.querySelector("#manifest-gui-title");
     this._backButton = createBackButton(this);
     title?.previousSibling?.appendChild(this._backButton);
@@ -41,11 +43,11 @@ export class ManifestRenderer {
     this._orgs = orgs;
   }
 
-  get currentStep(): "orgPicker" | "pluginSelector" | "configEditor" {
+  get currentStep(): NavSteps {
     return this._currentStep;
   }
 
-  set currentStep(step: "orgPicker" | "pluginSelector" | "configEditor") {
+  set currentStep(step: NavSteps) {
     this._currentStep = step;
   }
 

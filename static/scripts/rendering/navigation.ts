@@ -1,6 +1,6 @@
 import { createElement } from "../../utils/element-helpers";
 import { ManifestRenderer } from "../render-manifest";
-import { renderOrgPicker } from "./org-select";
+import { renderOrgSelector } from "./org-select";
 import { renderPluginSelector } from "./plugin-select";
 
 export function createBackButton(renderer: ManifestRenderer): HTMLButtonElement {
@@ -24,8 +24,8 @@ function handleBackButtonClick(renderer: ManifestRenderer): void {
 
   const step = renderer.currentStep;
 
-  if (step === "pluginSelector" || step === "orgPicker") {
-    renderOrgPicker(renderer, renderer.orgs);
+  if (step === "pluginSelector" || step === "orgSelector") {
+    renderOrgSelector(renderer, renderer.orgs);
   } else if (step === "configEditor") {
     renderPluginSelector(renderer);
   }

@@ -6,8 +6,8 @@ import { controlButtons } from "./control-buttons";
 import { renderPluginSelector } from "./plugin-select";
 import { closeAllSelect, updateGuiTitle } from "./utils";
 
-export function renderOrgPicker(renderer: ManifestRenderer, orgs: string[]) {
-  renderer.currentStep = "orgPicker";
+export function renderOrgSelector(renderer: ManifestRenderer, orgs: string[]) {
+  renderer.currentStep = "orgSelector";
   controlButtons({ hide: true });
   renderer.backButton.style.display = "none";
   renderer.manifestGui?.classList.add("rendering");

@@ -1,7 +1,7 @@
 import { AuthService } from "./scripts/authentication";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
-import { renderOrgPicker } from "./scripts/rendering/org-select";
+import { renderOrgSelector } from "./scripts/rendering/org-select";
 import { toastNotification } from "./utils/toaster";
 
 async function handleAuth() {
@@ -26,7 +26,7 @@ export async function mainModule() {
       if (Object.keys(cache).length === 0) {
         renderer.manifestGuiBody.dataset.loading = "true";
         const killNotification = toastNotification("Fetching manifest data...", { type: "info", shouldAutoDismiss: true });
-        renderOrgPicker(renderer, []);
+        renderOrgSelector(renderer, []);
 
         const manifestCache = await fetcher.fetchMarketplaceManifests();
         localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
@@ -36,9 +36,9 @@ export async function mainModule() {
         renderer.manifestGuiBody.dataset.loading = "false";
       }
 
-      renderOrgPicker(renderer, userOrgs);
+      renderOrgSelector(renderer, userOrgs);
     } else {
-      renderOrgPicker(renderer, []);
+      renderOrgSelector(renderer, []);
     }
   } catch (error) {
     if (error instanceof Error) {
