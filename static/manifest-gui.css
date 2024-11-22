@@ -69,6 +69,8 @@ header #uos-logo path {
   flex-direction: row;
   align-items: center;
   width: 100%;
+  padding: clamp(16px, 2vw, 32px);
+  gap: 24px;
 }
 
 .readme-container {

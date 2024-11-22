@@ -16,10 +16,10 @@ export function createBackButton(renderer: ManifestRenderer): HTMLButtonElement 
 }
 
 function handleBackButtonClick(renderer: ManifestRenderer): void {
+  renderer.manifestGui?.classList.remove("plugin-editor");
   const readmeContainer = document.querySelector(".readme-container");
   if (readmeContainer) {
     readmeContainer.remove();
-    renderer.manifestGuiBody?.classList.remove("plugin-editor");
   }
 
   const step = renderer.currentStep;
