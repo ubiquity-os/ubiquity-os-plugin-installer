@@ -3,6 +3,7 @@ import { Plugin, PluginConfig } from "../types/plugins";
 import { Octokit } from "@octokit/rest";
 import { toastNotification } from "../utils/toaster";
 import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
+import { AuthService } from "./authentication";
 
 export class ConfigParser {
   repoConfig: string | null = null;
@@ -45,12 +46,12 @@ export class ConfigParser {
     return exists;
   }
 
-  async repoFileExistenceCheck(org: string, env: "development" | "production", octokit: Octokit, repo: string, path: string) {
+  async repoFileExistenceCheck(org: string, octokit: Octokit, repo: string, path: string) {
     try {
       const { data } = await octokit.repos.getContent({
         owner: org,
         repo,
-        path: env === "production" ? path : path.replace(".yml", ".dev.yml"),
+        path,
       });
 
       return data;
@@ -61,12 +62,12 @@ export class ConfigParser {
     return null;
   }
 
-  async fetchUserInstalledConfig(org: string, env: "development" | "production", octokit: Octokit, repo = CONFIG_ORG_REPO, path = CONFIG_FULL_PATH) {
+  async fetchUserInstalledConfig(org: string, octokit: Octokit, repo = CONFIG_ORG_REPO, path = CONFIG_FULL_PATH) {
     if (repo === CONFIG_ORG_REPO) {
       await this.configRepoExistenceCheck(org, repo, octokit);
     }
 
-    let existingConfig = await this.repoFileExistenceCheck(org, env, octokit, repo, path);
+    let existingConfig = await this.repoFileExistenceCheck(org, octokit, repo, path);
 
     if (!existingConfig) {
       try {
@@ -74,14 +75,14 @@ export class ConfigParser {
         await octokit.repos.createOrUpdateFileContents({
           owner: org,
           repo,
-          path: env === "production" ? path : path.replace(".yml", ".dev.yml"),
-          message: `chore: creating ${env} config`,
+          path,
+          message: `chore: creating config`,
           content: btoa(this.newConfigYml),
         });
 
-        toastNotification(`We couldn't locate your ${env} config file, so we created an empty one for you.`, { type: "success" });
+        toastNotification(`We couldn't locate your config file, so we created an empty one for you.`, { type: "success" });
 
-        existingConfig = await this.repoFileExistenceCheck(org, env, octokit, repo, path);
+        existingConfig = await this.repoFileExistenceCheck(org, octokit, repo, path);
       } catch (er) {
         console.log(er);
         throw new Error("Config file creation failed");
@@ -108,14 +109,7 @@ export class ConfigParser {
     return YAML.parse(`${this.newConfigYml}`);
   }
 
-  async updateConfig(
-    org: string,
-    env: "development" | "production",
-    octokit: Octokit,
-    option: "add" | "remove",
-    path = CONFIG_FULL_PATH,
-    repo = CONFIG_ORG_REPO
-  ) {
+  async updateConfig(org: string, octokit: Octokit, option: "add" | "remove", path = CONFIG_FULL_PATH, repo = CONFIG_ORG_REPO) {
     let repoPlugins = this.parseConfig(this.repoConfig).plugins;
     const newPlugins = this.parseConfig().plugins;
 
@@ -147,14 +141,18 @@ export class ConfigParser {
     }
 
     this.saveConfig();
-    return this.createOrUpdateFileContents(org, repo, path, env, octokit);
+    return this.createOrUpdateFileContents(org, repo, path, octokit);
   }
 
-  async createOrUpdateFileContents(org: string, repo: string, path: string, env: "development" | "production", octokit: Octokit) {
+  async createOrUpdateFileContents(org: string, repo: string, path: string, octokit: AuthService["octokit"]) {
+    if (!octokit) {
+      throw new Error("Octokit not found");
+    }
+
     const recentSha = await octokit.repos.getContent({
       owner: org,
       repo: repo,
-      path: env === "production" ? path : path.replace(".yml", ".dev.yml"),
+      path,
     });
 
     const sha = "sha" in recentSha.data ? recentSha.data.sha : null;
@@ -170,8 +168,8 @@ export class ConfigParser {
     return octokit.repos.createOrUpdateFileContents({
       owner: org,
       repo: repo,
-      path: env === "production" ? path : path.replace(".yml", ".dev.yml"),
-      message: `chore: updating ${env} config`,
+      path,
+      message: `chore: updating config`,
       content: btoa(this.newConfigYml),
       sha,
     });
@@ -180,9 +178,7 @@ export class ConfigParser {
   addPlugin(plugin: Plugin) {
     const config = this.loadConfig();
     const parsedConfig = YAML.parse(config);
-    if (!parsedConfig.plugins) {
-      parsedConfig.plugins = [];
-    }
+    parsedConfig.plugins ??= [];
     parsedConfig.plugins.push(plugin);
     this.newConfigYml = YAML.stringify(parsedConfig);
     this.saveConfig();
@@ -200,7 +196,11 @@ export class ConfigParser {
     this.saveConfig();
   }
 
-  loadConfig(): string {
+  loadConfig(config?: string) {
+    if (config) {
+      this.saveConfig(config);
+    }
+
     if (!this.newConfigYml) {
       this.newConfigYml = localStorage.getItem("config") as string;
     }
@@ -216,7 +216,10 @@ export class ConfigParser {
     return this.newConfigYml;
   }
 
-  saveConfig() {
+  saveConfig(config?: string) {
+    if (config) {
+      this.newConfigYml = config;
+    }
     if (this.newConfigYml) {
       localStorage.setItem("config", this.newConfigYml);
     }
