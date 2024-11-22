@@ -1,6 +1,7 @@
 import { Octokit } from "@octokit/rest";
 import { Manifest, ManifestPreDecode } from "../types/plugins";
 import { DEV_CONFIG_FULL_PATH, CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
+import { getOfficialPluginConfig } from "../utils/storage";
 
 export class ManifestFetcher {
   private _orgs: string[];
@@ -74,7 +75,7 @@ export class ManifestFetcher {
 
   async fetchOfficialPluginConfig() {
     await this.fetchOrgsUbiquityOsConfigs();
-    const officialPluginConfig = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}") || {};
+    const officialPluginConfig = getOfficialPluginConfig()
 
     this.workerUrls.forEach((url) => {
       officialPluginConfig[url] = { workerUrl: url };

@@ -5,6 +5,7 @@ import { processProperties } from "./input-parsing";
 import { updateGuiTitle } from "./utils";
 import { writeNewConfig } from "./write-add-remove";
 import MarkdownIt from "markdown-it";
+import { getManifestCache } from "../../utils/storage";
 const md = new MarkdownIt();
 
 export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: Manifest | null, plugin?: Plugin["uses"][0]["with"]): void {
@@ -78,7 +79,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
   resetToDefaultButton.hidden = !!plugin;
 
-  const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
+  const manifestCache = getManifestCache()
   const pluginUrls = Object.keys(manifestCache);
   const pluginUrl = pluginUrls.find((url) => {
     return manifestCache[url].name === pluginManifest?.name;

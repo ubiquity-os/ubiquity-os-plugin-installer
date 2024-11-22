@@ -2,6 +2,7 @@ import { toastNotification } from "../../utils/toaster";
 import { ManifestRenderer } from "../render-manifest";
 import { Manifest, Plugin } from "../../types/plugins";
 import { parseConfigInputs } from "./input-parsing";
+import { getOfficialPluginConfig } from "../../utils/storage";
 
 export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remove"): void {
   const selectedManifest = localStorage.getItem("selectedPluginManifest");
@@ -19,7 +20,7 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
 
   renderer.configParser.loadConfig();
 
-  const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}");
+  const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = getOfficialPluginConfig();
 
   const pluginName = pluginManifest.name;
 

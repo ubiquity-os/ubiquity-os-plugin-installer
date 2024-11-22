@@ -1,5 +1,6 @@
 import { ManifestCache, ManifestPreDecode, Plugin } from "../../types/plugins";
 import { createElement } from "../../utils/element-helpers";
+import { getManifestCache } from "../../utils/storage";
 import { STRINGS } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
 import { renderConfigEditor } from "./config-editor";
@@ -12,7 +13,7 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
   renderer.manifestGuiBody.innerHTML = null;
   controlButtons({ hide: true });
 
-  const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
+  const manifestCache = getManifestCache()
   const pluginUrls = Object.keys(manifestCache);
 
   const pickerRow = document.createElement("tr");
