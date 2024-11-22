@@ -2,6 +2,7 @@ import { AuthService } from "./scripts/authentication";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
 import { renderOrgPicker } from "./scripts/rendering/org-select";
+import { updateGuiTitle } from "./scripts/rendering/utils";
 import { toastNotification } from "./utils/toaster";
 
 async function handleAuth() {

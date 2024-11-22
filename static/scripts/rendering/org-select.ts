@@ -41,8 +41,12 @@ export function renderOrgPicker(renderer: ManifestRenderer, orgs: string[]) {
 
   if (!orgs.length) {
     const hasSession = renderer.auth.isActiveSession();
-    if (hasSession) {
+    const isLoading = renderer.manifestGuiBody.dataset.loading === "true";
+
+    if (hasSession && !isLoading) {
       updateGuiTitle("No organizations found");
+    } else if (hasSession && isLoading) {
+      updateGuiTitle("Fetching organization data...");
     } else {
       updateGuiTitle("Please sign in to GitHub");
     }
