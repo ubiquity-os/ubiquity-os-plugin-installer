@@ -75,7 +75,7 @@ export class ManifestFetcher {
 
   async fetchOfficialPluginConfig() {
     await this.fetchOrgsUbiquityOsConfigs();
-    const officialPluginConfig = getOfficialPluginConfig()
+    const officialPluginConfig = getOfficialPluginConfig();
 
     this.workerUrls.forEach((url) => {
       officialPluginConfig[url] = { workerUrl: url };

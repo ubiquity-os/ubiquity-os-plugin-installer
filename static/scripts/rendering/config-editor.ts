@@ -1,4 +1,4 @@
-import { Manifest, ManifestCache, Plugin } from "../../types/plugins";
+import { Manifest, Plugin } from "../../types/plugins";
 import { controlButtons } from "./control-buttons";
 import { ManifestRenderer } from "../render-manifest";
 import { processProperties } from "./input-parsing";
@@ -79,7 +79,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
   resetToDefaultButton.hidden = !!plugin;
 
-  const manifestCache = getManifestCache()
+  const manifestCache = getManifestCache();
   const pluginUrls = Object.keys(manifestCache);
   const pluginUrl = pluginUrls.find((url) => {
     return manifestCache[url].name === pluginManifest?.name;

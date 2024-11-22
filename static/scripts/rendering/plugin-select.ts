@@ -13,7 +13,7 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
   renderer.manifestGuiBody.innerHTML = null;
   controlButtons({ hide: true });
 
-  const manifestCache = getManifestCache()
+  const manifestCache = getManifestCache();
   const pluginUrls = Object.keys(manifestCache);
 
   const pickerRow = document.createElement("tr");

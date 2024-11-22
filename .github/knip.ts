@@ -17,7 +17,7 @@ const config: KnipConfig = {
     "esbuild",
     "@ubiquity-os/plugin-sdk",
     "markdown-it",
-    "@types/markdown-it"
+    "@types/markdown-it",
   ],
   eslint: true,
 };
