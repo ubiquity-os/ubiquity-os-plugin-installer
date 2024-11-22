@@ -4,7 +4,7 @@ import { ExtendedHtmlElement } from "../types/github";
 import { controlButtons } from "./rendering/control-buttons";
 import { createBackButton } from "./rendering/navigation";
 
-type NavSteps = "orgSelector" | "pluginSelector" | "structureSelector" | "configEditor";
+type NavSteps = "orgSelector" | "pluginSelector" | "templateSelector" | "configEditor";
 
 export class ManifestRenderer {
   private _manifestGui: HTMLElement;

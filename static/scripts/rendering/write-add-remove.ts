@@ -60,7 +60,7 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
 
 function handleAddPlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManifest: Manifest): void {
   renderer.configParser.addPlugin(plugin);
-  toastNotification(`Configuration for ${pluginManifest.name} saved successfully.Do you want to push to GitHub ? `, {
+  toastNotification(`Configuration for ${pluginManifest.name} saved successfully. Do you want to push to GitHub?`, {
     type: "success",
     actionText: "Push to GitHub",
     action: async () => {
@@ -96,7 +96,7 @@ function handleAddPlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManif
 
 function handleRemovePlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManifest: Manifest): void {
   renderer.configParser.removePlugin(plugin);
-  toastNotification(`Configuration for ${pluginManifest.name} removed successfully.Do you want to push to GitHub ? `, {
+  toastNotification(`Configuration for ${pluginManifest.name} removed successfully. Do you want to push to GitHub?`, {
     type: "success",
     actionText: "Push to GitHub",
     action: async () => {

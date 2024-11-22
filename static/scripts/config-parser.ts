@@ -209,7 +209,10 @@ export class ConfigParser {
     return this.newConfigYml;
   }
 
-  saveConfig() {
+  saveConfig(config?: string) {
+    if (config) {
+      this.newConfigYml = config;
+    }
     if (this.newConfigYml) {
       localStorage.setItem("config", this.newConfigYml);
     }
