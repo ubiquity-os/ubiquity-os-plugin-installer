@@ -1,7 +1,7 @@
 import { AuthService } from "./scripts/authentication";
-import { ManifestDecoder } from "./scripts/decode-manifest";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
+import { renderOrgPicker } from "./scripts/rendering/org-select";
 import { toastNotification } from "./utils/toaster";
 
 async function handleAuth() {
@@ -12,30 +12,31 @@ async function handleAuth() {
 
 export async function mainModule() {
   const auth = await handleAuth();
-  const decoder = new ManifestDecoder();
   const renderer = new ManifestRenderer(auth);
-  const search = window.location.search.substring(1);
-
-  if (search) {
-    const decodedManifest = await decoder.decodeManifestFromSearch(search);
-    return renderer.renderManifest(decodedManifest);
-  }
+  renderer.manifestGuiBody.dataset.loading = "false";
 
   try {
     const ubiquityOrgsToFetchOfficialConfigFrom = ["ubiquity-os"];
-    const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit, decoder);
+    const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit);
     const cache = fetcher.checkManifestCache();
+
     if (auth.isActiveSession()) {
       const userOrgs = await auth.getGitHubUserOrgs();
-      renderer.renderOrgPicker(userOrgs);
+
       if (Object.keys(cache).length === 0) {
-        const manifestCache = await fetcher.fetchMarketplaceManifests();
-        localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
-        // this is going to extract URLs from our official config which we'll inject into `- plugin: ...`
+        renderer.manifestGuiBody.dataset.loading = "true";
+        const killNotification = toastNotification("Fetching manifest data...", { type: "info", shouldAutoDismiss: true });
+        renderOrgPicker(renderer, []);
+
+        await fetcher.fetchMarketplaceManifests();
         await fetcher.fetchOfficialPluginConfig();
+        killNotification();
+        renderer.manifestGuiBody.dataset.loading = "false";
       }
+
+      renderOrgPicker(renderer, userOrgs);
     } else {
-      renderer.renderOrgPicker([]);
+      renderOrgPicker(renderer, []);
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -46,10 +47,4 @@ export async function mainModule() {
   }
 }
 
-mainModule()
-  .then(() => {
-    console.log("mainModule loaded");
-  })
-  .catch((error) => {
-    console.error(error);
-  });
+mainModule().catch(console.error);

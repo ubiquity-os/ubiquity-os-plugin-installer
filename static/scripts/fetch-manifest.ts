@@ -1,22 +1,20 @@
 import { Octokit } from "@octokit/rest";
-import { ManifestDecoder } from "./decode-manifest";
-import { ManifestPreDecode } from "../types/plugins";
+import { Manifest, ManifestPreDecode } from "../types/plugins";
 import { DEV_CONFIG_FULL_PATH, CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
+import { getOfficialPluginConfig } from "../utils/storage";
 
 export class ManifestFetcher {
   private _orgs: string[];
   private _octokit: Octokit | null;
-  private _decoder: ManifestDecoder;
 
   workerUrlRegex = /https:\/\/([a-z0-9-]+)\.ubiquity\.workers\.dev/g;
   actionUrlRegex = /[a-z0-9-]+\/[a-z0-9-]+(?:\/[^@]+)?@[a-z0-9-]+/g;
   workerUrls = new Set<string>();
   actionUrls = new Set<string>();
 
-  constructor(orgs: string[], octokit: Octokit | null, decoder: ManifestDecoder) {
+  constructor(orgs: string[], octokit: Octokit | null) {
     this._orgs = orgs;
     this._octokit = octokit;
-    this._decoder = decoder;
   }
 
   async fetchMarketplaceManifests() {
@@ -26,14 +24,18 @@ export class ManifestFetcher {
     }
     const repos = await this._octokit.repos.listForOrg({ org });
     const manifestCache = this.checkManifestCache();
+    function makeUrl(org: string, repo: string, file: string) {
+      return `https://raw.githubusercontent.com/${org}/${repo}/development/${file}`;
+    }
 
     for (const repo of repos.data) {
-      const manifestUrl = `https://raw.githubusercontent.com/${org}/${repo.name}/development/manifest.json`;
+      const manifestUrl = makeUrl(org, repo.name, "manifest.json");
       const manifest = await this.fetchActionManifest(manifestUrl);
-      const decoded = this._decoder.decodeManifestFromFetch(manifest);
+      const decoded = this.decodeManifestFromFetch(manifest);
+      const readme = await this._fetchPluginReadme(makeUrl(org, repo.name, "README.md"));
 
       if (decoded) {
-        manifestCache[manifestUrl] = decoded;
+        manifestCache[manifestUrl] = { ...decoded, readme };
       }
     }
 
@@ -73,7 +75,7 @@ export class ManifestFetcher {
 
   async fetchOfficialPluginConfig() {
     await this.fetchOrgsUbiquityOsConfigs();
-    const officialPluginConfig = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}") || {};
+    const officialPluginConfig = getOfficialPluginConfig();
 
     this.workerUrls.forEach((url) => {
       officialPluginConfig[url] = { workerUrl: url };
@@ -129,6 +131,31 @@ export class ManifestFetcher {
     }
   }
 
+  private async _fetchPluginReadme(pluginUrl: string) {
+    try {
+      const response = await fetch(pluginUrl, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "GET",
+      });
+      return await response.text();
+    } catch (e) {
+      let error = e;
+      try {
+        const res = await fetch(pluginUrl.replace(/development/g, "main"));
+        return await res.text();
+      } catch (e) {
+        error = e;
+      }
+      console.error(error);
+      if (error instanceof Error) {
+        return error.message;
+      }
+      return String(error);
+    }
+  }
+
   async fetchOrgsUbiquityOsConfigs() {
     const configFileContents: Record<string, string> = {};
 
@@ -170,5 +197,20 @@ export class ManifestFetcher {
       this.captureWorkerUrls(config);
       this.captureActionUrls(config);
     }
+  }
+
+  decodeManifestFromFetch(manifest: ManifestPreDecode) {
+    if (manifest.error) {
+      return null;
+    }
+
+    const decodedManifest: Manifest = {
+      name: manifest.name,
+      description: manifest.description,
+      "ubiquity:listeners": manifest["ubiquity:listeners"],
+      configuration: manifest.configuration,
+    };
+
+    return decodedManifest;
   }
 }
