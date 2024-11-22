@@ -160,6 +160,8 @@ export class ConfigParser {
       throw new Error("No content to push");
     }
 
+    this.repoConfig = this.newConfigYml;
+
     return octokit.repos.createOrUpdateFileContents({
       owner: org,
       repo: repo,
