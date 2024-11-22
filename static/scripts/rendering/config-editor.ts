@@ -100,7 +100,9 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
     viewportCell.appendChild(readmeContainer);
   }
 
-  updateGuiTitle(`Editing Configuration for ${pluginManifest?.name}`);
+  const org = localStorage.getItem("selectedOrg");
+
+  updateGuiTitle(`Editing Configuration for ${pluginManifest?.name} in ${org}`);
   renderer.manifestGui?.classList.add("plugin-editor");
   renderer.manifestGui?.classList.add("rendered");
 }
