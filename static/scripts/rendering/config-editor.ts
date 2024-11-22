@@ -47,15 +47,23 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
     });
   }
 
-  const add = document.getElementById("add");
-  const remove = document.getElementById("remove");
+  const add = document.getElementById("add") as HTMLButtonElement;
+  const remove = document.getElementById("remove") as HTMLButtonElement;
   if (!add || !remove) {
     throw new Error("Add or remove button not found");
   }
   add.addEventListener("click", writeNewConfig.bind(null, renderer, "add"));
-  remove.addEventListener("click", () => writeNewConfig.bind(null, renderer, "remove"));
 
-  const resetToDefaultButton = document.getElementById("reset-to-default");
+  if (plugin) {
+    remove.disabled = false;
+    remove.classList.remove("disabled");
+    remove.addEventListener("click", () => writeNewConfig.bind(null, renderer, "remove"));
+  } else {
+    remove.disabled = true;
+    remove.classList.add("disabled");
+  }
+
+  const resetToDefaultButton = document.getElementById("reset-to-default") as HTMLButtonElement;
   if (!resetToDefaultButton) {
     throw new Error("Reset to default button not found");
   }
