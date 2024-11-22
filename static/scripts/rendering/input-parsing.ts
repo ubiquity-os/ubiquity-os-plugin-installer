@@ -20,16 +20,71 @@ export function processProperties(renderer: ManifestRenderer, props: Record<stri
   });
 }
 
-export function parseConfigInputs(configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement>, manifest: Manifest): { [key: string]: unknown } {
+export function parseConfigInputs(
+  configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement>,
+  manifest: Manifest,
+  fullDefaultTemplate?: {
+    name: string;
+    defaults: Record<string, unknown>;
+  }[]
+): { [key: string]: unknown } {
   const config: Record<string, unknown> = {};
-  const schema = manifest.configuration;
-  if (!schema) {
+  const schema = manifest?.configuration;
+  if (!schema && !fullDefaultTemplate) {
     throw new Error("No schema found in manifest");
   }
+
+  if (fullDefaultTemplate) {
+    configInputs.forEach((input) => {
+      const key = input.getAttribute("data-config-key");
+      if (!key) {
+        throw new Error("Input key is required");
+      }
+
+      const template = fullDefaultTemplate.find((plugin) => Object.keys(plugin.defaults).includes(key));
+      if (!template) {
+        throw new Error(`No template found for key: ${key}`);
+      }
+
+      let value: unknown;
+      const expectedType = input.getAttribute("data-type");
+
+      if (expectedType === "boolean") {
+        value = (input as HTMLInputElement).checked;
+      } else if (expectedType === "object" || expectedType === "array") {
+        try {
+          value = JSON.parse((input as HTMLTextAreaElement).value);
+        } catch (e) {
+          console.error(e);
+          throw new Error(`Invalid JSON input for ${expectedType} at key "${key}": ${input.value}`);
+        }
+      } else {
+        value = (input as HTMLInputElement).value;
+      }
+
+      template.defaults[key] = value;
+
+      fullDefaultTemplate.forEach((plugin) => {
+        if (plugin.name === template.name) {
+          plugin.defaults = template.defaults;
+        }
+      });
+    });
+
+    return fullDefaultTemplate.reduce(
+      (acc, curr) => {
+        acc[curr.name] = curr.defaults;
+        return acc;
+      },
+      {} as Record<string, unknown>
+    );
+  }
+
   const validate = ajv.compile(schema as AnySchemaObject);
 
   configInputs.forEach((input) => {
     const key = input.getAttribute("data-config-key");
+    console.log("key", key);
     if (!key) {
       throw new Error("Input key is required");
     }

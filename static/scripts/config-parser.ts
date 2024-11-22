@@ -3,6 +3,7 @@ import { Plugin, PluginConfig } from "../types/plugins";
 import { Octokit } from "@octokit/rest";
 import { toastNotification } from "../utils/toaster";
 import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
+import { AuthService } from "./authentication";
 
 export class ConfigParser {
   repoConfig: string | null = null;
@@ -143,7 +144,11 @@ export class ConfigParser {
     return this.createOrUpdateFileContents(org, repo, path, octokit);
   }
 
-  async createOrUpdateFileContents(org: string, repo: string, path: string, octokit: Octokit) {
+  async createOrUpdateFileContents(org: string, repo: string, path: string, octokit: AuthService["octokit"]) {
+    if (!octokit) {
+      throw new Error("Octokit not found");
+    }
+
     const recentSha = await octokit.repos.getContent({
       owner: org,
       repo: repo,
@@ -173,9 +178,7 @@ export class ConfigParser {
   addPlugin(plugin: Plugin) {
     const config = this.loadConfig();
     const parsedConfig = YAML.parse(config);
-    if (!parsedConfig.plugins) {
-      parsedConfig.plugins = [];
-    }
+    parsedConfig.plugins ??= [];
     parsedConfig.plugins.push(plugin);
     this.newConfigYml = YAML.stringify(parsedConfig);
     this.saveConfig();
@@ -193,7 +196,11 @@ export class ConfigParser {
     this.saveConfig();
   }
 
-  loadConfig(): string {
+  loadConfig(config?: string) {
+    if (config) {
+      this.saveConfig(config);
+    }
+
     if (!this.newConfigYml) {
       this.newConfigYml = localStorage.getItem("config") as string;
     }

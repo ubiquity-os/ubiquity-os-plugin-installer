@@ -262,7 +262,7 @@ button#reset-to-default::before {
   content: "♻️";
 }
 button#reset-to-default:hover::before {
-  content: "Use Defaults";
+  content: "Reset";
 }
 button#reset-to-default:active::before {
   content: "♻️♻️♻️♻️♻️";

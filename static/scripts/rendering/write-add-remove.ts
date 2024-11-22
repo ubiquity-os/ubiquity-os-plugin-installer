@@ -12,15 +12,14 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
     });
     throw new Error("No selected plugin manifest found");
   }
-  const pluginManifest = JSON.parse(selectedManifest) as Manifest;
-  const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
+  const pluginManifest = JSON.parse(selectedManifest || "{}") as Manifest;
+  const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
   const newConfig = parseConfigInputs(configInputs, pluginManifest);
 
   renderer.configParser.loadConfig();
 
   const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}");
-
   const pluginName = pluginManifest.name;
 
   // this relies on the manifest matching the repo name
