@@ -38,20 +38,15 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
   }
 
   renderer.configParser.loadConfig();
-
-  const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = getOfficialPluginConfig();
-
-  const pluginName = pluginManifest.name;
-
   // this relies on the manifest matching the repo name
-  const normalizedPluginName = normalizePluginName(pluginName);
-
+  const normalizedPluginName = normalizePluginName(pluginManifest.name);
+  const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = getOfficialPluginConfig();
   const pluginUrl = Object.keys(officialPluginConfig).find((url) => {
     return url.includes(normalizedPluginName);
   });
 
   if (!pluginUrl) {
-    toastNotification(`No plugin URL found for ${pluginName}.`, {
+    toastNotification(`No plugin URL found for ${normalizedPluginName}.`, {
       type: "error",
       shouldAutoDismiss: true,
     });

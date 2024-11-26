@@ -70,12 +70,15 @@ export function parseConfigInputs(
     if (expectedType === "boolean") {
       value = (input as HTMLInputElement).checked;
     } else if (expectedType === "object" || expectedType === "array") {
-      try {
-        value = JSON.parse((input as HTMLTextAreaElement).value);
-      } catch (e) {
-        console.error(e);
-        throw new Error(`Invalid JSON input for ${expectedType} at key "${key}": ${input.value}`);
-      }
+      if (!input.value) {
+        value = expectedType === "object" ? {} : [];
+      } else
+        try {
+          value = JSON.parse((input as HTMLTextAreaElement).value);
+        } catch (e) {
+          console.error(e);
+          throw new Error(`Invalid JSON input for ${expectedType} at key "${key}": ${input.value}`);
+        }
     } else {
       value = (input as HTMLInputElement).value;
     }
@@ -85,7 +88,12 @@ export function parseConfigInputs(
   if (validate(config)) {
     const missing = [];
     for (const key of required) {
-      if (!(config[key] || config[key] === "undefined" || config[key] === "null")) {
+      const isBoolean = schema.properties && schema.properties[key] && schema.properties[key].type === "boolean";
+      if ((isBoolean && config[key] === false) || config[key] === true) {
+        continue;
+      }
+
+      if (!config[key] || config[key] === "undefined" || config[key] === "null") {
         missing.push(key);
       }
     }
