@@ -13,7 +13,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   renderer.backButton.style.display = "block";
   renderer.manifestGuiBody.innerHTML = null;
   controlButtons({ hide: false });
-  processProperties(renderer, pluginManifest?.configuration.properties || {});
+  processProperties(renderer, pluginManifest, pluginManifest?.configuration.properties || {}, null);
   const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
   if (plugin) {

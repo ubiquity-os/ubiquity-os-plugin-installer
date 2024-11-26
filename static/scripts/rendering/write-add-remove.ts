@@ -18,7 +18,24 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
   const pluginManifest = JSON.parse(selectedManifest) as Manifest;
   const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
-  const newConfig = parseConfigInputs(configInputs, pluginManifest);
+  const { config: newConfig, missing } = parseConfigInputs(configInputs, pluginManifest);
+
+  if (missing.length) {
+    toastNotification("Please fill out all required fields.", {
+      type: "error",
+      shouldAutoDismiss: true,
+    });
+    missing.forEach((key) => {
+      const ele = document.querySelector(`[data-config-key="${key}"]`) as HTMLInputElement | HTMLTextAreaElement | null;
+      if (ele) {
+        ele.style.border = "1px solid red";
+        ele.focus();
+      } else {
+        console.log(`Input element with key ${key} not found`);
+      }
+    });
+    return;
+  }
 
   renderer.configParser.loadConfig();
 

@@ -36,6 +36,7 @@ export type Manifest = {
       type: string;
     };
     properties?: Record<string, Manifest["configuration"]>;
+    required?: string[];
   };
   readme?: string;
 };

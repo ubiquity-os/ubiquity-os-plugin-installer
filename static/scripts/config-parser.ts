@@ -109,19 +109,7 @@ export class ConfigParser {
   }
 
   async updateConfig(org: string, octokit: Octokit, option: "add" | "remove", path = CONFIG_FULL_PATH, repo = CONFIG_ORG_REPO) {
-    const repoPlugins = this.parseConfig(this.repoConfig).plugins;
-    const newPlugins = this.parseConfig().plugins;
-
-    if (!newPlugins?.length && option === "add") {
-      throw new Error("No plugins found in the config");
-    }
-
-    if (option === "add") {
-      this.newConfigYml = YAML.stringify({ plugins: repoPlugins });
-    } else if (option === "remove") {
-      this.newConfigYml = YAML.stringify({ plugins: newPlugins });
-    }
-
+    this.repoConfig = this.newConfigYml;
     this.saveConfig();
     return this.createOrUpdateFileContents(org, repo, path, octokit);
   }
@@ -167,9 +155,7 @@ export class ConfigParser {
       parsedConfig.plugins.push(plugin);
     }
 
-    parsedConfig.plugins.push(plugin);
-    const newConfig = YAML.stringify(parsedConfig);
-    this.newConfigYml = newConfig;
+    this.newConfigYml = YAML.stringify(parsedConfig);
     this.saveConfig();
   }
 
@@ -177,13 +163,12 @@ export class ConfigParser {
     const config = this.loadConfig();
     const parsedConfig = this.parseConfig(config);
     if (!parsedConfig.plugins) {
-      console.log("No plugins to remove");
+      toastNotification("No plugins found in config", { type: "error" });
       return;
     }
 
     parsedConfig.plugins = parsedConfig.plugins.filter((p: Plugin) => p.uses[0].plugin !== plugin.uses[0].plugin);
-    const newConfig = YAML.stringify(parsedConfig);
-    this.newConfigYml = newConfig;
+    this.newConfigYml = YAML.stringify(parsedConfig);
     this.saveConfig();
   }
 
