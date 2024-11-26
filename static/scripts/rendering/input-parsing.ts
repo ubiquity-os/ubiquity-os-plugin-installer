@@ -14,6 +14,14 @@ export function processProperties(renderer: ManifestRenderer, props: Record<stri
 
     if (prop.type === "object" && prop.properties) {
       processProperties(renderer, prop.properties, fullKey);
+    } else if ("anyOf" in prop && Array.isArray(prop.anyOf)) {
+      if (prop.default) {
+        createInputRow(fullKey, prop, renderer.configDefaults);
+      } else {
+        prop.anyOf?.forEach((subProp) => {
+          processProperties(renderer, subProp.properties || {}, fullKey);
+        });
+      }
     } else {
       createInputRow(fullKey, prop, renderer.configDefaults);
     }
