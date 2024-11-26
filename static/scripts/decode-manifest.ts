@@ -1,5 +1,22 @@
 import { Manifest, ManifestPreDecode } from "../types/plugins";
 
+function injectDescriptionIntoProperties(properties: ManifestPreDecode["configuration"]["properties"]) {
+  return Object.fromEntries(
+    Object.entries(properties).map(([key, value]) => {
+      const newValue = {
+        ...value,
+        description: "This is a placeholder description that'll be replaced once the PRs are merged for the plugins",
+      };
+
+      if (value.properties) {
+        newValue.properties = injectDescriptionIntoProperties(value.properties);
+      }
+
+      return [key, newValue];
+    })
+  );
+}
+
 export class ManifestDecoder {
   constructor() {}
 
@@ -7,6 +24,8 @@ export class ManifestDecoder {
     if (manifest.error) {
       return null;
     }
+
+    manifest.configuration.properties = injectDescriptionIntoProperties(manifest.configuration.properties);
 
     const decodedManifest: Manifest = {
       name: manifest.name,
