@@ -12,6 +12,7 @@ export interface Uses {
 }
 
 export interface ManifestPreDecode extends Manifest {
+  manifest: Manifest;
   actionUrl?: string;
   workerUrl?: string;
   error?: string;
@@ -34,10 +35,12 @@ export type Manifest = {
     properties: {
       [key: string]: {
         default: unknown;
-        type?: string;
+        description?: string;
+        type: string;
+        properties?: Record<string, ManifestProps>;
       };
     };
   };
 };
 
-export type ManifestProps = { type: string; default: string; items?: { type: string }; properties?: Record<string, ManifestProps> };
+export type ManifestProps = { type: string; default: unknown; description: string; items?: { type: string }; properties?: Record<string, ManifestProps> };
