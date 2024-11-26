@@ -3,8 +3,10 @@ import { ManifestRenderer } from "../render-manifest";
 import { Manifest, Plugin } from "../../types/plugins";
 import { parseConfigInputs } from "./input-parsing";
 import { getOfficialPluginConfig } from "../../utils/storage";
+import { renderConfigEditor } from "./config-editor";
+import { normalizePluginName } from "./utils";
 
-export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remove"): void {
+export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remove") {
   const selectedManifest = localStorage.getItem("selectedPluginManifest");
   if (!selectedManifest) {
     toastNotification("No selected plugin manifest found.", {
@@ -25,11 +27,7 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
   const pluginName = pluginManifest.name;
 
   // this relies on the manifest matching the repo name
-  const normalizedPluginName = pluginName
-    .toLowerCase()
-    .replace(/ /g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-");
+  const normalizedPluginName = normalizePluginName(pluginName);
 
   const pluginUrl = Object.keys(officialPluginConfig).find((url) => {
     return url.includes(normalizedPluginName);
@@ -54,14 +52,14 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
 
   if (option === "add") {
     handleAddPlugin(renderer, plugin, pluginManifest);
-  } else {
+  } else if (option === "remove") {
     handleRemovePlugin(renderer, plugin, pluginManifest);
   }
 }
 
 function handleAddPlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManifest: Manifest): void {
   renderer.configParser.addPlugin(plugin);
-  toastNotification(`Configuration for ${pluginManifest.name} saved successfully.Do you want to push to GitHub ? `, {
+  toastNotification(`Configuration for ${pluginManifest.name} saved successfully. Do you want to push to GitHub?`, {
     type: "success",
     actionText: "Push to GitHub",
     action: async () => {
@@ -97,7 +95,7 @@ function handleAddPlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManif
 
 function handleRemovePlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManifest: Manifest): void {
   renderer.configParser.removePlugin(plugin);
-  toastNotification(`Configuration for ${pluginManifest.name} removed successfully.Do you want to push to GitHub ? `, {
+  toastNotification(`Configuration for ${pluginManifest.name} removed successfully. Do you want to push to GitHub?`, {
     type: "success",
     actionText: "Push to GitHub",
     action: async () => {
@@ -129,4 +127,15 @@ function handleRemovePlugin(renderer: ManifestRenderer, plugin: Plugin, pluginMa
       });
     },
   });
+}
+
+export function handleResetToDefault(renderer: ManifestRenderer, pluginManifest: Manifest | null) {
+  if (!pluginManifest) {
+    throw new Error("No plugin manifest found");
+  }
+  renderConfigEditor(renderer, pluginManifest);
+  const readmeContainer = document.querySelector(".readme-container");
+  if (readmeContainer) {
+    readmeContainer.remove();
+  }
 }
