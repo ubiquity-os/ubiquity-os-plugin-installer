@@ -60,11 +60,9 @@ export function renderOrgPicker(renderer: ManifestRenderer, orgs: string[]) {
     const textSpan = createElement("span", { textContent: org });
 
     optionDiv.appendChild(textSpan);
-
     optionDiv.addEventListener("click", () => {
-      handleOrgSelection(renderer, org);
       selectSelected.textContent = org;
-      localStorage.setItem("selectedOrg", org);
+      handleOrgSelection(renderer, org);
     });
 
     selectItems.appendChild(optionDiv);
