@@ -2,8 +2,8 @@ import { Manifest, Plugin } from "../../types/plugins";
 import { controlButtons } from "./control-buttons";
 import { ManifestRenderer } from "../render-manifest";
 import { processProperties } from "./input-parsing";
-import { updateGuiTitle } from "./utils";
-import { writeNewConfig } from "./write-add-remove";
+import { addTrackedEventListener, getTrackedEventListeners, normalizePluginName, removeTrackedEventListener, updateGuiTitle } from "./utils";
+import { handleResetToDefault, writeNewConfig } from "./write-add-remove";
 import MarkdownIt from "markdown-it";
 import { getManifestCache } from "../../utils/storage";
 const md = new MarkdownIt();
@@ -13,7 +13,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   renderer.backButton.style.display = "block";
   renderer.manifestGuiBody.innerHTML = null;
   controlButtons({ hide: false });
-  processProperties(renderer, pluginManifest?.configuration?.properties || {});
+  processProperties(renderer, pluginManifest?.configuration.properties || {});
   const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
   if (plugin) {
@@ -50,35 +50,32 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
   const add = document.getElementById("add") as HTMLButtonElement;
   const remove = document.getElementById("remove") as HTMLButtonElement;
-  if (!add || !remove) {
-    throw new Error("Add or remove button not found");
+  const resetToDefaultButton = document.getElementById("reset-to-default") as HTMLButtonElement;
+  if (!add || !remove || !resetToDefaultButton) {
+    throw new Error("Buttons not found");
   }
-  add.addEventListener("click", writeNewConfig.bind(null, renderer, "add"));
 
-  if (plugin) {
+  const parsedConfig = renderer.configParser.parseConfig(renderer.configParser.repoConfig || localStorage.getItem("config"));
+  const isInstalled = parsedConfig.plugins?.find((p) => p.uses[0].plugin.includes(normalizePluginName(pluginManifest?.name || "")));
+
+  loadListeners({
+    renderer,
+    pluginManifest,
+    withPluginOrInstalled: !!(plugin || isInstalled),
+    add,
+    remove,
+    resetToDefaultButton,
+  }).catch(console.error);
+
+  if (plugin || isInstalled) {
     remove.disabled = false;
     remove.classList.remove("disabled");
-    remove.addEventListener("click", () => writeNewConfig.bind(null, renderer, "remove"));
   } else {
     remove.disabled = true;
     remove.classList.add("disabled");
   }
 
-  const resetToDefaultButton = document.getElementById("reset-to-default") as HTMLButtonElement;
-  if (!resetToDefaultButton) {
-    throw new Error("Reset to default button not found");
-  }
-
-  resetToDefaultButton.addEventListener("click", () => {
-    renderConfigEditor(renderer, pluginManifest);
-    const readmeContainer = document.querySelector(".readme-container");
-    if (readmeContainer) {
-      readmeContainer.remove();
-    }
-  });
-
   resetToDefaultButton.hidden = !!plugin;
-
   const manifestCache = getManifestCache();
   const pluginUrls = Object.keys(manifestCache);
   const pluginUrl = pluginUrls.find((url) => {
@@ -106,4 +103,48 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   updateGuiTitle(`Editing Configuration for ${pluginManifest?.name} in ${org}`);
   renderer.manifestGui?.classList.add("plugin-editor");
   renderer.manifestGui?.classList.add("rendered");
+}
+
+async function loadListeners({
+  renderer,
+  pluginManifest,
+  withPluginOrInstalled,
+  add,
+  remove,
+  resetToDefaultButton,
+}: {
+  renderer: ManifestRenderer;
+  pluginManifest: Manifest | null;
+  withPluginOrInstalled: boolean;
+  add: HTMLButtonElement;
+  remove: HTMLButtonElement;
+  resetToDefaultButton: HTMLButtonElement;
+}) {
+  function addHandler() {
+    writeNewConfig(renderer, "add");
+  }
+  function removeHandler() {
+    writeNewConfig(renderer, "remove");
+  }
+  function resetToDefaultHandler() {
+    handleResetToDefault(renderer, pluginManifest);
+  }
+
+  await (async () => {
+    getTrackedEventListeners(remove, "click")?.forEach((listener) => {
+      removeTrackedEventListener(remove, "click", listener);
+    });
+    getTrackedEventListeners(add, "click")?.forEach((listener) => {
+      removeTrackedEventListener(add, "click", listener);
+    });
+    getTrackedEventListeners(resetToDefaultButton, "click")?.forEach((listener) => {
+      removeTrackedEventListener(resetToDefaultButton, "click", listener);
+    });
+  })();
+
+  addTrackedEventListener(resetToDefaultButton, "click", resetToDefaultHandler);
+  addTrackedEventListener(add, "click", addHandler);
+  if (withPluginOrInstalled) {
+    addTrackedEventListener(remove, "click", removeHandler);
+  }
 }
