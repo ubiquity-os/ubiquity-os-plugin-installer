@@ -4,6 +4,10 @@ import { ExtendedHtmlElement } from "../types/github";
 import { controlButtons } from "./rendering/control-buttons";
 import { createBackButton } from "./rendering/navigation";
 
+/**
+ * More of a controller than a renderer, this is responsible for rendering the manifest GUI
+ * and managing the state of the GUI with the help of the rendering functions.
+ */
 export class ManifestRenderer {
   private _manifestGui: HTMLElement;
   private _manifestGuiBody: ExtendedHtmlElement;

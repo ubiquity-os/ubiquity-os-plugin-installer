@@ -3,6 +3,15 @@ import { Manifest, ManifestPreDecode } from "../types/plugins";
 import { DEV_CONFIG_FULL_PATH, CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 import { getOfficialPluginConfig } from "../utils/storage";
 
+/**
+ * Responsible for:
+ * - Mainly UbiquityOS Marketplace data fetching (config-parser fetches user configs)
+ * - Fetching the manifest.json files from the marketplace
+ * - Fetching the README.md files from the marketplace
+ * - Fetching the official plugin config from the orgs
+ * - Capturing the worker and action urls from the official plugin config (will be taken from the manifest directly soon)
+ * - Storing the fetched data in localStorage
+ */
 export class ManifestFetcher {
   private _orgs: string[];
   private _octokit: Octokit | null;
@@ -41,7 +50,6 @@ export class ManifestFetcher {
   }
 
   checkManifestCache(): Record<string, ManifestPreDecode> {
-    // check if the manifest is already in the cache
     const manifestCache = localStorage.getItem("manifestCache");
     if (manifestCache) {
       return JSON.parse(manifestCache);

@@ -4,6 +4,13 @@ import { Octokit } from "@octokit/rest";
 import { toastNotification } from "../utils/toaster";
 import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 
+/**
+ * Responsible for fetching, parsing, and updating the user's installed plugin configurations.
+ *
+ * - `configRepoExistenceCheck` checks if the user has a config repo and creates one if not
+ * - `repoFileExistenceCheck` checks if the user has a config file and creates one if not
+ * - `fetchUserInstalledConfig` fetches the user's installed config from the config repo
+ */
 export class ConfigParser {
   repoConfig: string | null = null;
   repoConfigSha: string | null = null;

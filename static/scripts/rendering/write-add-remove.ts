@@ -6,6 +6,13 @@ import { getOfficialPluginConfig } from "../../utils/storage";
 import { renderConfigEditor } from "./config-editor";
 import { normalizePluginName } from "./utils";
 
+/**
+ * Writes the new configuration to the config file. This does not push the config to GitHub
+ * only updates the local config. The actual push event is handled via a toast notification.
+ *
+ * - Acts as a "save" button for the configuration editor
+ * - Adds or removes a plugin configuration from the config file
+ */
 export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remove") {
   const selectedManifest = localStorage.getItem("selectedPluginManifest");
   if (!selectedManifest) {
@@ -38,7 +45,6 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
   }
 
   renderer.configParser.loadConfig();
-  // this relies on the manifest matching the repo name
   const normalizedPluginName = normalizePluginName(pluginManifest.name);
   const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = getOfficialPluginConfig();
   const pluginUrl = Object.keys(officialPluginConfig).find((url) => {

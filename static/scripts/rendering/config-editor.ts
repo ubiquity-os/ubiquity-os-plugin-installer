@@ -8,6 +8,22 @@ import MarkdownIt from "markdown-it";
 import { getManifestCache } from "../../utils/storage";
 const md = new MarkdownIt();
 
+/**
+ * Displays the plugin configuration editor.
+ *
+ * - `pluginManifest` should never be null or there was a problem fetching from the marketplace
+ * - `plugin` should only be passed in if you intend on replacing the default configuration with their installed configuration
+ *
+ * Allows for:
+ * - Adding a single plugin configuration
+ * - Removing a single plugin configuration
+ * - Resetting the plugin configuration to the schema default
+ * - Building multiple plugins like a "shopping cart" and they all get pushed at once in the background
+ *
+ * Compromises:
+ * - Typebox Unions get JSON.stringify'd and displayed as one string meaning `text-conversation-rewards` has a monster config for HTML tags
+ * - Plugin config objects are split like `plugin.config.key` and `plugin.config.key2` and `plugin.config.key3` and so on
+ */
 export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: Manifest | null, plugin?: Plugin["uses"][0]["with"]): void {
   renderer.currentStep = "configEditor";
   renderer.backButton.style.display = "block";
@@ -16,6 +32,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   processProperties(renderer, pluginManifest, pluginManifest?.configuration.properties || {}, null);
   const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
+  // If plugin is passed in, we want to inject those values into the inputs
   if (plugin) {
     configInputs.forEach((input) => {
       const key = input.getAttribute("data-config-key");
@@ -56,6 +73,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   }
 
   const parsedConfig = renderer.configParser.parseConfig(renderer.configParser.repoConfig || localStorage.getItem("config"));
+  // for when `resetToDefault` is called and no plugin gets passed in, we still want to show the remove button
   const isInstalled = parsedConfig.plugins?.find((p) => p.uses[0].plugin.includes(normalizePluginName(pluginManifest?.name || "")));
 
   loadListeners({
@@ -75,7 +93,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
     remove.classList.add("disabled");
   }
 
-  resetToDefaultButton.hidden = !!plugin;
+  resetToDefaultButton.hidden = !!(plugin || isInstalled);
   const manifestCache = getManifestCache();
   const pluginUrls = Object.keys(manifestCache);
   const pluginUrl = pluginUrls.find((url) => {
@@ -130,6 +148,7 @@ async function loadListeners({
     handleResetToDefault(renderer, pluginManifest);
   }
 
+  // ensure the listeners are removed before adding new ones
   await (async () => {
     getTrackedEventListeners(remove, "click")?.forEach((listener) => {
       removeTrackedEventListener(remove, "click", listener);

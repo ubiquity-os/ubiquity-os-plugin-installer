@@ -7,6 +7,10 @@ import { renderConfigEditor } from "./config-editor";
 import { controlButtons } from "./control-buttons";
 import { closeAllSelect, updateGuiTitle } from "./utils";
 
+/**
+ * Renders a dropdown of plugins taken from the marketplace with an installed indicator.
+ * The user can select a plugin and it will render the configuration editor for that plugin.
+ */
 export function renderPluginSelector(renderer: ManifestRenderer): void {
   renderer.currentStep = "pluginSelector";
   renderer.backButton.style.display = "block";

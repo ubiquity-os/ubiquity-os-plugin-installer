@@ -2,8 +2,13 @@ import AJV, { AnySchemaObject } from "ajv";
 import { createInputRow } from "../../utils/element-helpers";
 import { ManifestRenderer } from "../render-manifest";
 import { Manifest } from "../../types/plugins";
+
+// Without the raw Typebox Schema it was difficult to use Typebox which is why I've used AJV to validate the configuration.
 const ajv = new AJV({ allErrors: true, coerceTypes: true, strict: true });
 
+/**
+ * This creates the input rows for the configuration editor for any given plugin.
+ */
 export function processProperties(
   renderer: ManifestRenderer,
   manifest: Manifest | null | undefined,
@@ -11,7 +16,6 @@ export function processProperties(
   prefix: string | null = null
 ) {
   const required = manifest?.configuration?.required || [];
-
   Object.keys(props).forEach((key) => {
     const fullKey = prefix ? `${prefix}.${key}` : key;
     const prop = props[key];
@@ -35,6 +39,13 @@ export function processProperties(
   });
 }
 
+/**
+ * This parse the inputs from the configuration editor and returns the configuration object.
+ * It also returns an array of missing required fields if any.
+ *
+ * It should become a priority to establish API like usage of `null` and `undefined` in our schemas so it's
+ * easier and less buggy when using the installer.
+ */
 export function parseConfigInputs(
   configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement>,
   manifest: Manifest

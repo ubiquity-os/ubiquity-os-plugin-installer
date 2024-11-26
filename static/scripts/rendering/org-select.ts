@@ -6,6 +6,9 @@ import { controlButtons } from "./control-buttons";
 import { renderPluginSelector } from "./plugin-select";
 import { closeAllSelect, updateGuiTitle } from "./utils";
 
+/**
+ * Renders the orgs for the authenticated user to select from.
+ */
 export function renderOrgPicker(renderer: ManifestRenderer, orgs: string[]) {
   renderer.currentStep = "orgPicker";
   controlButtons({ hide: true });
