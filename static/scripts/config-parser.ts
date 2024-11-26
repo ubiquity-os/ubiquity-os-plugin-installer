@@ -109,7 +109,7 @@ export class ConfigParser {
   }
 
   async updateConfig(org: string, octokit: Octokit, option: "add" | "remove", path = CONFIG_FULL_PATH, repo = CONFIG_ORG_REPO) {
-    let repoPlugins = this.parseConfig(this.repoConfig).plugins;
+    const repoPlugins = this.parseConfig(this.repoConfig).plugins;
     const newPlugins = this.parseConfig().plugins;
 
     if (!newPlugins?.length && option === "add") {
@@ -117,25 +117,8 @@ export class ConfigParser {
     }
 
     if (option === "add") {
-      // update if it exists, add if it doesn't
-      newPlugins.forEach((newPlugin) => {
-        const existingPlugin = repoPlugins.find((p) => p.uses[0].plugin === newPlugin.uses[0].plugin);
-        if (existingPlugin) {
-          existingPlugin.uses[0].with = newPlugin.uses[0].with;
-        } else {
-          repoPlugins.push(newPlugin);
-        }
-      });
-
       this.newConfigYml = YAML.stringify({ plugins: repoPlugins });
     } else if (option === "remove") {
-      // remove only this plugin, keep all others
-      newPlugins.forEach((newPlugin) => {
-        const existingPlugin = repoPlugins.find((p) => p.uses[0].plugin === newPlugin.uses[0].plugin);
-        if (existingPlugin) {
-          repoPlugins = repoPlugins.filter((p) => p.uses[0].plugin !== newPlugin.uses[0].plugin);
-        }
-      });
       this.newConfigYml = YAML.stringify({ plugins: newPlugins });
     }
 
@@ -174,24 +157,33 @@ export class ConfigParser {
 
   addPlugin(plugin: Plugin) {
     const config = this.loadConfig();
-    const parsedConfig = YAML.parse(config);
-    if (!parsedConfig.plugins) {
-      parsedConfig.plugins = [];
+    const parsedConfig = this.parseConfig(config);
+    parsedConfig.plugins ??= [];
+
+    const existingPlugin = parsedConfig.plugins.find((p) => p.uses[0].plugin === plugin.uses[0].plugin);
+    if (existingPlugin) {
+      existingPlugin.uses[0].with = plugin.uses[0].with;
+    } else {
+      parsedConfig.plugins.push(plugin);
     }
+
     parsedConfig.plugins.push(plugin);
-    this.newConfigYml = YAML.stringify(parsedConfig);
+    const newConfig = YAML.stringify(parsedConfig);
+    this.newConfigYml = newConfig;
     this.saveConfig();
   }
 
   removePlugin(plugin: Plugin) {
     const config = this.loadConfig();
-    const parsedConfig = YAML.parse(config);
+    const parsedConfig = this.parseConfig(config);
     if (!parsedConfig.plugins) {
       console.log("No plugins to remove");
       return;
     }
+
     parsedConfig.plugins = parsedConfig.plugins.filter((p: Plugin) => p.uses[0].plugin !== plugin.uses[0].plugin);
-    this.newConfigYml = YAML.stringify(parsedConfig);
+    const newConfig = YAML.stringify(parsedConfig);
+    this.newConfigYml = newConfig;
     this.saveConfig();
   }
 
