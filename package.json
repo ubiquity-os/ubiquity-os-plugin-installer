@@ -39,6 +39,7 @@
     "@ubiquity-os/ubiquity-os-kernel": "^2.5.3",
     "ajv": "^8.17.1",
     "dotenv": "^16.4.4",
+    "markdown-it": "^14.1.0",
     "yaml": "^2.6.0"
   },
   "devDependencies": {
@@ -51,6 +52,7 @@
     "@jest/globals": "29.7.0",
     "@mswjs/data": "0.16.1",
     "@types/jest": "^29.5.12",
+    "@types/markdown-it": "^14.1.2",
     "@types/node": "20.14.5",
     "cspell": "8.14.4",
     "cypress": "13.6.6",
