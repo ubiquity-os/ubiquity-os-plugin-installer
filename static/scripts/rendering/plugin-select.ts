@@ -5,7 +5,7 @@ import { STRINGS } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
 import { renderConfigEditor } from "./config-editor";
 import { controlButtons } from "./control-buttons";
-import { closeAllSelect, updateGuiTitle } from "./utils";
+import { closeAllSelect, normalizePluginName, updateGuiTitle } from "./utils";
 
 /**
  * Renders a dropdown of plugins taken from the marketplace with an installed indicator.
@@ -62,9 +62,8 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
     if (!cleanManifestCache[url]?.name) {
       return;
     }
-
-    const [, repo] = url.replace("https://raw.githubusercontent.com/", "").split("/");
-    const reg = new RegExp(`${repo}`, "gi");
+    const normalizedName = normalizePluginName(cleanManifestCache[url].name);
+    const reg = new RegExp(normalizedName, "i");
     const installedPlugin: Plugin | undefined = installedPlugins.find((plugin) => plugin.uses[0].plugin.match(reg));
     const defaultForInstalled: ManifestPreDecode | null = cleanManifestCache[url];
     const optionText = defaultForInstalled.name;

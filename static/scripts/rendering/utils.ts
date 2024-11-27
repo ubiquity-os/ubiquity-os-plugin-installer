@@ -52,8 +52,5 @@ export function removeTrackedEventListener(target: EventTarget, type: string, li
 }
 
 export function getTrackedEventListeners(target: EventTarget, type: string): EventListener[] {
-  if (eventListenersMap.has(target)) {
-    return eventListenersMap.get(target)?.get(type) || [];
-  }
-  return [];
+  return eventListenersMap.get(target)?.get(type) || [];
 }

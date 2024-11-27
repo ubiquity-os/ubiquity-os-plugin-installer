@@ -93,7 +93,7 @@ function handleAddPlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManif
       }
 
       try {
-        await renderer.configParser.updateConfig(org, octokit, "add");
+        await renderer.configParser.updateConfig(org, octokit);
       } catch (error) {
         console.error("Error pushing config to GitHub:", error);
         toastNotification("An error occurred while pushing the configuration to GitHub.", {
@@ -129,7 +129,7 @@ function handleRemovePlugin(renderer: ManifestRenderer, plugin: Plugin, pluginMa
       }
 
       try {
-        await renderer.configParser.updateConfig(org, octokit, "remove");
+        await renderer.configParser.updateConfig(org, octokit);
       } catch (error) {
         console.error("Error pushing config to GitHub:", error);
         toastNotification("An error occurred while pushing the configuration to GitHub.", {
