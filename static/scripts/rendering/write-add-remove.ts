@@ -80,6 +80,7 @@ function handleAddPlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManif
   toastNotification(`Configuration for ${pluginManifest.name} saved successfully. Do you want to push to GitHub?`, {
     type: "success",
     actionText: "Push to GitHub",
+    shouldAutoDismiss: true,
     action: async () => {
       const octokit = renderer.auth.octokit;
       if (!octokit) {
@@ -116,6 +117,7 @@ function handleRemovePlugin(renderer: ManifestRenderer, plugin: Plugin, pluginMa
   toastNotification(`Configuration for ${pluginManifest.name} removed successfully. Do you want to push to GitHub?`, {
     type: "success",
     actionText: "Push to GitHub",
+    shouldAutoDismiss: true,
     action: async () => {
       const octokit = renderer.auth.octokit;
       if (!octokit) {
