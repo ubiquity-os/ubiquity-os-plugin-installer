@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient, Session } from "@supabase/supabase-js";
 import { Octokit } from "@octokit/rest";
 import { GitHubUser } from "../types/github";
+import { CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 
 declare const SUPABASE_URL: string;
 declare const SUPABASE_ANON_KEY: string;
@@ -131,9 +132,28 @@ export class AuthService {
   }
 
   public async getGitHubUserOrgs(): Promise<string[]> {
-    const octokit = await this.getOctokit();
-    const response = await octokit.rest.orgs.listForAuthenticatedUser();
-    return response.data.map((org: { login: string }) => org.login);
+    const user = await this.octokit?.rest.users.getAuthenticated();
+    const listForAuthUser = await this.octokit?.rest.orgs.listForAuthenticatedUser();
+    if (!user || !listForAuthUser) return [];
+    const listForUserPublic = await this.octokit?.rest.orgs.listForUser({ username: user?.data.login });
+    const allOrgs = [...(listForAuthUser?.data || []), ...(listForUserPublic?.data || [])].map((org) => org.login);
+
+    const orgConfigPermissions: Record<string, string> = {};
+
+    const getOrgConfigRepoUserPermissions = async (org: string) => {
+      try {
+        const p = await this.octokit?.rest.repos.getCollaboratorPermissionLevel({ owner: org, repo: CONFIG_ORG_REPO, username: user?.data.login });
+        orgConfigPermissions[org] = p?.data.permission || "none";
+      } catch (er) {
+        console.error(`[getOrgConfigPermissions] - ${org}::`, er);
+      }
+    };
+
+    for (const org of allOrgs) {
+      await getOrgConfigRepoUserPermissions(org);
+    }
+
+    return Object.keys(orgConfigPermissions).filter((org) => orgConfigPermissions[org] === "admin" || orgConfigPermissions[org] === "write");
   }
 
   public async getOctokit(): Promise<Octokit> {
