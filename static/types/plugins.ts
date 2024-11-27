@@ -31,13 +31,12 @@ export type Manifest = {
   };
   configuration: {
     type: string;
-    properties: {
-      [key: string]: {
-        default: unknown;
-        type?: string;
-      };
+    default: object;
+    items?: {
+      type: string;
     };
+    properties?: Record<string, Manifest["configuration"]>;
+    required?: string[];
   };
+  readme?: string;
 };
-
-export type ManifestProps = { type: string; default: string; items?: { type: string }; properties?: Record<string, ManifestProps> };
