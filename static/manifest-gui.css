@@ -1,16 +1,14 @@
 html {
   background-image: radial-gradient(#000000, #101010);
-  background-color: #101010; /* height: 100vh; */
+  background-color: #101010;
 }
+
 body {
   margin: 0;
   color: #fff;
   font-family: "Proxima Nova", sans-serif;
   background-image: url(./grid-25.png);
   height: calc(100vh - 24px);
-}
-controls button {
-  background: #101010;
 }
 
 header {
@@ -20,73 +18,204 @@ header {
   white-space: nowrap;
   mask-image: linear-gradient(90deg, #000, transparent);
 }
+
 header:hover {
   opacity: 1;
 }
+
 header #uos-logo-container {
   padding-right: 12px;
 }
+
 header > * {
   display: inline-block;
   vertical-align: middle;
 }
+
 header h1 {
   margin: 0;
   font-weight: 400;
   font-size: 24px;
 }
+
 header #uos-logo {
   height: 36px;
 }
+
 header #uos-logo path {
   fill: #fff;
 }
-#manifest-gui {
-  user-select: none;
+
+#controls {
+  position: fixed;
+  right: 24px;
+  top: 24px;
+}
+
+#controls button {
+  background: #101010;
+}
+
+#viewport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: calc(100vh - 96px);
+}
+
+#viewport-cell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  padding: clamp(16px, 2vw, 32px);
+  gap: 24px;
+}
+
+.readme-container {
+  width: auto;
+  max-width: 700px;
+  user-select: text;
   background-image: linear-gradient(0deg, #101010, #202020);
-  margin-top: 16px;
   border-radius: 4px;
   margin: 0 auto;
   box-shadow: 0 24px 48px #000000;
+  overflow: auto;
+  padding: 16px 24px;
+  color: #fff;
+  font-family: "Proxima Nova", sans-serif;
+  line-height: 1.6;
+  opacity: 0.85;
+  max-height: calc(100vh - 192px);
+  scrollbar-width: thin;
+  scrollbar-color: #303030 #101010;
+}
+
+.readme-container p {
+  color: #ccc;
+  margin-bottom: 16px;
+}
+
+.readme-container a {
+  color: #1e90ff;
+  text-decoration: none;
+}
+
+.readme-container a:hover {
+  text-decoration: underline;
+}
+
+.readme-container code {
+  background-color: #202020;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #1e90ff;
+}
+
+.readme-container pre {
+  background-color: #202020;
+  padding: 16px;
+  border-radius: 4px;
+  overflow: auto;
+  color: #ccc;
+  margin-bottom: 16px;
+}
+
+#manifest-gui {
+  width: auto;
+  min-width: 400px;
+  max-width: 1300px;
+  user-select: none;
+  background-image: linear-gradient(0deg, #101010, #202020);
+  margin: 0 auto;
+  border-radius: 4px;
+  box-shadow: 0 24px 48px #000000;
   overflow: hidden;
-  opacity: 0.75;
-  transition: 0.25s opacity cubic-bezier(0, 1, 1, 1);
   opacity: 0;
-  width: 400px;
+  transition: opacity 0.25s cubic-bezier(0, 1, 1, 1);
 }
+
 #manifest-gui.plugin-editor {
-  width: 800px;
+  width: 100%;
 }
+
 #manifest-gui.rendered {
   opacity: 0.75;
 }
+
 #manifest-gui:hover {
   opacity: 1;
 }
-.table-data-header {
-  text-align: right;
-  color: grey;
-  text-transform: capitalize;
-  text-rendering: geometricPrecision; /* padding-left:8px; */
-}
-/* #manifest-gui .table-data-header>div{opacity:0;width:0;transition:1s width ease;overflow: hidden;} */
-/* #manifest-gui:hover .table-data-header>div{opacity:1;width:100px} */
-.table-data-header > div {
-  padding: 8px 16px;
-}
-.table-data-value {
-  user-select: text;
-}
-.table-data-value > div {
-  padding: 8px 16px;
-  border-bottom-left-radius: 4px;
-  border-left: 1px solid #303030;
-  border-bottom: 1px solid #303030; /* font-weight: bold; */
-}
+
 #manifest-gui > tr > td > * {
   vertical-align: middle;
   margin: 8px;
 }
+
+#manifest-gui thead td {
+  border-bottom: 1px solid #303030;
+}
+
+#manifest-gui thead td:last-of-type {
+  text-align: right;
+  padding: 8px 16px;
+  color: #808080;
+}
+
+#manifest-gui tfoot tr td button {
+  width: calc(33% - 4px);
+  display: inline-block;
+  font-weight: 900;
+  margin: 0 2px;
+}
+
+#manifest-gui pre {
+  margin: 0 0 16px;
+}
+
+.config-input {
+  width: calc(100% - 32px);
+  padding: 8px 16px;
+  background-color: #101010;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: "Proxima Nova", sans-serif;
+  border-bottom: 1px solid #303030;
+}
+
+.config-input:hover {
+  border-color: #606060;
+}
+
+.config-input:focus {
+  outline: none;
+  border-color: #808080;
+}
+
+.table-data-header {
+  color: grey;
+  text-transform: capitalize;
+  text-rendering: geometricPrecision;
+  display: flex;
+  justify-content: right;
+  border-top: 1px solid #303030;
+}
+
+.table-data-header {
+  padding: 8px 16px;
+}
+
+.table-data-value {
+  user-select: text;
+}
+
+.table-data-value > input,
+textarea {
+  padding: 8px 16px;
+}
+
 #controls {
   position: fixed;
   right: 24px;
@@ -97,7 +226,7 @@ button {
   background: 0 0;
   color: #fff;
   font-size: 16px;
-  border: none; /* background-color: transparent; */
+  border: none;
   padding: 8px 16px;
   border-radius: 4px;
   opacity: 0.75;
@@ -111,30 +240,33 @@ button:hover {
 button:active {
   background-color: #606060;
 }
-#manifest-gui thead td {
-  border-bottom: 1px solid #303030; /* text-align: end; */
+
+button#reset-to-default {
+  background-color: #303030;
+  color: #fff;
+}
+button#reset-to-default:hover {
+  background-color: #404040;
+}
+button#reset-to-default:active {
+  background-color: #505050;
+}
+button#reset-to-default::before {
+  content: "♻️";
+}
+button#reset-to-default:hover::before {
+  content: "Use Defaults";
+}
+button#reset-to-default:active::before {
+  content: "♻️♻️♻️♻️♻️";
 }
 
-#manifest-gui thead td:last-of-type {
-  text-align: right;
-  padding: 8px 16px;
+button#remove.disabled {
+  background-color: #303030;
   color: #808080;
-}
-#viewport {
-  width: 100%;
-  display: table;
-  height: calc(100vh - ((36px + 8px) * 2) * 2); /* border-collapse: collapse; */
-}
-#viewport-cell {
-  height: 100%;
-  display: table-cell;
-  vertical-align: middle; /* width: 100%; */
-}
-#manifest-gui tfoot tr td button {
-  width: calc(50% - 4px);
-  display: inline-block;
-  font-weight: 900;
-  margin: 0 2px;
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 button#remove::before {
@@ -174,10 +306,6 @@ button#add:active::before {
   content: "+++";
 }
 
-#manifest-gui pre {
-  margin: 0 0 16px;
-}
-
 .picker-select {
   width: 100%;
   padding: 8px 16px;
@@ -198,25 +326,74 @@ button#add:active::before {
   outline: none;
   border-color: #808080;
 }
-
-.config-input {
-  width: calc(100% - 32px);
-  padding: 8px 16px;
+select option {
   background-color: #101010;
   color: #fff;
+  font-family: "Proxima Nova", sans-serif;
+  display: flex;
+  justify-content: space-between;
+}
+
+.custom-select {
+  position: relative;
+  font-family: "Proxima Nova", sans-serif;
+  width: inherit;
+}
+
+.select-selected {
+  background-color: #101010;
+  color: #fff;
+  padding: 8px 16px;
   border: 1px solid #303030;
   border-radius: 4px;
-  font-size: 16px;
-  font-family: "Proxima Nova", sans-serif;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
 }
 
-.config-input:hover {
-  border-color: #606060;
+.select-selected::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  border-color: #fff transparent transparent transparent;
 }
 
-.config-input:focus {
-  outline: none;
-  border-color: #808080;
+.select-selected.select-arrow-active::after {
+  border-color: transparent transparent #fff transparent;
+  top: 12px;
+}
+
+.select-items {
+  background-color: #101010;
+  border: 1px solid #303030;
+  border-radius: 8px;
+  z-index: 99;
+  width: inherit;
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #303030 #101010;
+}
+
+.select-items .select-option {
+  color: #fff;
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.select-items .select-option:hover {
+  background-color: #303030;
+}
+
+.select-hide {
+  display: none;
 }
 
 .picker-container,
@@ -257,23 +434,6 @@ button#add:active::before {
 .picker-body,
 .editor-body {
   margin-bottom: 16px;
-}
-
-/* Select Elements */
-.picker-select {
-  width: 100%;
-  padding: 8px 16px;
-  background-color: #101010;
-  color: #fff;
-  border: 1px solid #303030;
-  border-radius: 4px;
-  font-size: 16px;
-  font-family: "Proxima Nova", sans-serif;
-}
-
-.picker-select:focus {
-  outline: none;
-  border-color: #606060;
 }
 
 .save-button {
