@@ -153,7 +153,12 @@ export class AuthService {
       await getOrgConfigRepoUserPermissions(org);
     }
 
-    return Object.keys(orgConfigPermissions).filter((org) => orgConfigPermissions[org] === "admin" || orgConfigPermissions[org] === "write");
+    return Array.from(
+      new Set([
+        ...(listForAuthUser?.data.map((org) => org.login) || []),
+        ...Object.keys(orgConfigPermissions).filter((org) => orgConfigPermissions[org] !== "none"),
+      ])
+    );
   }
 
   public async getOctokit(): Promise<Octokit> {

@@ -34,7 +34,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
   // If plugin is passed in, we want to inject those values into the inputs
   if (plugin) {
-    configInputs.forEach((input, i) => {
+    configInputs.forEach((input) => {
       const key = input.getAttribute("data-config-key");
       if (!key) {
         throw new Error("Input key is required");

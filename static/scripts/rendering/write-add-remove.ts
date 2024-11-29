@@ -5,7 +5,6 @@ import { parseConfigInputs } from "./input-parsing";
 import { getOfficialPluginConfig } from "../../utils/storage";
 import { renderConfigEditor } from "./config-editor";
 import { normalizePluginName } from "./utils";
-import { renderPluginSelector } from "./plugin-select";
 import { handleBackButtonClick } from "./navigation";
 
 /**
@@ -128,15 +127,14 @@ async function notificationConfigPush(renderer: ManifestRenderer) {
   const container = document.querySelector("#manifest-gui") as HTMLElement | null;
   const readmeContainer = document.querySelector(".readme-container") as HTMLElement | null;
   if (container && readmeContainer) {
-    container.style.transition = 'opacity 0.5s ease';
-    container.style.opacity = '0';
-    readmeContainer.style.transition = 'opacity 0.5s ease';
-    readmeContainer.style.opacity = '0';
+    container.style.transition = "opacity 0.5s ease";
+    container.style.opacity = "0";
+    readmeContainer.style.transition = "opacity 0.5s ease";
+    readmeContainer.style.opacity = "0";
     setTimeout(() => {
       handleBackButtonClick(renderer);
-      container.style.opacity = '1';
+      container.style.opacity = "1";
     }, 500);
-
   } else {
     handleBackButtonClick(renderer);
   }
