@@ -34,6 +34,9 @@ export type Manifest = {
     type: string;
     default: unknown;
     description?: string;
+    items?: {
+      type: string;
+    };
     properties?: Record<string, Manifest["configuration"]>;
     required?: string[];
   };
