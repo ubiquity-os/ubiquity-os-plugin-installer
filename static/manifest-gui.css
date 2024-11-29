@@ -90,6 +90,8 @@ header #uos-logo path {
   max-height: calc(100vh - 192px);
   scrollbar-width: thin;
   scrollbar-color: #303030 #101010;
+  opacity: 1;
+  transition: opacity 0.5s ease;
 }
 
 .readme-container p {
