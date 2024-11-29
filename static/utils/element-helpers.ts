@@ -1,16 +1,19 @@
-import { ManifestProps } from "../types/plugins";
+import { Manifest } from "../types/plugins";
 
 const CONFIG_INPUT_STR = "config-input";
 
 export const manifestGuiBody = document.getElementById("manifest-gui-body");
 
-export function createElement<TK extends keyof HTMLElementTagNameMap>(tagName: TK, attributes: { [key: string]: string | null }): HTMLElementTagNameMap[TK] {
+export function createElement<TK extends keyof HTMLElementTagNameMap>(
+  tagName: TK,
+  attributes: { [key: string]: string | boolean | null }
+): HTMLElementTagNameMap[TK] {
   const element = document.createElement(tagName);
   Object.keys(attributes).forEach((key) => {
     if (key === "textContent") {
-      element.textContent = attributes[key];
+      element.textContent = attributes[key] as string;
     } else if (key in element) {
-      (element as Record<string, string | null>)[key] = attributes[key];
+      (element as Record<string, string | boolean | null>)[key] = attributes[key];
     } else {
       element.setAttribute(key, `${attributes[key]}`);
     }
@@ -19,14 +22,15 @@ export function createElement<TK extends keyof HTMLElementTagNameMap>(tagName: T
 }
 export function createInputRow(
   key: string,
-  prop: ManifestProps,
-  configDefaults: Record<string, { type: string; value: unknown; items: { type: string } | null }>
+  prop: Manifest["configuration"],
+  configDefaults: Record<string, { type: string; value: unknown; items: { type: string } | null }>,
+  required = false
 ): void {
   const row = document.createElement("tr");
 
   const headerCell = document.createElement("td");
   headerCell.className = "table-data-header";
-  headerCell.textContent = key;
+  headerCell.textContent = key.replace(/([A-Z])/g, " $1");
 
   createConfigParamTooltip(headerCell, prop);
 
@@ -34,6 +38,7 @@ export function createInputRow(
 
   const valueCell = document.createElement("td");
   valueCell.className = "table-data-value";
+  valueCell.ariaRequired = `${required}`;
 
   const input = createInput(key, prop.default, prop);
   valueCell.appendChild(input);
@@ -47,7 +52,7 @@ export function createInputRow(
     items: prop.items ? { type: prop.items.type } : null,
   };
 }
-export function createInput(key: string, defaultValue: unknown, prop: ManifestProps): HTMLElement {
+export function createInput(key: string, defaultValue: unknown, prop: Manifest["configuration"]): HTMLElement {
   if (!key) {
     throw new Error("Input name is required");
   }

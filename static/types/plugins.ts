@@ -32,15 +32,10 @@ export type Manifest = {
   };
   configuration: {
     type: string;
-    properties: {
-      [key: string]: {
-        default: unknown;
-        description?: string;
-        type: string;
-        properties?: Record<string, ManifestProps>;
-      };
-    };
+    default: unknown;
+    description?: string;
+    properties?: Record<string, Manifest["configuration"]>;
+    required?: string[];
   };
+  readme?: string;
 };
-
-export type ManifestProps = { type: string; default: unknown; description: string; items?: { type: string }; properties?: Record<string, ManifestProps> };
