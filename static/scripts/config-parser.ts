@@ -5,6 +5,13 @@ import { toastNotification } from "../utils/toaster";
 import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 import { AuthService } from "./authentication";
 
+/**
+ * Responsible for fetching, parsing, and updating the user's installed plugin configurations.
+ *
+ * - `configRepoExistenceCheck` checks if the user has a config repo and creates one if not
+ * - `repoFileExistenceCheck` checks if the user has a config file and creates one if not
+ * - `fetchUserInstalledConfig` fetches the user's installed config from the config repo
+ */
 export class ConfigParser {
   repoConfig: string | null = null;
   repoConfigSha: string | null = null;
@@ -109,38 +116,7 @@ export class ConfigParser {
     return YAML.parse(`${this.newConfigYml}`);
   }
 
-  async updateConfig(org: string, octokit: Octokit, option: "add" | "remove", path = CONFIG_FULL_PATH, repo = CONFIG_ORG_REPO) {
-    let repoPlugins = this.parseConfig(this.repoConfig).plugins;
-    const newPlugins = this.parseConfig().plugins;
-
-    if (!newPlugins?.length && option === "add") {
-      throw new Error("No plugins found in the config");
-    }
-
-    if (option === "add") {
-      // update if it exists, add if it doesn't
-      newPlugins.forEach((newPlugin) => {
-        const existingPlugin = repoPlugins.find((p) => p.uses[0].plugin === newPlugin.uses[0].plugin);
-        if (existingPlugin) {
-          existingPlugin.uses[0].with = newPlugin.uses[0].with;
-        } else {
-          repoPlugins.push(newPlugin);
-        }
-      });
-
-      this.newConfigYml = YAML.stringify({ plugins: repoPlugins });
-    } else if (option === "remove") {
-      // remove only this plugin, keep all others
-      newPlugins.forEach((newPlugin) => {
-        const existingPlugin = repoPlugins.find((p) => p.uses[0].plugin === newPlugin.uses[0].plugin);
-        if (existingPlugin) {
-          repoPlugins = repoPlugins.filter((p) => p.uses[0].plugin !== newPlugin.uses[0].plugin);
-        }
-      });
-      this.newConfigYml = YAML.stringify({ plugins: newPlugins });
-    }
-
-    this.saveConfig();
+  async updateConfig(org: string, octokit: Octokit, path = CONFIG_FULL_PATH, repo = CONFIG_ORG_REPO) {
     return this.createOrUpdateFileContents(org, repo, path, octokit);
   }
 
@@ -165,34 +141,44 @@ export class ConfigParser {
       throw new Error("No content to push");
     }
 
+    this.repoConfig = this.newConfigYml;
+
     return octokit.repos.createOrUpdateFileContents({
       owner: org,
       repo: repo,
       path,
-      message: `chore: updating config`,
+      message: `chore: Plugin Installer UI - update`,
       content: btoa(this.newConfigYml),
       sha,
     });
   }
 
   addPlugin(plugin: Plugin) {
-    const config = this.loadConfig();
-    const parsedConfig = YAML.parse(config);
+    const parsedConfig = this.parseConfig(this.repoConfig);
     parsedConfig.plugins ??= [];
-    parsedConfig.plugins.push(plugin);
+
+    const existingPlugin = parsedConfig.plugins.find((p) => p.uses[0].plugin === plugin.uses[0].plugin);
+    if (existingPlugin) {
+      existingPlugin.uses[0].with = plugin.uses[0].with;
+    } else {
+      parsedConfig.plugins.push(plugin);
+    }
+
     this.newConfigYml = YAML.stringify(parsedConfig);
+    this.repoConfig = this.newConfigYml;
     this.saveConfig();
   }
 
   removePlugin(plugin: Plugin) {
-    const config = this.loadConfig();
-    const parsedConfig = YAML.parse(config);
+    const parsedConfig = this.parseConfig(this.repoConfig);
     if (!parsedConfig.plugins) {
-      console.log("No plugins to remove");
+      toastNotification("No plugins found in config", { type: "error" });
       return;
     }
+
     parsedConfig.plugins = parsedConfig.plugins.filter((p: Plugin) => p.uses[0].plugin !== plugin.uses[0].plugin);
     this.newConfigYml = YAML.stringify(parsedConfig);
+    this.repoConfig = this.newConfigYml;
     this.saveConfig();
   }
 

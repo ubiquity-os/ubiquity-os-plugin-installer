@@ -28,9 +28,7 @@ export async function mainModule() {
         const killNotification = toastNotification("Fetching manifest data...", { type: "info", shouldAutoDismiss: true });
         renderOrgSelector(renderer, []);
 
-        const manifestCache = await fetcher.fetchMarketplaceManifests();
-        localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
-
+        await fetcher.fetchMarketplaceManifests();
         await fetcher.fetchOfficialPluginConfig();
         killNotification();
         renderer.manifestGuiBody.dataset.loading = "false";

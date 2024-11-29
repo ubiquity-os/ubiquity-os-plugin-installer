@@ -23,7 +23,8 @@ export function createElement<TK extends keyof HTMLElementTagNameMap>(
 export function createInputRow(
   key: string,
   prop: Manifest["configuration"],
-  configDefaults: Record<string, { type: string; value: unknown; items: { type: string } | null }>
+  configDefaults: Record<string, { type: string; value: unknown; items: { type: string } | null }>,
+  required = false
 ): void {
   const row = document.createElement("tr");
   const headerCell = document.createElement("td");
@@ -33,6 +34,7 @@ export function createInputRow(
 
   const valueCell = document.createElement("td");
   valueCell.className = "table-data-value";
+  valueCell.ariaRequired = `${required}`;
 
   const input = createInput(key, prop.default, prop);
   valueCell.appendChild(input);

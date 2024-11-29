@@ -1,18 +1,23 @@
 import { ManifestCache, ManifestPreDecode, Plugin } from "../../types/plugins";
 import { createElement } from "../../utils/element-helpers";
+import { getManifestCache } from "../../utils/storage";
 import { STRINGS } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
 import { renderConfigEditor } from "./config-editor";
 import { controlButtons } from "./control-buttons";
-import { closeAllSelect, updateGuiTitle } from "./utils";
+import { closeAllSelect, normalizePluginName, updateGuiTitle } from "./utils";
 
+/**
+ * Renders a dropdown of plugins taken from the marketplace with an installed indicator.
+ * The user can select a plugin and it will render the configuration editor for that plugin.
+ */
 export function renderPluginSelector(renderer: ManifestRenderer): void {
   renderer.currentStep = "pluginSelector";
   renderer.backButton.style.display = "block";
   renderer.manifestGuiBody.innerHTML = null;
   controlButtons({ hide: true });
 
-  const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
+  const manifestCache = getManifestCache();
   const pluginUrls = Object.keys(manifestCache);
 
   const pickerRow = document.createElement("tr");
@@ -57,9 +62,8 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
     if (!cleanManifestCache[url]?.name) {
       return;
     }
-
-    const [, repo] = url.replace("https://raw.githubusercontent.com/", "").split("/");
-    const reg = new RegExp(`${repo}`, "gi");
+    const normalizedName = normalizePluginName(cleanManifestCache[url].name);
+    const reg = new RegExp(normalizedName, "i");
     const installedPlugin: Plugin | undefined = installedPlugins.find((plugin) => plugin.uses[0].plugin.match(reg));
     const defaultForInstalled: ManifestPreDecode | null = cleanManifestCache[url];
     const optionText = defaultForInstalled.name;

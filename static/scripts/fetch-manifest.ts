@@ -1,7 +1,17 @@
 import { Octokit } from "@octokit/rest";
 import { Manifest, ManifestPreDecode } from "../types/plugins";
 import { DEV_CONFIG_FULL_PATH, CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
+import { getOfficialPluginConfig } from "../utils/storage";
 
+/**
+ * Responsible for:
+ * - Mainly UbiquityOS Marketplace data fetching (config-parser fetches user configs)
+ * - Fetching the manifest.json files from the marketplace
+ * - Fetching the README.md files from the marketplace
+ * - Fetching the official plugin config from the orgs
+ * - Capturing the worker and action urls from the official plugin config (will be taken from the manifest directly soon)
+ * - Storing the fetched data in localStorage
+ */
 export class ManifestFetcher {
   private _orgs: string[];
   private _octokit: Octokit | null;
@@ -23,15 +33,12 @@ export class ManifestFetcher {
     }
     const repos = await this._octokit.repos.listForOrg({ org });
     const manifestCache = this.checkManifestCache();
-    function makeUrl(org: string, repo: string, file: string) {
-      return `https://raw.githubusercontent.com/${org}/${repo}/development/${file}`;
-    }
 
     for (const repo of repos.data) {
-      const manifestUrl = makeUrl(org, repo.name, "manifest.json");
-      const manifest = await this.fetchActionManifest(manifestUrl);
+      const manifestUrl = this.createGithubRawEndpoint(org, repo.name, "development", "manifest.json");
+      const manifest = await this.fetchPluginManifest(manifestUrl);
       const decoded = this.decodeManifestFromFetch(manifest);
-      const readme = await this._fetchPluginReadme(makeUrl(org, repo.name, "README.md"));
+      const readme = await this.fetchPluginReadme(this.createGithubRawEndpoint(org, repo.name, "development", "README.md"));
 
       if (decoded) {
         manifestCache[manifestUrl] = { ...decoded, readme };
@@ -43,7 +50,6 @@ export class ManifestFetcher {
   }
 
   checkManifestCache(): Record<string, ManifestPreDecode> {
-    // check if the manifest is already in the cache
     const manifestCache = localStorage.getItem("manifestCache");
     if (manifestCache) {
       return JSON.parse(manifestCache);
@@ -60,9 +66,9 @@ export class ManifestFetcher {
     }
   }
 
-  createActionEndpoint(owner: string, repo: string, branch: string) {
+  createGithubRawEndpoint(owner: string, repo: string, branch: string, path: string) {
     // no endpoint so we fetch the raw content from the owner/repo/branch
-    return `https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/${branch}/manifest.json`;
+    return `https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/${branch}/${path}`;
   }
 
   captureActionUrls(config: string) {
@@ -74,7 +80,7 @@ export class ManifestFetcher {
 
   async fetchOfficialPluginConfig() {
     await this.fetchOrgsUbiquityOsConfigs();
-    const officialPluginConfig = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}") || {};
+    const officialPluginConfig = getOfficialPluginConfig();
 
     this.workerUrls.forEach((url) => {
       officialPluginConfig[url] = { workerUrl: url };
@@ -91,33 +97,7 @@ export class ManifestFetcher {
     return officialPluginConfig;
   }
 
-  async fetchWorkerManifest(workerUrl: string) {
-    const url = workerUrl + "/manifest.json";
-    try {
-      const response = await fetch(url, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "GET",
-      });
-      return await response.json();
-    } catch (e) {
-      let error = e;
-      try {
-        const res = await fetch(url.replace(/development/g, "main"));
-        return await res.json();
-      } catch (e) {
-        error = e;
-      }
-      console.error(error);
-      if (error instanceof Error) {
-        return { workerUrl, error: error.message };
-      }
-      return { workerUrl, error: String(error) };
-    }
-  }
-
-  async fetchActionManifest(actionUrl: string) {
+  async fetchPluginManifest(actionUrl: string) {
     try {
       const response = await fetch(actionUrl);
       return await response.json();
@@ -130,24 +110,36 @@ export class ManifestFetcher {
     }
   }
 
-  private async _fetchPluginReadme(pluginUrl: string) {
+  async fetchPluginReadme(pluginUrl: string) {
+    async function handle404(result: string, octokit?: Octokit | null) {
+      if (result.includes("404: Not Found")) {
+        const [owner, repo] = pluginUrl.split("/").slice(3, 5);
+        const readme = await octokit?.repos.getContent({
+          owner,
+          repo,
+          path: "README.md",
+        });
+
+        if (readme && "content" in readme.data) {
+          return atob(readme.data.content);
+        } else {
+          return "No README.md found";
+        }
+      }
+
+      return result;
+    }
     try {
-      const response = await fetch(pluginUrl, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "GET",
-      });
-      return await response.text();
+      const response = await fetch(pluginUrl, { signal: new AbortController().signal });
+      return await handle404(await response.text(), this._octokit);
     } catch (e) {
       let error = e;
       try {
-        const res = await fetch(pluginUrl.replace(/development/g, "main"));
-        return await res.text();
+        const res = await fetch(pluginUrl.replace(/development/g, "main"), { signal: new AbortController().signal });
+        return await handle404(await res.text(), this._octokit);
       } catch (e) {
         error = e;
       }
-      console.error(error);
       if (error instanceof Error) {
         return error.message;
       }

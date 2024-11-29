@@ -5,7 +5,10 @@ import { controlButtons } from "./control-buttons";
 import { renderTemplateSelector } from "./template-selector";
 import { closeAllSelect, updateGuiTitle } from "./utils";
 
-export function renderOrgSelector(renderer: ManifestRenderer, orgs: string[]) {
+/**
+ * Renders the orgs for the authenticated user to select from.
+ */
+export function renderOrgPicker(renderer: ManifestRenderer, orgs: string[]) {
   renderer.currentStep = "orgSelector";
   controlButtons({ hide: true });
   renderer.backButton.style.display = "none";
@@ -40,8 +43,12 @@ export function renderOrgSelector(renderer: ManifestRenderer, orgs: string[]) {
 
   if (!orgs.length) {
     const hasSession = renderer.auth.isActiveSession();
-    if (hasSession) {
+    const isLoading = renderer.manifestGuiBody.dataset.loading === "true";
+
+    if (hasSession && !isLoading) {
       updateGuiTitle("No organizations found");
+    } else if (hasSession && isLoading) {
+      updateGuiTitle("Fetching organization data...");
     } else {
       updateGuiTitle("Please sign in to GitHub");
     }
@@ -55,11 +62,9 @@ export function renderOrgSelector(renderer: ManifestRenderer, orgs: string[]) {
     const textSpan = createElement("span", { textContent: org });
 
     optionDiv.appendChild(textSpan);
-
     optionDiv.addEventListener("click", () => {
-      handleOrgSelection(renderer, org);
       selectSelected.textContent = org;
-      localStorage.setItem("selectedOrg", org);
+      handleOrgSelection(renderer, org);
     });
 
     selectItems.appendChild(optionDiv);
