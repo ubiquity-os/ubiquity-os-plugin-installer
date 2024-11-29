@@ -1,4 +1,5 @@
 import { Manifest } from "../types/plugins";
+import { toastNotification } from "./toaster";
 
 const CONFIG_INPUT_STR = "config-input";
 
@@ -37,7 +38,7 @@ export function createInputRow(
   valueCell.className = "table-data-value";
   valueCell.ariaRequired = `${required}`;
 
-  const input = createInput(key, prop.default, prop);
+  const input = createInput(key, prop.default, prop.type);
   valueCell.appendChild(input);
 
   row.appendChild(valueCell);
@@ -49,21 +50,24 @@ export function createInputRow(
     items: prop.items ? { type: prop.items.type } : null,
   };
 }
-export function createInput(key: string, defaultValue: unknown, prop: Manifest["configuration"]): HTMLElement {
+export function createInput(key: string, defaultValue: unknown, prop: string): HTMLElement {
   if (!key) {
     throw new Error("Input name is required");
   }
 
   let ele: HTMLElement;
 
-  const dataType = prop.type;
-
-  if (dataType === "object" || dataType === "array") {
-    ele = createTextareaInput(key, defaultValue, dataType);
-  } else if (dataType === "boolean") {
+  if (prop === "object" || prop === "array") {
+    ele = createTextareaInput(key, defaultValue, prop);
+  } else if (prop === "boolean") {
     ele = createBooleanInput(key, defaultValue);
   } else {
-    ele = createStringInput(key, defaultValue, dataType);
+    ele = createStringInput(key, defaultValue, prop);
+  }
+
+  if (!ele) {
+    toastNotification("An error occurred while creating an input element", { type: "error" });
+    throw new Error("Input type is required");
   }
 
   return ele;
@@ -76,7 +80,8 @@ export function createStringInput(key: string, defaultValue: string | unknown, d
     "data-config-key": key,
     "data-type": dataType,
     class: CONFIG_INPUT_STR,
-    value: `${defaultValue}`,
+    value: defaultValue ? `${defaultValue}` : "",
+    placeholder: defaultValue ? "" : `Enter ${dataType}`,
   });
 }
 export function createBooleanInput(key: string, defaultValue: boolean | unknown): HTMLElement {
