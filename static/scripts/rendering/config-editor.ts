@@ -51,8 +51,10 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
       let value: string;
 
-      if (typeof currentObj === "object") {
+      if (typeof currentObj === "object" || Array.isArray(currentObj)) {
         value = JSON.stringify(currentObj, null, 2);
+      } else if (typeof currentObj === "boolean") {
+        value = currentObj ? "true" : "false";
       } else {
         value = currentObj as string;
       }
@@ -61,6 +63,10 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
         (input as HTMLTextAreaElement).value = value;
       } else {
         (input as HTMLInputElement).value = value;
+      }
+
+      if (input.tagName === "INPUT" && (input as HTMLInputElement).type === "checkbox") {
+        (input as HTMLInputElement).checked = value === "true";
       }
     });
   }

@@ -142,7 +142,7 @@ export class ConfigParser {
       owner: org,
       repo: repo,
       path,
-      message: `chore: updating config`,
+      message: `chore: Plugin Installer UI - update`,
       content: btoa(this.newConfigYml),
       sha,
     });

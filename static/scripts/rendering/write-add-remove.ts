@@ -81,34 +81,7 @@ function handleAddPlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManif
     type: "success",
     actionText: "Push to GitHub",
     shouldAutoDismiss: true,
-    action: async () => {
-      const octokit = renderer.auth.octokit;
-      if (!octokit) {
-        throw new Error("Octokit not found");
-      }
-
-      const org = localStorage.getItem("selectedOrg");
-
-      if (!org) {
-        throw new Error("No selected org found");
-      }
-
-      try {
-        await renderer.configParser.updateConfig(org, octokit);
-      } catch (error) {
-        console.error("Error pushing config to GitHub:", error);
-        toastNotification("An error occurred while pushing the configuration to GitHub.", {
-          type: "error",
-          shouldAutoDismiss: true,
-        });
-        return;
-      }
-
-      toastNotification("Configuration pushed to GitHub successfully.", {
-        type: "success",
-        shouldAutoDismiss: true,
-      });
-    },
+    action: () => notificationConfigPush(renderer),
   });
 }
 
@@ -118,34 +91,36 @@ function handleRemovePlugin(renderer: ManifestRenderer, plugin: Plugin, pluginMa
     type: "success",
     actionText: "Push to GitHub",
     shouldAutoDismiss: true,
-    action: async () => {
-      const octokit = renderer.auth.octokit;
-      if (!octokit) {
-        throw new Error("Octokit not found");
-      }
+    action: () => notificationConfigPush(renderer),
+  });
+}
 
-      const org = localStorage.getItem("selectedOrg");
+async function notificationConfigPush(renderer: ManifestRenderer) {
+  const octokit = renderer.auth.octokit;
+  if (!octokit) {
+    throw new Error("Octokit not found");
+  }
 
-      if (!org) {
-        throw new Error("No selected org found");
-      }
+  const org = localStorage.getItem("selectedOrg");
 
-      try {
-        await renderer.configParser.updateConfig(org, octokit);
-      } catch (error) {
-        console.error("Error pushing config to GitHub:", error);
-        toastNotification("An error occurred while pushing the configuration to GitHub.", {
-          type: "error",
-          shouldAutoDismiss: true,
-        });
-        return;
-      }
+  if (!org) {
+    throw new Error("No selected org found");
+  }
 
-      toastNotification("Configuration pushed to GitHub successfully.", {
-        type: "success",
-        shouldAutoDismiss: true,
-      });
-    },
+  try {
+    await renderer.configParser.updateConfig(org, octokit);
+  } catch (error) {
+    console.error("Error pushing config to GitHub:", error);
+    toastNotification("An error occurred while pushing the configuration to GitHub.", {
+      type: "error",
+      shouldAutoDismiss: true,
+    });
+    return;
+  }
+
+  toastNotification("Configuration pushed to GitHub successfully.", {
+    type: "success",
+    shouldAutoDismiss: true,
   });
 }
 
