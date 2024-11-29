@@ -231,6 +231,9 @@ button {
   border-radius: 4px;
   opacity: 0.75;
   font-family: "Proxima Nova", sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 button:hover {
   background-color: #404040;
