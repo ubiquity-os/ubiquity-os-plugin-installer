@@ -22,9 +22,9 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
     });
     throw new Error("No selected plugin manifest found");
   }
-  const pluginManifest = JSON.parse(selectedManifest) as Manifest;
-  const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
+  const pluginManifest = JSON.parse(selectedManifest || "{}") as Manifest;
+  const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
   const { config: newConfig, missing } = parseConfigInputs(configInputs, pluginManifest);
 
   if (missing.length) {

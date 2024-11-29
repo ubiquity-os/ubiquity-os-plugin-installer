@@ -27,7 +27,6 @@ export function createInputRow(
   required = false
 ): void {
   const row = document.createElement("tr");
-
   const headerCell = document.createElement("td");
   headerCell.className = "table-data-header";
   headerCell.textContent = key.replace(/([A-Z])/g, " $1");
