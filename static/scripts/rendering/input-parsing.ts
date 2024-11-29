@@ -22,7 +22,6 @@ export function processProperties(
     if (!prop) {
       return;
     }
-
     if (prop.type === "object" && prop.properties) {
       processProperties(renderer, manifest, prop.properties, fullKey);
     } else if ("anyOf" in prop && Array.isArray(prop.anyOf)) {
@@ -108,6 +107,19 @@ export function parseConfigInputs(
         missing.push(key);
       }
     }
+
+    /**
+     * We've ID'd the required fieds that are missing, now we check if there are any fields
+     * that have null | undefined values and remove them from the configuration object, 
+     * since the defaults will be used the config prop does not need to be present.
+     */
+
+    Object.keys(config).forEach((key) => {
+      if (config[key] === null || config[key] === undefined || config[key] === "") {
+        delete config[key];
+      }
+    })
+
     return { config, missing };
   } else {
     throw new Error("Invalid configuration: " + JSON.stringify(validate.errors, null, 2));

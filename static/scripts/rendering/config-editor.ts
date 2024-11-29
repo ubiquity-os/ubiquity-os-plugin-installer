@@ -34,7 +34,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
   // If plugin is passed in, we want to inject those values into the inputs
   if (plugin) {
-    configInputs.forEach((input) => {
+    configInputs.forEach((input, i) => {
       const key = input.getAttribute("data-config-key");
       if (!key) {
         throw new Error("Input key is required");
@@ -52,21 +52,26 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
       let value: string;
 
       if (typeof currentObj === "object" || Array.isArray(currentObj)) {
-        value = JSON.stringify(currentObj, null, 2);
+        value = currentObj[key] ? JSON.stringify(currentObj[key]) : "";
+        if (value === "") {
+          // no-op
+        } else if (!value) {
+          value = currentObj ? JSON.stringify(currentObj) : "";
+        }
       } else if (typeof currentObj === "boolean") {
         value = currentObj ? "true" : "false";
+      } else if (!currentObj) {
+        value = "";
       } else {
         value = currentObj as string;
       }
 
       if (input.tagName === "TEXTAREA") {
         (input as HTMLTextAreaElement).value = value;
+      } else if (input.tagName === "INPUT" && (input as HTMLInputElement).type === "checkbox") {
+        (input as HTMLInputElement).checked = value === "true";
       } else {
         (input as HTMLInputElement).value = value;
-      }
-
-      if (input.tagName === "INPUT" && (input as HTMLInputElement).type === "checkbox") {
-        (input as HTMLInputElement).checked = value === "true";
       }
     });
   }
