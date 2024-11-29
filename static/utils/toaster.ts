@@ -1,4 +1,4 @@
-import { createElement } from "./ele-helpers";
+import { createElement } from "./element-helpers";
 
 export function toastNotification(
   message: string,
@@ -10,7 +10,7 @@ export function toastNotification(
     duration?: number;
     killAll?: boolean;
   } = {}
-): void {
+): () => void {
   const { type = "info", actionText, action, shouldAutoDismiss = false, duration = 5000 } = options;
 
   const toastElement = createElement("div", {
@@ -68,10 +68,21 @@ export function toastNotification(
     toastElement.classList.add("show");
   });
 
-  if (shouldAutoDismiss) {
-    setTimeout(() => {
+  function kill(withTimeout = false) {
+    if (withTimeout) {
+      setTimeout(() => {
+        toastElement.classList.remove("show");
+        setTimeout(() => toastElement.remove(), 250);
+      }, duration);
+    } else {
       toastElement.classList.remove("show");
       setTimeout(() => toastElement.remove(), 250);
-    }, duration);
+    }
   }
+
+  if (shouldAutoDismiss) {
+    kill(shouldAutoDismiss);
+  }
+
+  return kill;
 }

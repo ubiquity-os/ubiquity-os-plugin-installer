@@ -65,7 +65,13 @@ export class AuthService {
   public async signInWithGithub(): Promise<void> {
     const search = window.location.search;
     localStorage.setItem("manifest", search);
-    const { data } = await this.supabase.auth.signInWithOAuth({ provider: "github" });
+    const { data } = await this.supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        scopes: "read:org read:user user:email repo",
+        redirectTo: `${window.location.href}`,
+      },
+    });
     if (!data) throw new Error("Failed to sign in with GitHub");
   }
 

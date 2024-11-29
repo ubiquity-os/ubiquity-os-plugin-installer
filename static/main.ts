@@ -1,71 +1,39 @@
 import { AuthService } from "./scripts/authentication";
-import { ManifestDecoder } from "./scripts/decode-manifest";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
-import { OrgWithInstall } from "./types/github";
+import { renderOrgPicker } from "./scripts/rendering/org-select";
 import { toastNotification } from "./utils/toaster";
 
 async function handleAuth() {
   const auth = new AuthService();
   await auth.renderGithubLoginButton();
-  const token = await auth.getGitHubAccessToken();
-  if (!token) {
-    // await auth.signInWithGithub(); force a login?
-  }
-
   return auth;
 }
 
 export async function mainModule() {
   const auth = await handleAuth();
-  const decoder = new ManifestDecoder();
   const renderer = new ManifestRenderer(auth);
-  const search = window.location.search.substring(1);
-
-  if (search) {
-    const decodedManifest = await decoder.decodeManifestFromSearch(search);
-    return renderer.renderManifest(decodedManifest);
-  }
+  renderer.manifestGuiBody.dataset.loading = "false";
 
   try {
-    /**
-     * "ubiquity-os", "ubiquity-os-marketplace" === dev config
-     * "ubiquity" === prod config
-     */
     const ubiquityOrgsToFetchOfficialConfigFrom = ["ubiquity-os"];
-    const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit, decoder);
-    const cache = fetcher.checkManifestCache();
+    const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit);
+
     if (auth.isActiveSession()) {
+      renderer.manifestGuiBody.dataset.loading = "true";
+      const killNotification = toastNotification("Fetching manifest data...", { type: "info", shouldAutoDismiss: true });
+
       const userOrgs = await auth.getGitHubUserOrgs();
-      localStorage.setItem("userOrgs", JSON.stringify(userOrgs));
-
-      const appInstallations = await auth.octokit?.apps.listInstallationsForAuthenticatedUser();
-      const installs = appInstallations?.data.installations;
-
-      const orgsWithInstalls = userOrgs.map((org) => {
-        const orgInstall = installs?.find((install) => {
-          if (install.account && "login" in install.account) {
-            return install.account.login.toLowerCase() === org.toLowerCase();
-          }
-          return false;
-        });
-        return {
-          org,
-          install: orgInstall,
-        };
-      }) as OrgWithInstall[];
-      renderer.renderOrgPicker(orgsWithInstalls.map((org) => org.org));
       const userOrgRepos = await auth.getGitHubUserOrgRepos(userOrgs);
       localStorage.setItem("orgRepos", JSON.stringify(userOrgRepos));
+      renderOrgPicker(renderer, userOrgs);
 
-      if (Object.keys(cache).length === 0) {
-        const manifestCache = await fetcher.fetchMarketplaceManifests();
-        localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
-        // this is going to extract URLs from our official config which we'll inject into `- plugin: ...`
-        await fetcher.fetchOfficialPluginConfig();
-      }
+      await fetcher.fetchMarketplaceManifests();
+      await fetcher.fetchOfficialPluginConfig();
+      renderer.manifestGuiBody.dataset.loading = "false";
+      killNotification();
     } else {
-      renderer.renderOrgPicker([]);
+      renderOrgPicker(renderer, []);
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -76,10 +44,4 @@ export async function mainModule() {
   }
 }
 
-mainModule()
-  .then(() => {
-    console.log("mainModule loaded");
-  })
-  .catch((error) => {
-    console.error(error);
-  });
+mainModule().catch(console.error);

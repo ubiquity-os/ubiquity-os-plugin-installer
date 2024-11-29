@@ -3,51 +3,107 @@ import { Plugin, PluginConfig } from "../types/plugins";
 import { Octokit } from "@octokit/rest";
 import { RequestError } from "@octokit/request-error";
 import { toastNotification } from "../utils/toaster";
+import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 
-const CONFIG_PATH = ".github/.ubiquity-os.config.yml";
-const UBIQUITY_OS = ".ubiquity-os";
-
+/**
+ * Responsible for fetching, parsing, and updating the user's installed plugin configurations.
+ *
+ * - `configRepoExistenceCheck` checks if the user has a config repo and creates one if not
+ * - `repoFileExistenceCheck` checks if the user has a config file and creates one if not
+ * - `fetchUserInstalledConfig` fetches the user's installed config from the config repo
+ */
 export class ConfigParser {
   repoConfig: string | null = null;
   repoConfigSha: string | null = null;
   newConfigYml: string | null = null;
 
-  async fetchUserInstalledConfig(org: string | null, repo: string | null, env: "development" | "production", octokit: Octokit | null) {
-    if (!org || !octokit) {
-      throw new Error("Missing required parameters");
+  async configRepoExistenceCheck(org: string, repo: string, octokit: Octokit) {
+    if (!org || !repo) {
+      throw new Error("Organization or repo name not provided");
     }
 
-    const content = this.loadConfig();
-    if (!content) {
-      throw new Error("No content to push");
-    }
+    let exists;
 
     try {
-      const existingConfig = await octokit.repos.getContent({
+      await octokit.repos.get({
         owner: org,
-        repo: repo ? repo : UBIQUITY_OS,
-        path: env === "production" ? CONFIG_PATH : CONFIG_PATH.replace(".yml", ".dev.yml"),
-        ref: repo ? "development" : "main",
+        repo,
       });
+      exists = true;
+    } catch (error) {
+      console.log(error);
+      exists = false;
+    }
 
-      if (existingConfig && "content" in existingConfig.data) {
-        this.repoConfigSha = existingConfig.data.sha;
-        this.repoConfig = atob(existingConfig.data.content);
-      }
-    } catch (er) {
-      console.log(er);
-      if (er instanceof RequestError && er.status === 404) {
-        const msgParts = ["Could not find the", env, "config file in", repo ? repo : `your org: ${org}`, ", would you like to create one?"];
-
-        toastNotification(msgParts.join(" "), {
-          type: "success",
-          actionText: "Create",
-          action: async () => {
-            await this.handleMissingStorageBranchOrFile(octokit, org, repo);
-          },
+    if (!exists) {
+      try {
+        await octokit.repos.createInOrg({
+          name: repo,
+          description: "UbiquityOS Configuration Repo",
+          org,
         });
+
+        toastNotification("We noticed you don't have a '.ubiquity-os' config repo, so we created one for you.", { type: "success" });
+      } catch (er) {
+        console.log(er);
+        throw new Error("Config repo creation failed");
       }
     }
+
+    return exists;
+  }
+
+  async repoFileExistenceCheck(org: string, octokit: Octokit, repo: string, path: string) {
+    try {
+      const { data } = await octokit.repos.getContent({
+        owner: org,
+        repo,
+        path,
+      });
+
+      return data;
+    } catch (error) {
+      console.error(error);
+    }
+
+    return null;
+  }
+
+  async fetchUserInstalledConfig(org: string, octokit: Octokit, repo = CONFIG_ORG_REPO, path = CONFIG_FULL_PATH) {
+    if (repo === CONFIG_ORG_REPO) {
+      await this.configRepoExistenceCheck(org, repo, octokit);
+    }
+
+    let existingConfig = await this.repoFileExistenceCheck(org, octokit, repo, path);
+
+    if (!existingConfig) {
+      try {
+        this.newConfigYml = YAML.stringify({ plugins: [] });
+        await octokit.repos.createOrUpdateFileContents({
+          owner: org,
+          repo,
+          path,
+          message: `chore: creating config`,
+          content: btoa(this.newConfigYml),
+        });
+
+        toastNotification(`We couldn't locate your config file, so we created an empty one for you.`, { type: "success" });
+
+        existingConfig = await this.repoFileExistenceCheck(org, octokit, repo, path);
+      } catch (er) {
+        console.log(er);
+        throw new Error("Config file creation failed");
+      }
+    }
+
+    if (existingConfig && "content" in existingConfig) {
+      this.repoConfigSha = existingConfig.sha;
+      this.repoConfig = atob(existingConfig.content);
+    } else {
+      throw new Error("No existing config found");
+    }
+
+    return this.repoConfig;
   }
 
   parseConfig(config?: string | null): PluginConfig {
@@ -58,106 +114,71 @@ export class ConfigParser {
     }
   }
 
-  async updateConfig(org: string, repo: string | null, env: "development" | "production", octokit: Octokit, option: "add" | "remove") {
-    let repoPlugins = this.parseConfig(this.repoConfig).plugins;
-    const newPlugins = this.parseConfig().plugins;
-
-    if (!newPlugins) {
-      throw new Error("No plugins found in the config");
-    }
-
-    const newPluginNames = newPlugins.map((p) => p.uses[0].plugin);
-    if (newPluginNames.length === 0) {
-      throw new Error("No plugins found in the config");
-    }
-
-    if (option === "add") {
-      // update if it exists, add if it doesn't
-      newPlugins.forEach((newPlugin) => {
-        const existingPlugin = repoPlugins.find((p) => p.uses[0].plugin === newPlugin.uses[0].plugin);
-        if (existingPlugin) {
-          existingPlugin.uses[0].with = newPlugin.uses[0].with;
-        } else {
-          repoPlugins.push(newPlugin);
-        }
-      });
-
-      this.newConfigYml = YAML.stringify({ plugins: repoPlugins });
-    } else if (option === "remove") {
-      // remove only this plugin, keep all others
-      newPlugins.forEach((newPlugin) => {
-        const existingPlugin = repoPlugins.find((p) => p.uses[0].plugin === newPlugin.uses[0].plugin);
-        if (existingPlugin) {
-          repoPlugins = repoPlugins.filter((p) => p.uses[0].plugin !== newPlugin.uses[0].plugin);
-        }
-      });
-      this.newConfigYml = YAML.stringify({ plugins: newPlugins });
-    }
-
-    this.saveConfig();
-    return this.createOrUpdateFileContents(org, repo, env, octokit);
+  async updateConfig(org: string, octokit: Octokit, repo = CONFIG_ORG_REPO, path = CONFIG_FULL_PATH) {
+    return this.createOrUpdateFileContents(org, repo, path, octokit);
   }
 
-  async createOrUpdateFileContents(org: string, repo: string | null, env: "development" | "production", octokit: Octokit) {
+  async createOrUpdateFileContents(org: string, repo: string, path: string, octokit: Octokit) {
     const recentSha = await octokit.repos.getContent({
       owner: org,
-      repo: repo ? repo : UBIQUITY_OS,
-      path: env === "production" ? CONFIG_PATH : CONFIG_PATH.replace(".yml", ".dev.yml"),
-      ref: repo ? "development" : "main",
+      repo: repo,
+      path,
     });
 
     const sha = "sha" in recentSha.data ? recentSha.data.sha : null;
 
-    try {
-      return octokit.repos.createOrUpdateFileContents({
-        owner: org,
-        repo: repo ? repo : UBIQUITY_OS,
-        path: env === "production" ? CONFIG_PATH : CONFIG_PATH.replace(".yml", ".dev.yml"),
-        message: `chore: updating ${env} config`,
-        content: btoa(`${this.newConfigYml}`),
-        sha: `${sha}`,
-        branch: repo ? "development" : "main",
-      });
-    } catch (err) {
-      throw new Error(`Failed to create or update file contents:\n ${String(err)}`);
+    if (!sha) {
+      throw new Error("No sha found");
     }
+
+    if (!this.newConfigYml) {
+      throw new Error("No content to push");
+    }
+
+    this.repoConfig = this.newConfigYml;
+
+    return octokit.repos.createOrUpdateFileContents({
+      owner: org,
+      repo: repo,
+      path,
+      message: `chore: Plugin Installer UI - update`,
+      content: btoa(this.newConfigYml),
+      sha,
+    });
   }
 
   addPlugin(plugin: Plugin) {
-    const config = this.loadConfig();
-    const parsedConfig = YAML.parse(config);
-    if (!parsedConfig.plugins) {
-      parsedConfig.plugins = [];
+    const parsedConfig = this.parseConfig(this.repoConfig);
+    parsedConfig.plugins ??= [];
+
+    const existingPlugin = parsedConfig.plugins.find((p) => p.uses[0].plugin === plugin.uses[0].plugin);
+    if (existingPlugin) {
+      existingPlugin.uses[0].with = plugin.uses[0].with;
+    } else {
+      parsedConfig.plugins.push(plugin);
     }
-    parsedConfig.plugins.push(plugin);
+
     this.newConfigYml = YAML.stringify(parsedConfig);
+    this.repoConfig = this.newConfigYml;
     this.saveConfig();
   }
 
   removePlugin(plugin: Plugin) {
-    const config = this.loadConfig();
-    const parsedConfig = YAML.parse(config);
+    const parsedConfig = this.parseConfig(this.repoConfig);
     if (!parsedConfig.plugins) {
-      console.log("No plugins to remove");
+      toastNotification("No plugins found in config", { type: "error" });
       return;
     }
+
     parsedConfig.plugins = parsedConfig.plugins.filter((p: Plugin) => p.uses[0].plugin !== plugin.uses[0].plugin);
-    console.log(parsedConfig);
     this.newConfigYml = YAML.stringify(parsedConfig);
+    this.repoConfig = this.newConfigYml;
     this.saveConfig();
   }
 
-  /**
-   * Loads the current config from local storage or
-   * creates a new one if it doesn't exist.
-   *
-   * If a new config is created, it is also saved to local storage.
-   * When a new config is created, it is a blank JS object representing
-   * the ubiquity-os.config.yml file.
-   */
-  loadConfig() {
+  loadConfig(): string {
     if (!this.newConfigYml) {
-      this.newConfigYml = localStorage.getItem("config");
+      this.newConfigYml = localStorage.getItem("config") as string;
     }
 
     if (!this.newConfigYml) {
@@ -168,7 +189,7 @@ export class ConfigParser {
       this.repoConfig = YAML.parse(this.newConfigYml);
     }
 
-    return this.newConfigYml as string;
+    return this.newConfigYml;
   }
 
   saveConfig() {

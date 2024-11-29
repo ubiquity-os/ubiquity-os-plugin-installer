@@ -1,28 +1,29 @@
 import { Octokit } from "@octokit/rest";
-import { ManifestDecoder } from "./decode-manifest";
-import { ManifestPreDecode } from "../types/plugins";
+import { Manifest, ManifestPreDecode } from "../types/plugins";
+import { DEV_CONFIG_FULL_PATH, CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
+import { getOfficialPluginConfig } from "../utils/storage";
 
 /**
- * Given a list of repositories, fetch the manifest for each repository.
+ * Responsible for:
+ * - Mainly UbiquityOS Marketplace data fetching (config-parser fetches user configs)
+ * - Fetching the manifest.json files from the marketplace
+ * - Fetching the README.md files from the marketplace
+ * - Fetching the official plugin config from the orgs
+ * - Capturing the worker and action urls from the official plugin config (will be taken from the manifest directly soon)
+ * - Storing the fetched data in localStorage
  */
 export class ManifestFetcher {
   private _orgs: string[];
   private _octokit: Octokit | null;
-  private _decoder: ManifestDecoder;
 
   workerUrlRegex = /https:\/\/([a-z0-9-]+)\.ubiquity\.workers\.dev/g;
   actionUrlRegex = /[a-z0-9-]+\/[a-z0-9-]+(?:\/[^@]+)?@[a-z0-9-]+/g;
   workerUrls = new Set<string>();
   actionUrls = new Set<string>();
 
-  devYmlConfigPath = ".github/.ubiquity-os.config.dev.yml";
-  prodYmlConfigPath = ".github/.ubiquity-os.config.yml";
-  configRepo = ".ubiquity-os";
-
-  constructor(orgs: string[], octokit: Octokit | null, decoder: ManifestDecoder) {
+  constructor(orgs: string[], octokit: Octokit | null) {
     this._orgs = orgs;
     this._octokit = octokit;
-    this._decoder = decoder;
   }
 
   async fetchMarketplaceManifests() {
@@ -34,12 +35,13 @@ export class ManifestFetcher {
     const manifestCache = this.checkManifestCache();
 
     for (const repo of repos.data) {
-      const manifestUrl = `https://raw.githubusercontent.com/${org}/${repo.name}/development/manifest.json`;
-      const manifest = await this.fetchActionManifest(manifestUrl);
-      const decoded = this._decoder.decodeManifestFromFetch(manifest);
+      const manifestUrl = this.createGithubRawEndpoint(org, repo.name, "development", "manifest.json");
+      const manifest = await this.fetchPluginManifest(manifestUrl);
+      const decoded = this.decodeManifestFromFetch(manifest);
+      const readme = await this.fetchPluginReadme(this.createGithubRawEndpoint(org, repo.name, "development", "README.md"));
 
       if (decoded) {
-        manifestCache[manifestUrl] = decoded;
+        manifestCache[manifestUrl] = { ...decoded, readme };
       }
     }
 
@@ -48,7 +50,6 @@ export class ManifestFetcher {
   }
 
   checkManifestCache(): Record<string, ManifestPreDecode> {
-    // check if the manifest is already in the cache
     const manifestCache = localStorage.getItem("manifestCache");
     if (manifestCache) {
       return JSON.parse(manifestCache);
@@ -65,9 +66,9 @@ export class ManifestFetcher {
     }
   }
 
-  createActionEndpoint(owner: string, repo: string, branch: string) {
+  createGithubRawEndpoint(owner: string, repo: string, branch: string, path: string) {
     // no endpoint so we fetch the raw content from the owner/repo/branch
-    return `https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/${branch}/manifest.json`;
+    return `https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/${branch}/${path}`;
   }
 
   captureActionUrls(config: string) {
@@ -79,7 +80,7 @@ export class ManifestFetcher {
 
   async fetchOfficialPluginConfig() {
     await this.fetchOrgsUbiquityOsConfigs();
-    const officialPluginConfig = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}") || {};
+    const officialPluginConfig = getOfficialPluginConfig();
 
     this.workerUrls.forEach((url) => {
       officialPluginConfig[url] = { workerUrl: url };
@@ -96,33 +97,7 @@ export class ManifestFetcher {
     return officialPluginConfig;
   }
 
-  async fetchWorkerManifest(workerUrl: string) {
-    const url = workerUrl + "/manifest.json";
-    try {
-      const response = await fetch(url, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "GET",
-      });
-      return await response.json();
-    } catch (e) {
-      let error = e;
-      try {
-        const res = await fetch(url.replace(/development/g, "main"));
-        return await res.json();
-      } catch (e) {
-        error = e;
-      }
-      console.error(error);
-      if (error instanceof Error) {
-        return { workerUrl, error: error.message };
-      }
-      return { workerUrl, error: String(error) };
-    }
-  }
-
-  async fetchActionManifest(actionUrl: string) {
+  async fetchPluginManifest(actionUrl: string) {
     try {
       const response = await fetch(actionUrl);
       return await response.json();
@@ -132,6 +107,43 @@ export class ManifestFetcher {
       }
       console.error(e);
       return { actionUrl, error: String(e) };
+    }
+  }
+
+  async fetchPluginReadme(pluginUrl: string) {
+    async function handle404(result: string, octokit?: Octokit | null) {
+      if (result.includes("404: Not Found")) {
+        const [owner, repo] = pluginUrl.split("/").slice(3, 5);
+        const readme = await octokit?.repos.getContent({
+          owner,
+          repo,
+          path: "README.md",
+        });
+
+        if (readme && "content" in readme.data) {
+          return atob(readme.data.content);
+        } else {
+          return "No README.md found";
+        }
+      }
+
+      return result;
+    }
+    try {
+      const response = await fetch(pluginUrl, { signal: new AbortController().signal });
+      return await handle404(await response.text(), this._octokit);
+    } catch (e) {
+      let error = e;
+      try {
+        const res = await fetch(pluginUrl.replace(/development/g, "main"), { signal: new AbortController().signal });
+        return await handle404(await res.text(), this._octokit);
+      } catch (e) {
+        error = e;
+      }
+      if (error instanceof Error) {
+        return error.message;
+      }
+      return String(error);
     }
   }
 
@@ -146,8 +158,8 @@ export class ManifestFetcher {
       try {
         const { data: devConfig } = await this._octokit.repos.getContent({
           owner: org,
-          repo: this.configRepo,
-          path: this.devYmlConfigPath,
+          repo: CONFIG_ORG_REPO,
+          path: DEV_CONFIG_FULL_PATH,
         });
 
         if ("content" in devConfig) {
@@ -160,8 +172,8 @@ export class ManifestFetcher {
       try {
         const { data: prodConfig } = await this._octokit.repos.getContent({
           owner: org,
-          repo: this.configRepo,
-          path: this.prodYmlConfigPath,
+          repo: CONFIG_ORG_REPO,
+          path: CONFIG_FULL_PATH,
         });
 
         if ("content" in prodConfig) {
@@ -176,5 +188,20 @@ export class ManifestFetcher {
       this.captureWorkerUrls(config);
       this.captureActionUrls(config);
     }
+  }
+
+  decodeManifestFromFetch(manifest: ManifestPreDecode) {
+    if (manifest.error) {
+      return null;
+    }
+
+    const decodedManifest: Manifest = {
+      name: manifest.name,
+      description: manifest.description,
+      "ubiquity:listeners": manifest["ubiquity:listeners"],
+      configuration: manifest.configuration,
+    };
+
+    return decodedManifest;
   }
 }
