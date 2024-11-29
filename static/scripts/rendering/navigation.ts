@@ -3,6 +3,8 @@ import { ManifestRenderer } from "../render-manifest";
 import { renderOrgSelector } from "./org-select";
 import { renderPluginSelector } from "./plugin-select";
 
+export type NavSteps = "orgSelector" | "pluginSelector" | "templateSelector" | "configEditor";
+
 export function createBackButton(renderer: ManifestRenderer): HTMLButtonElement {
   const backButton = createElement("button", {
     id: "back-button",

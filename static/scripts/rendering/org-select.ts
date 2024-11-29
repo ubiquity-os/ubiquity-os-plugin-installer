@@ -8,7 +8,7 @@ import { closeAllSelect, updateGuiTitle } from "./utils";
 /**
  * Renders the orgs for the authenticated user to select from.
  */
-export function renderOrgPicker(renderer: ManifestRenderer, orgs: string[]) {
+export function renderOrgSelector(renderer: ManifestRenderer, orgs: string[]) {
   renderer.currentStep = "orgSelector";
   controlButtons({ hide: true });
   renderer.backButton.style.display = "none";

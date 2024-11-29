@@ -2,9 +2,7 @@ import { ConfigParser } from "./config-parser";
 import { AuthService } from "./authentication";
 import { ExtendedHtmlElement } from "../types/github";
 import { controlButtons } from "./rendering/control-buttons";
-import { createBackButton } from "./rendering/navigation";
-
-type NavSteps = "orgSelector" | "pluginSelector" | "templateSelector" | "configEditor";
+import { createBackButton, NavSteps } from "./rendering/navigation";
 
 /**
  * More of a controller than a renderer, this is responsible for rendering the manifest GUI
