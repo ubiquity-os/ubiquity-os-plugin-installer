@@ -1,9 +1,8 @@
 import { createElement } from "../../utils/element-helpers";
 import { STRINGS } from "../../utils/strings";
-import { toastNotification } from "../../utils/toaster";
 import { ManifestRenderer } from "../render-manifest";
 import { controlButtons } from "./control-buttons";
-import { renderPluginSelector } from "./plugin-select";
+import { renderRepoPicker } from "./repo-select";
 import { closeAllSelect, updateGuiTitle } from "./utils";
 
 /**
@@ -85,16 +84,6 @@ function handleOrgSelection(renderer: ManifestRenderer, org: string): void {
     throw new Error("No org selected");
   }
   localStorage.setItem("selectedOrg", org);
-  fetchOrgConfig(renderer, org).catch(console.error);
-}
-
-async function fetchOrgConfig(renderer: ManifestRenderer, org: string): Promise<void> {
-  const kill = toastNotification("Fetching organization config...", { type: "info", shouldAutoDismiss: true });
-  const octokit = renderer.auth.octokit;
-  if (!octokit) {
-    throw new Error("No org or octokit found");
-  }
-  await renderer.configParser.fetchUserInstalledConfig(org, octokit);
-  renderPluginSelector(renderer);
-  kill();
+  const repos = JSON.parse(localStorage.getItem("orgRepos") || "{}");
+  renderRepoPicker(renderer, repos);
 }
