@@ -1,7 +1,6 @@
 import YAML from "yaml";
 import { Plugin, PluginConfig } from "../types/plugins";
 import { Octokit } from "@octokit/rest";
-import { RequestError } from "@octokit/request-error";
 import { toastNotification } from "../utils/toaster";
 import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 
@@ -70,6 +69,10 @@ export class ConfigParser {
   }
 
   async fetchUserInstalledConfig(org: string, octokit: Octokit, repo = CONFIG_ORG_REPO, path = CONFIG_FULL_PATH) {
+    if (org === repo) {
+      repo = CONFIG_ORG_REPO;
+    }
+
     if (repo === CONFIG_ORG_REPO) {
       await this.configRepoExistenceCheck(org, repo, octokit);
     }
@@ -119,6 +122,10 @@ export class ConfigParser {
   }
 
   async createOrUpdateFileContents(org: string, repo: string, path: string, octokit: Octokit) {
+    if (org === repo) {
+      repo = CONFIG_ORG_REPO;
+    }
+
     const recentSha = await octokit.repos.getContent({
       owner: org,
       repo: repo,

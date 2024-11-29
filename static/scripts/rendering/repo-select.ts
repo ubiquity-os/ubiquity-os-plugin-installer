@@ -22,17 +22,47 @@ export function renderRepoPicker(renderer: ManifestRenderer, repos: Record<strin
 
   localStorage.setItem("orgRepos", JSON.stringify(repos));
 
+  const selectedOrg = localStorage.getItem("selectedOrg");
+
+  if (!selectedOrg) {
+    throw new Error(`No selected org found in local storage`);
+  }
+
+  const topLevelRow = document.createElement("tr");
+  const topLevelCell = document.createElement("td");
+  topLevelCell.colSpan = 4;
+  topLevelCell.className = STRINGS.TDV_CENTERED;
+
+  const useOrgConfigButton = createElement("button", {
+    id: "use-org-config-button",
+    textContent: `Use ${selectedOrg} config`,
+  });
+
+  useOrgConfigButton.style.width = "100%";
+  useOrgConfigButton.style.textAlign = "left";
+
+  useOrgConfigButton.addEventListener("click", () => {
+    localStorage.setItem("selectedRepo", selectedOrg);
+    fetchOrgConfig(renderer, selectedOrg, selectedOrg)
+      .then(() => {
+        renderPluginSelector(renderer);
+      })
+      .catch((error) => {
+        console.error(error);
+        toastNotification("Error fetching org config", { type: "error" });
+      });
+  });
+
+  topLevelCell.appendChild(useOrgConfigButton);
+  topLevelRow.appendChild(topLevelCell);
+  renderer.manifestGuiBody.appendChild(topLevelRow);
+
   const pickerRow = document.createElement("tr");
   const pickerCell = document.createElement("td");
   pickerCell.colSpan = 4;
   pickerCell.className = STRINGS.TDV_CENTERED;
 
   updateGuiTitle("Select a Repository");
-  const selectedOrg = localStorage.getItem("selectedOrg");
-
-  if (!selectedOrg) {
-    throw new Error(`No selected org found in local storage`);
-  }
 
   const repoSelect = createElement("select", {
     id: "repo-picker-select",
@@ -42,7 +72,7 @@ export function renderRepoPicker(renderer: ManifestRenderer, repos: Record<strin
 
   const defaultOption = createElement("option", {
     value: null,
-    textContent: "Select a repository...",
+    textContent: "Or select a repository...",
   });
   repoSelect.appendChild(defaultOption);
 
@@ -64,6 +94,7 @@ export function renderRepoPicker(renderer: ManifestRenderer, repos: Record<strin
   pickerCell.appendChild(repoSelect);
   pickerRow.appendChild(pickerCell);
   renderer.manifestGuiBody.appendChild(pickerRow);
+
   renderer.manifestGui?.classList.add("rendered");
 }
 
