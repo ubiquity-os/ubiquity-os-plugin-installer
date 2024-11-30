@@ -69,10 +69,19 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
     ],
   };
 
+  removePushNotificationIfPresent();
+
   if (option === "add") {
     handleAddPlugin(renderer, plugin, pluginManifest);
   } else if (option === "remove") {
     handleRemovePlugin(renderer, plugin, pluginManifest);
+  }
+}
+
+function removePushNotificationIfPresent() {
+  const notification = document.querySelector(".toast.toast-success.show");
+  if (notification) {
+    notification.remove();
   }
 }
 
