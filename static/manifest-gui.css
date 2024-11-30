@@ -90,6 +90,8 @@ header #uos-logo path {
   max-height: calc(100vh - 192px);
   scrollbar-width: thin;
   scrollbar-color: #303030 #101010;
+  opacity: 1;
+  transition: opacity 0.5s ease;
 }
 
 .readme-container p {
@@ -231,6 +233,9 @@ button {
   border-radius: 4px;
   opacity: 0.75;
   font-family: "Proxima Nova", sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 button:hover {
   background-color: #404040;
