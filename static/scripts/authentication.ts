@@ -136,6 +136,16 @@ export class AuthService {
     return response.data.map((org: { login: string }) => org.login);
   }
 
+  public async getGitHubUserOrgRepos(orgs: string[]): Promise<Record<string, string[]>> {
+    const octokit = await this.getOctokit();
+    const orgRepos: Record<string, string[]> = {};
+    for (const org of orgs) {
+      const response = await octokit.rest.repos.listForOrg({ org });
+      orgRepos[org] = response.data.map((repo: { name: string }) => repo.name);
+    }
+    return orgRepos;
+  }
+
   public async getOctokit(): Promise<Octokit> {
     if (this.octokit) return this.octokit;
     const token = await this.getSessionToken();

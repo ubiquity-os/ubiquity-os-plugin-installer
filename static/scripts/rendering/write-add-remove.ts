@@ -108,7 +108,12 @@ async function notificationConfigPush(renderer: ManifestRenderer) {
   }
 
   try {
-    await renderer.configParser.updateConfig(org, octokit);
+    const selectedRepo = localStorage.getItem("selectedRepo");
+    if (!selectedRepo) {
+      throw new Error("No selected repo found");
+    }
+
+    await renderer.configParser.updateConfig(org, octokit, selectedRepo);
   } catch (error) {
     console.error("Error pushing config to GitHub:", error);
     toastNotification("An error occurred while pushing the configuration to GitHub.", {

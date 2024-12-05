@@ -8,6 +8,7 @@ export function toastNotification(
     action?: () => void;
     shouldAutoDismiss?: boolean;
     duration?: number;
+    killAll?: boolean;
   } = {}
 ): () => void {
   const { type = "info", actionText, action, shouldAutoDismiss = false, duration = 5000 } = options;
@@ -38,7 +39,16 @@ export function toastNotification(
       class: "toast-action",
       textContent: actionText,
     });
-    actionButton.addEventListener("click", action);
+
+    actionButton.addEventListener("click", async () => {
+      action();
+      setTimeout(() => {
+        document.querySelectorAll(".toast").forEach((toast) => {
+          toast.classList.remove("show");
+          setTimeout(() => toast.remove(), 250);
+        });
+      }, 5000);
+    });
     toastElement.appendChild(actionButton);
   }
 
