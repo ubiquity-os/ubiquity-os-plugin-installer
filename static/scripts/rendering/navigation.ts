@@ -16,7 +16,7 @@ export function createBackButton(renderer: ManifestRenderer): HTMLButtonElement 
   return backButton;
 }
 
-function handleBackButtonClick(renderer: ManifestRenderer): void {
+export function handleBackButtonClick(renderer: ManifestRenderer): void {
   renderer.manifestGui?.classList.remove("plugin-editor");
   const readmeContainer = document.querySelector(".readme-container");
   if (readmeContainer) {

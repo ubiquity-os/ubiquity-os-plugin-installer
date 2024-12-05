@@ -5,6 +5,7 @@ import { parseConfigInputs } from "./input-parsing";
 import { getOfficialPluginConfig } from "../../utils/storage";
 import { renderConfigEditor } from "./config-editor";
 import { normalizePluginName } from "./utils";
+import { handleBackButtonClick } from "./navigation";
 
 /**
  * Writes the new configuration to the config file. This does not push the config to GitHub
@@ -68,10 +69,19 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
     ],
   };
 
+  removePushNotificationIfPresent();
+
   if (option === "add") {
     handleAddPlugin(renderer, plugin, pluginManifest);
   } else if (option === "remove") {
     handleRemovePlugin(renderer, plugin, pluginManifest);
+  }
+}
+
+function removePushNotificationIfPresent() {
+  const notification = document.querySelector(".toast.toast-success.show");
+  if (notification) {
+    notification.remove();
   }
 }
 
@@ -127,6 +137,21 @@ async function notificationConfigPush(renderer: ManifestRenderer) {
     type: "success",
     shouldAutoDismiss: true,
   });
+
+  const container = document.querySelector("#manifest-gui") as HTMLElement | null;
+  const readmeContainer = document.querySelector(".readme-container") as HTMLElement | null;
+  if (container && readmeContainer) {
+    container.style.transition = "opacity 0.5s ease";
+    container.style.opacity = "0";
+    readmeContainer.style.transition = "opacity 0.5s ease";
+    readmeContainer.style.opacity = "0";
+    setTimeout(() => {
+      handleBackButtonClick(renderer);
+      container.style.opacity = "1";
+    }, 500);
+  } else {
+    handleBackButtonClick(renderer);
+  }
 }
 
 export function handleResetToDefault(renderer: ManifestRenderer, pluginManifest: Manifest | null) {

@@ -28,8 +28,7 @@ export function toastNotification(
   });
 
   closeButton.addEventListener("click", () => {
-    toastElement.classList.remove("show");
-    setTimeout(() => toastElement.remove(), 250);
+    kill();
   });
 
   toastElement.appendChild(messageElement);
@@ -68,21 +67,35 @@ export function toastNotification(
     toastElement.classList.add("show");
   });
 
-  function kill(withTimeout = false) {
-    if (withTimeout) {
-      setTimeout(() => {
-        toastElement.classList.remove("show");
-        setTimeout(() => toastElement.remove(), 250);
-      }, duration);
-    } else {
-      toastElement.classList.remove("show");
-      setTimeout(() => toastElement.remove(), 250);
+  let autoDismissTimeout: number | undefined;
+
+  function kill() {
+    toastElement.classList.remove("show");
+    setTimeout(() => toastElement.remove(), 250);
+    if (autoDismissTimeout) {
+      clearTimeout(autoDismissTimeout);
     }
   }
 
-  if (shouldAutoDismiss) {
-    kill(shouldAutoDismiss);
+  function startAutoDismiss() {
+    if (shouldAutoDismiss) {
+      autoDismissTimeout = window.setTimeout(() => {
+        kill();
+      }, duration);
+    }
   }
+
+  toastElement.addEventListener("mouseenter", () => {
+    if (autoDismissTimeout) {
+      clearTimeout(autoDismissTimeout);
+    }
+  });
+
+  toastElement.addEventListener("mouseleave", () => {
+    startAutoDismiss();
+  });
+
+  startAutoDismiss();
 
   return kill;
 }
