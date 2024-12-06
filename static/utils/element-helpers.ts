@@ -32,6 +32,9 @@ export function createInputRow(
   const headerCell = document.createElement("td");
   headerCell.className = "table-data-header";
   headerCell.textContent = key.replace(/([A-Z])/g, " $1");
+
+  createConfigParamTooltip(headerCell, prop);
+
   row.appendChild(headerCell);
 
   const valueCell = document.createElement("td");
@@ -115,4 +118,37 @@ export function createTextareaInput(key: string, defaultValue: object | unknown,
   inputElem.setAttribute("placeholder", `Enter ${dataType} in JSON format`);
 
   return inputElem;
+}
+
+function createConfigParamTooltip(headerCell: HTMLElement, prop: ManifestProps) {
+  if (!prop.description) return;
+
+  const tooltip = createElement("span", { class: "tooltip", textContent: "?" });
+  const tooltipText = createElement("span", { class: "tooltiptext", textContent: prop.description });
+
+  tooltip.appendChild(tooltipText);
+  headerCell.appendChild(tooltip);
+
+  tooltip.addEventListener("mouseenter", () => {
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const tooltipTextRect = tooltipText.getBoundingClientRect();
+    const spaceAbove = tooltipRect.top;
+    const spaceBelow = window.innerHeight - tooltipRect.bottom;
+
+    if (spaceBelow < tooltipTextRect.height && spaceAbove > spaceBelow) {
+      tooltipText.style.bottom = `${tooltipRect.height}px`;
+      tooltipText.style.top = "auto";
+    } else {
+      tooltipText.style.top = `${tooltipRect.height}px`;
+      tooltipText.style.bottom = "auto";
+    }
+
+    tooltipText.style.visibility = "visible";
+    tooltipText.style.opacity = "1";
+  });
+
+  tooltip.addEventListener("mouseleave", () => {
+    tooltipText.style.visibility = "hidden";
+    tooltipText.style.opacity = "0";
+  });
 }

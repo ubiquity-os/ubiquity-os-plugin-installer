@@ -311,6 +311,36 @@ button#add:active::before {
   content: "+++";
 }
 
+#manifest-gui pre {
+  margin: 0 0 16px;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+  padding-left: 8px;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 200px;
+  background-color: #101010;
+  color: #fff;
+  text-align: center;
+  border-radius: 4px;
+  padding: 8px;
+  position: absolute;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
 .picker-select {
   width: 100%;
   padding: 8px 16px;
