@@ -1,6 +1,6 @@
 import { Octokit } from "@octokit/rest";
+import { CONFIG_FULL_PATH, CONFIG_ORG_REPO, DEV_CONFIG_FULL_PATH } from "@ubiquity-os/plugin-sdk/constants";
 import { Manifest, ManifestPreDecode } from "../types/plugins";
-import { DEV_CONFIG_FULL_PATH, CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 import { getOfficialPluginConfig } from "../utils/storage";
 
 /**
@@ -37,7 +37,7 @@ export class ManifestFetcher {
     for (const repo of repos.data) {
       const manifestUrl = this.createGithubRawEndpoint(org, repo.name, "development", "manifest.json");
       const manifest = await this.fetchPluginManifest(manifestUrl);
-      const decoded = this.decodeManifestFromFetch(manifest);
+      const decoded = this.decodeManifestFromFetch(manifest, repo.name);
       const readme = await this.fetchPluginReadme(this.createGithubRawEndpoint(org, repo.name, "development", "README.md"));
 
       if (decoded) {
@@ -190,7 +190,7 @@ export class ManifestFetcher {
     }
   }
 
-  decodeManifestFromFetch(manifest: ManifestPreDecode) {
+  decodeManifestFromFetch(manifest: ManifestPreDecode, repoName: string) {
     if (manifest.error) {
       return null;
     }
