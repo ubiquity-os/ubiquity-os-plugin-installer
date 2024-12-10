@@ -1,7 +1,10 @@
 export const STRINGS = {
-  TDV_CENTERED: "tdv-centered",
+  TDV_CENTERED: "table-data-value centered",
+  SELECT_ITEMS: ".select-items",
+  SELECT_SELECTED: ".select-selected",
   SELECT_HIDE: "select-hide",
   SELECT_ARROW_ACTIVE: "select-arrow-active",
+  PICKER_SELECT: "picker-select",
 };
 
 /**
@@ -11,10 +14,10 @@ export const STRINGS = {
  */
 export function extractPluginIdentifier(url: string): string {
   // For GitHub manifest URLs, extract just the repo name
-  if (url.includes('github.com/') || url.includes('githubusercontent.com/')) {
-    const parts = url.split('/');
+  if (url.includes("github.com/") || url.includes("githubusercontent.com/")) {
+    const parts = url.split("/");
     if (parts.length >= 5) {
-      return parts[4].split('@')[0].split('?')[0]; // Get repo name without branch or query params
+      return parts[4].split("@")[0].split("?")[0]; // Get repo name without branch or query params
     }
   }
 
