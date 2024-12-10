@@ -15,6 +15,7 @@ export interface ManifestPreDecode extends Manifest {
   actionUrl?: string;
   workerUrl?: string;
   error?: string;
+  repoName?: string;
 }
 
 export type ManifestCache = Record<string, ManifestPreDecode>;
@@ -31,7 +32,7 @@ export type Manifest = {
   };
   configuration: {
     type: string;
-    default: object;
+    default: Record<string, string | number | boolean>;
     items?: {
       type: string;
     };

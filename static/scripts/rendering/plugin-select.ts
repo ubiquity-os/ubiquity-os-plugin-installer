@@ -1,11 +1,11 @@
-import { ManifestCache, ManifestPreDecode, Plugin } from "../../types/plugins";
+import { ManifestCache, Plugin } from "../../types/plugins";
 import { createElement } from "../../utils/element-helpers";
 import { getManifestCache } from "../../utils/storage";
 import { STRINGS } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
 import { renderConfigEditor } from "./config-editor";
 import { controlButtons } from "./control-buttons";
-import { closeAllSelect, normalizePluginName, updateGuiTitle } from "./utils";
+import { closeAllSelect, updateGuiTitle } from "./utils";
 
 /**
  * Renders a dropdown of plugins taken from the marketplace with an installed indicator.
@@ -59,14 +59,18 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
   renderer.manifestGuiBody.appendChild(pickerRow);
 
   pluginUrls.forEach((url) => {
-    if (!cleanManifestCache[url]?.name) {
+    const manifest = cleanManifestCache[url];
+    if (!manifest?.name) {
       return;
     }
-    const normalizedName = normalizePluginName(cleanManifestCache[url].name);
-    const reg = new RegExp(normalizedName, "i");
+
+    // Use repoName for matching if available, otherwise fallback to manifest name
+    const matchName = manifest.repoName || manifest.name;
+    const reg = new RegExp(matchName, "i");
     const installedPlugin: Plugin | undefined = installedPlugins.find((plugin) => plugin.uses[0].plugin.match(reg));
-    const defaultForInstalled: ManifestPreDecode | null = cleanManifestCache[url];
-    const optionText = defaultForInstalled.name;
+
+    // Use manifest name for display
+    const optionText = manifest.name;
     const indicator = installedPlugin ? "🟢" : "🔴";
 
     const optionDiv = createElement("div", { class: "select-option" });
@@ -79,8 +83,8 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
     optionDiv.addEventListener("click", () => {
       selectSelected.textContent = optionText;
       closeAllSelect();
-      localStorage.setItem("selectedPluginManifest", JSON.stringify(defaultForInstalled));
-      renderConfigEditor(renderer, defaultForInstalled, installedPlugin?.uses[0].with);
+      localStorage.setItem("selectedPluginManifest", JSON.stringify(manifest));
+      renderConfigEditor(renderer, manifest, installedPlugin?.uses[0].with);
     });
 
     selectItems.appendChild(optionDiv);

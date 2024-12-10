@@ -1,14 +1,5 @@
 import { STRINGS } from "../../utils/strings";
 
-// this relies on the manifest matching the repo name
-export function normalizePluginName(pluginName: string): string {
-  return pluginName
-    .toLowerCase()
-    .replace(/ /g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-");
-}
-
 export function updateGuiTitle(title: string): void {
   const guiTitle = document.querySelector("#manifest-gui-title");
   if (!guiTitle) {

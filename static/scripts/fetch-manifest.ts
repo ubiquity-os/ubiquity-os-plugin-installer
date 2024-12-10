@@ -37,7 +37,7 @@ export class ManifestFetcher {
     for (const repo of repos.data) {
       const manifestUrl = this.createGithubRawEndpoint(org, repo.name, "development", "manifest.json");
       const manifest = await this.fetchPluginManifest(manifestUrl);
-      const decoded = this.decodeManifestFromFetch(manifest);
+      const decoded = this.decodeManifestFromFetch(manifest, repo.name); // Pass repo.name to decoder
       const readme = await this.fetchPluginReadme(this.createGithubRawEndpoint(org, repo.name, "development", "README.md"));
 
       if (decoded) {
@@ -190,7 +190,7 @@ export class ManifestFetcher {
     }
   }
 
-  decodeManifestFromFetch(manifest: ManifestPreDecode) {
+  decodeManifestFromFetch(manifest: ManifestPreDecode, repoName?: string) {
     if (manifest.error) {
       return null;
     }
@@ -201,6 +201,11 @@ export class ManifestFetcher {
       "ubiquity:listeners": manifest["ubiquity:listeners"],
       configuration: manifest.configuration,
     };
+
+    // Add repoName to the decoded manifest if provided
+    if (repoName) {
+      return { ...decodedManifest, repoName };
+    }
 
     return decodedManifest;
   }

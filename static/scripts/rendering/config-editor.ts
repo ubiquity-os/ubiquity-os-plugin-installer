@@ -1,180 +1,167 @@
-import { Manifest, Plugin } from "../../types/plugins";
-import { controlButtons } from "./control-buttons";
+import { ManifestPreDecode, Plugin } from "../../types/plugins";
+import { createElement } from "../../utils/element-helpers";
+import { STRINGS } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
-import { processProperties } from "./input-parsing";
-import { addTrackedEventListener, getTrackedEventListeners, normalizePluginName, removeTrackedEventListener, updateGuiTitle } from "./utils";
+import { addTrackedEventListener, getTrackedEventListeners, removeTrackedEventListener, updateGuiTitle } from "./utils";
 import { handleResetToDefault, writeNewConfig } from "./write-add-remove";
-import MarkdownIt from "markdown-it";
-import { getManifestCache } from "../../utils/storage";
-const md = new MarkdownIt();
 
 /**
- * Displays the plugin configuration editor.
- *
- * - `pluginManifest` should never be null or there was a problem fetching from the marketplace
- * - `plugin` should only be passed in if you intend on replacing the default configuration with their installed configuration
- *
- * Allows for:
- * - Adding a single plugin configuration
- * - Removing a single plugin configuration
- * - Resetting the plugin configuration to the schema default
- * - Building multiple plugins like a "shopping cart" and they all get pushed at once in the background
- *
- * Compromises:
- * - Typebox Unions get JSON.stringify'd and displayed as one string meaning `text-conversation-rewards` has a monster config for HTML tags
- * - Plugin config objects are split like `plugin.config.key` and `plugin.config.key2` and `plugin.config.key3` and so on
+ * Renders the configuration editor for a plugin.
+ * The user can edit the configuration and save it to their config file.
  */
-export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: Manifest | null, plugin?: Plugin["uses"][0]["with"]): void {
+export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: ManifestPreDecode, installedConfig?: Record<string, unknown>): void {
   renderer.currentStep = "configEditor";
-  renderer.backButton.style.display = "block";
   renderer.manifestGuiBody.innerHTML = null;
-  controlButtons({ hide: false });
-  processProperties(renderer, pluginManifest, pluginManifest?.configuration.properties || {}, null);
-  const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
-  // If plugin is passed in, we want to inject those values into the inputs
-  if (plugin) {
-    configInputs.forEach((input) => {
-      const key = input.getAttribute("data-config-key");
-      if (!key) {
-        throw new Error("Input key is required");
-      }
-
-      const keys = key.split(".");
-      let currentObj = plugin;
-      for (let i = 0; i < keys.length; i++) {
-        if (!currentObj[keys[i]]) {
-          break;
-        }
-        currentObj = currentObj[keys[i]] as Record<string, unknown>;
-      }
-
-      let value: string;
-
-      if (typeof currentObj === "object" || Array.isArray(currentObj)) {
-        value = currentObj[key] ? JSON.stringify(currentObj[key]) : "";
-        if (value === "") {
-          // no-op
-        } else if (!value) {
-          value = currentObj ? JSON.stringify(currentObj) : "";
-        }
-      } else if (typeof currentObj === "boolean") {
-        value = currentObj ? "true" : "false";
-      } else if (!currentObj) {
-        value = "";
-      } else {
-        value = currentObj as string;
-      }
-
-      if (input.tagName === "TEXTAREA") {
-        (input as HTMLTextAreaElement).value = value;
-      } else if (input.tagName === "INPUT" && (input as HTMLInputElement).type === "checkbox") {
-        (input as HTMLInputElement).checked = value === "true";
-      } else {
-        (input as HTMLInputElement).value = value;
-      }
-    });
-  }
-
-  const add = document.getElementById("add") as HTMLButtonElement;
-  const remove = document.getElementById("remove") as HTMLButtonElement;
-  const resetToDefaultButton = document.getElementById("reset-to-default") as HTMLButtonElement;
-  if (!add || !remove || !resetToDefaultButton) {
-    throw new Error("Buttons not found");
-  }
-
-  const parsedConfig = renderer.configParser.parseConfig(renderer.configParser.repoConfig || localStorage.getItem("config"));
+  const parsedConfig = renderer.configParser.parseConfig();
   // for when `resetToDefault` is called and no plugin gets passed in, we still want to show the remove button
-  const isInstalled = parsedConfig.plugins?.find((p) => p.uses[0].plugin.includes(normalizePluginName(pluginManifest?.name || "")));
-
-  loadListeners({
-    renderer,
-    pluginManifest,
-    withPluginOrInstalled: !!(plugin || isInstalled),
-    add,
-    remove,
-    resetToDefaultButton,
-  }).catch(console.error);
-
-  if (plugin || isInstalled) {
-    remove.disabled = false;
-    remove.classList.remove("disabled");
-  } else {
-    remove.disabled = true;
-    remove.classList.add("disabled");
-  }
-
-  resetToDefaultButton.hidden = !!(plugin || isInstalled);
-  const manifestCache = getManifestCache();
-  const pluginUrls = Object.keys(manifestCache);
-  const pluginUrl = pluginUrls.find((url) => {
-    return manifestCache[url].name === pluginManifest?.name;
+  const isInstalled = parsedConfig.plugins?.find((p) => {
+    const matchName = pluginManifest.repoName || pluginManifest.name;
+    return p.uses[0].plugin.includes(matchName);
   });
 
-  if (!pluginUrl) {
-    throw new Error("Plugin URL not found");
-  }
-  const readme = manifestCache[pluginUrl].readme;
+  const configurationProperties = pluginManifest.configuration.properties;
+  const configurationDefault = pluginManifest.configuration.default;
+  const configurationRequired = pluginManifest.configuration.required;
 
-  if (readme) {
-    const viewportCell = document.getElementById("viewport-cell");
-    if (!viewportCell) {
-      throw new Error("Viewport cell not found");
-    }
-    const readmeContainer = document.createElement("div");
-    readmeContainer.className = "readme-container";
-    readmeContainer.innerHTML = md.render(readme);
-    viewportCell.appendChild(readmeContainer);
+  const configurationTable = document.createElement("table");
+  configurationTable.className = STRINGS.CONFIG_TABLE;
+
+  const configurationTableBody = document.createElement("tbody");
+  configurationTableBody.className = STRINGS.CONFIG_TABLE_BODY;
+
+  const configurationTableHeader = document.createElement("tr");
+  configurationTableHeader.className = STRINGS.CONFIG_TABLE_HEADER;
+
+  const configurationTableHeaderCell = document.createElement("td");
+  configurationTableHeaderCell.colSpan = 2;
+  configurationTableHeaderCell.className = STRINGS.CONFIG_TABLE_HEADER_CELL;
+
+  const configurationTableHeaderText = document.createElement("h3");
+  configurationTableHeaderText.textContent = "Configuration";
+
+  configurationTableHeaderCell.appendChild(configurationTableHeaderText);
+  configurationTableHeader.appendChild(configurationTableHeaderCell);
+  configurationTableBody.appendChild(configurationTableHeader);
+
+  if (configurationProperties) {
+    Object.entries(configurationProperties).forEach(([key]) => {
+      const configurationRow = document.createElement("tr");
+      configurationRow.className = STRINGS.CONFIG_ROW;
+
+      const configurationLabelCell = document.createElement("td");
+      configurationLabelCell.className = STRINGS.CONFIG_LABEL_CELL;
+
+      const configurationLabel = document.createElement("label");
+      configurationLabel.textContent = key;
+      if (configurationRequired?.includes(key)) {
+        configurationLabel.textContent += " *";
+      }
+
+      const configurationInputCell = document.createElement("td");
+      configurationInputCell.className = STRINGS.CONFIG_INPUT_CELL;
+
+      const configurationInput = document.createElement("input");
+      configurationInput.type = "text";
+      configurationInput.className = STRINGS.CONFIG_INPUT;
+      configurationInput.value = (installedConfig?.[key] as string) || (configurationDefault[key] as string) || "";
+
+      configurationLabelCell.appendChild(configurationLabel);
+      configurationInputCell.appendChild(configurationInput);
+
+      configurationRow.appendChild(configurationLabelCell);
+      configurationRow.appendChild(configurationInputCell);
+
+      configurationTableBody.appendChild(configurationRow);
+    });
   }
 
-  const org = localStorage.getItem("selectedOrg");
+  const configurationButtonRow = document.createElement("tr");
+  configurationButtonRow.className = STRINGS.CONFIG_BUTTON_ROW;
 
-  updateGuiTitle(`Editing Configuration for ${pluginManifest?.name} in ${org}`);
-  renderer.manifestGui?.classList.add("plugin-editor");
-  renderer.manifestGui?.classList.add("rendered");
-}
+  const configurationButtonCell = document.createElement("td");
+  configurationButtonCell.colSpan = 2;
+  configurationButtonCell.className = STRINGS.CONFIG_BUTTON_CELL;
 
-async function loadListeners({
-  renderer,
-  pluginManifest,
-  withPluginOrInstalled,
-  add,
-  remove,
-  resetToDefaultButton,
-}: {
-  renderer: ManifestRenderer;
-  pluginManifest: Manifest | null;
-  withPluginOrInstalled: boolean;
-  add: HTMLButtonElement;
-  remove: HTMLButtonElement;
-  resetToDefaultButton: HTMLButtonElement;
-}) {
-  function addHandler() {
-    writeNewConfig(renderer, "add");
+  const configurationButtonGroup = createElement("div", { class: "button-group" });
+
+  const configurationSaveButton = document.createElement("button");
+  configurationSaveButton.textContent = isInstalled ? "Update" : "Install";
+  configurationSaveButton.className = STRINGS.CONFIG_SAVE_BUTTON;
+
+  const configurationResetButton = document.createElement("button");
+  configurationResetButton.textContent = "Reset to Default";
+  configurationResetButton.className = STRINGS.CONFIG_RESET_BUTTON;
+
+  const configurationRemoveButton = document.createElement("button");
+  configurationRemoveButton.textContent = "Remove";
+  configurationRemoveButton.className = STRINGS.CONFIG_REMOVE_BUTTON;
+
+  if (isInstalled) {
+    configurationButtonGroup.appendChild(configurationRemoveButton);
   }
-  function removeHandler() {
-    writeNewConfig(renderer, "remove");
-  }
-  function resetToDefaultHandler() {
+
+  configurationButtonGroup.appendChild(configurationResetButton);
+  configurationButtonGroup.appendChild(configurationSaveButton);
+
+  configurationButtonCell.appendChild(configurationButtonGroup);
+  configurationButtonRow.appendChild(configurationButtonCell);
+  configurationTableBody.appendChild(configurationButtonRow);
+
+  configurationTable.appendChild(configurationTableBody);
+  renderer.manifestGuiBody.appendChild(configurationTable);
+
+  const saveButtonListener = () => {
+    const inputs = document.querySelectorAll(`.${STRINGS.CONFIG_INPUT}`);
+    const config: Record<string, string> = {};
+    inputs.forEach((input: Element) => {
+      if (input instanceof HTMLInputElement) {
+        const label = input.parentElement?.previousElementSibling?.textContent;
+        if (label) {
+          config[label.replace(" *", "")] = input.value;
+        }
+      }
+    });
+    writeNewConfig(renderer, pluginManifest, config);
+  };
+
+  const resetButtonListener = () => {
     handleResetToDefault(renderer, pluginManifest);
+  };
+
+  const removeButtonListener = () => {
+    const plugin: Plugin = {
+      uses: [
+        {
+          plugin: pluginManifest.repoName || pluginManifest.name,
+          with: {},
+        },
+      ],
+    };
+    renderer.configParser.removePlugin(plugin);
+    handleResetToDefault(renderer);
+  };
+
+  addTrackedEventListener(configurationSaveButton, "click", saveButtonListener as EventListener);
+  addTrackedEventListener(configurationResetButton, "click", resetButtonListener as EventListener);
+
+  if (isInstalled) {
+    addTrackedEventListener(configurationRemoveButton, "click", removeButtonListener as EventListener);
   }
 
-  // ensure the listeners are removed before adding new ones
-  await (async () => {
-    getTrackedEventListeners(remove, "click")?.forEach((listener) => {
-      removeTrackedEventListener(remove, "click", listener);
-    });
-    getTrackedEventListeners(add, "click")?.forEach((listener) => {
-      removeTrackedEventListener(add, "click", listener);
-    });
-    getTrackedEventListeners(resetToDefaultButton, "click")?.forEach((listener) => {
-      removeTrackedEventListener(resetToDefaultButton, "click", listener);
-    });
-  })();
+  const oldSaveListener = getTrackedEventListeners(configurationSaveButton, "click").find((l) => l !== saveButtonListener);
+  const oldResetListener = getTrackedEventListeners(configurationResetButton, "click").find((l) => l !== resetButtonListener);
+  const oldRemoveListener = getTrackedEventListeners(configurationRemoveButton, "click").find((l) => l !== removeButtonListener);
 
-  addTrackedEventListener(resetToDefaultButton, "click", resetToDefaultHandler);
-  addTrackedEventListener(add, "click", addHandler);
-  if (withPluginOrInstalled) {
-    addTrackedEventListener(remove, "click", removeHandler);
+  if (oldSaveListener) {
+    removeTrackedEventListener(configurationSaveButton, "click", oldSaveListener);
   }
+  if (oldResetListener) {
+    removeTrackedEventListener(configurationResetButton, "click", oldResetListener);
+  }
+  if (oldRemoveListener) {
+    removeTrackedEventListener(configurationRemoveButton, "click", oldRemoveListener);
+  }
+
+  updateGuiTitle(`Configure ${pluginManifest.name}`);
 }
