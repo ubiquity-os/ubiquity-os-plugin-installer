@@ -37,7 +37,7 @@ export class ManifestFetcher {
     for (const repo of repos.data) {
       const manifestUrl = this.createGithubRawEndpoint(org, repo.name, "development", "manifest.json");
       const manifest = await this.fetchPluginManifest(manifestUrl);
-      const decoded = this.decodeManifestFromFetch(manifest, repo.name);
+      const decoded = this.decodeManifestFromFetch(manifest);
       const readme = await this.fetchPluginReadme(this.createGithubRawEndpoint(org, repo.name, "development", "README.md"));
 
       if (decoded) {
@@ -190,7 +190,7 @@ export class ManifestFetcher {
     }
   }
 
-  decodeManifestFromFetch(manifest: ManifestPreDecode, repoName: string) {
+  decodeManifestFromFetch(manifest: ManifestPreDecode) {
     if (manifest.error) {
       return null;
     }
