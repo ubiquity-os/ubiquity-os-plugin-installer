@@ -101,20 +101,19 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
   // Check if plugin is installed by looking for any URL that matches
   const isInstalled = parsedConfig.plugins?.find((p) => {
-    const pluginUrl = p.uses[0].plugin;
+    const installedUrl = p.uses[0].plugin;
 
     // If the installed plugin is a GitHub URL, extract its identifier
-    const installedPluginId = extractPluginIdentifier(pluginUrl);
+    const installedPluginId = extractPluginIdentifier(installedUrl);
 
     // If both are GitHub URLs, compare the repo names
-    if (pluginUrl.includes("github") && pluginUrl.includes("github")) {
-      const isMatch = manifestPluginId === installedPluginId;
-      return isMatch;
+    const isBothGithubUrls = pluginUrl.includes("github") && installedUrl.includes("github");
+    if (isBothGithubUrls) {
+      return manifestPluginId === installedPluginId;
     }
 
     // Otherwise check if the installed URL contains the repo name
-    const isMatch = pluginUrl.toLowerCase().includes(manifestPluginId.toLowerCase());
-    return isMatch;
+    return installedUrl.toLowerCase().includes(manifestPluginId.toLowerCase());
   });
 
   loadListeners({

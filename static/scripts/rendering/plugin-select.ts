@@ -67,20 +67,19 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
 
     // Check if plugin is installed by looking for any URL that matches
     const installedPlugin: Plugin | undefined = installedPlugins.find((plugin) => {
-      const pluginUrl = plugin.uses[0].plugin;
+      const installedUrl = plugin.uses[0].plugin;
 
       // If the installed plugin is a GitHub URL, extract its identifier
-      const installedPluginId = extractPluginIdentifier(pluginUrl);
+      const installedPluginId = extractPluginIdentifier(installedUrl);
 
       // If both are GitHub URLs, compare the repo names
-      if (url.includes("github") && pluginUrl.includes("github")) {
-        const isMatch = manifestPluginId === installedPluginId;
-        return isMatch;
+      const isBothGithubUrls = url.includes("github") && installedUrl.includes("github");
+      if (isBothGithubUrls) {
+        return manifestPluginId === installedPluginId;
       }
 
       // Otherwise check if the installed URL contains the repo name
-      const isMatch = pluginUrl.toLowerCase().includes(manifestPluginId.toLowerCase());
-      return isMatch;
+      return installedUrl.toLowerCase().includes(manifestPluginId.toLowerCase());
     });
 
     const defaultForInstalled: ManifestPreDecode | null = cleanManifestCache[url];
