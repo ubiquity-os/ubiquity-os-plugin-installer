@@ -5,7 +5,7 @@ import { STRINGS, extractPluginIdentifier } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
 import { renderConfigEditor } from "./config-editor";
 import { controlButtons } from "./control-buttons";
-import { closeAllSelect, normalizePluginName, updateGuiTitle } from "./utils";
+import { closeAllSelect, updateGuiTitle } from "./utils";
 
 /**
  * Renders a dropdown of plugins taken from the marketplace with an installed indicator.
@@ -30,7 +30,6 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
 
   if (userConfig) {
     installedPlugins = renderer.configParser.parseConfig(userConfig).plugins;
-    console.log('All installed plugins:', installedPlugins);
   }
 
   const cleanManifestCache = Object.keys(manifestCache).reduce((acc, key) => {
@@ -64,30 +63,23 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
       return;
     }
 
-    console.log('\nProcessing plugin:', cleanManifestCache[url].name);
-    console.log('Original URL:', url);
     const manifestPluginId = extractPluginIdentifier(url);
-    console.log('Manifest plugin identifier:', manifestPluginId);
 
     // Check if plugin is installed by looking for any URL that matches
     const installedPlugin: Plugin | undefined = installedPlugins.find((plugin) => {
       const pluginUrl = plugin.uses[0].plugin;
-      console.log('Checking against installed plugin URL:', pluginUrl);
 
       // If the installed plugin is a GitHub URL, extract its identifier
       const installedPluginId = extractPluginIdentifier(pluginUrl);
-      console.log('Installed plugin identifier:', installedPluginId);
 
       // If both are GitHub URLs, compare the repo names
-      if (url.includes('github') && pluginUrl.includes('github')) {
+      if (url.includes("github") && pluginUrl.includes("github")) {
         const isMatch = manifestPluginId === installedPluginId;
-        console.log('GitHub match?', isMatch);
         return isMatch;
       }
 
       // Otherwise check if the installed URL contains the repo name
       const isMatch = pluginUrl.toLowerCase().includes(manifestPluginId.toLowerCase());
-      console.log('URL match?', isMatch);
       return isMatch;
     });
 
