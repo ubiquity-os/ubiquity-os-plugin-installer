@@ -1,11 +1,11 @@
 import { ManifestCache, ManifestPreDecode, Plugin } from "../../types/plugins";
 import { createElement } from "../../utils/element-helpers";
 import { getManifestCache } from "../../utils/storage";
-import { STRINGS } from "../../utils/strings";
+import { STRINGS, extractPluginIdentifier } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
 import { renderConfigEditor } from "./config-editor";
 import { controlButtons } from "./control-buttons";
-import { closeAllSelect, normalizePluginName, updateGuiTitle } from "./utils";
+import { closeAllSelect, updateGuiTitle } from "./utils";
 
 /**
  * Renders a dropdown of plugins taken from the marketplace with an installed indicator.
@@ -62,9 +62,26 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
     if (!cleanManifestCache[url]?.name) {
       return;
     }
-    const normalizedName = normalizePluginName(cleanManifestCache[url].name);
-    const reg = new RegExp(normalizedName, "i");
-    const installedPlugin: Plugin | undefined = installedPlugins.find((plugin) => plugin.uses[0].plugin.match(reg));
+
+    const manifestPluginId = extractPluginIdentifier(url);
+
+    // Check if plugin is installed by looking for any URL that matches
+    const installedPlugin: Plugin | undefined = installedPlugins.find((plugin) => {
+      const installedUrl = plugin.uses[0].plugin;
+
+      // If the installed plugin is a GitHub URL, extract its identifier
+      const installedPluginId = extractPluginIdentifier(installedUrl);
+
+      // If both are GitHub URLs, compare the repo names
+      const isBothGithubUrls = url.includes("github") && installedUrl.includes("github");
+      if (isBothGithubUrls) {
+        return manifestPluginId === installedPluginId;
+      }
+
+      // Otherwise check if the installed URL contains the repo name
+      return installedUrl.toLowerCase().includes(manifestPluginId.toLowerCase());
+    });
+
     const defaultForInstalled: ManifestPreDecode | null = cleanManifestCache[url];
     const optionText = defaultForInstalled.name;
     const indicator = installedPlugin ? "🟢" : "🔴";
