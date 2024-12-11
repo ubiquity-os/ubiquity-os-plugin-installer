@@ -9,7 +9,7 @@ export const STRINGS = {
 
 /**
  * For manifest URLs from GitHub, extracts just the repo name.
- * For all other URLs (workers, actions, etc), returns the full URL.
+ * For all other URLs (workers, etc), returns the full URL.
  * This allows for flexible matching without assuming URL formats.
  */
 export function extractPluginIdentifier(url: string): string {
