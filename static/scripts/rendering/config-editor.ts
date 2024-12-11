@@ -1,11 +1,12 @@
-import { Manifest, Plugin } from "../../types/plugins";
-import { controlButtons } from "./control-buttons";
-import { ManifestRenderer } from "../render-manifest";
-import { processProperties } from "./input-parsing";
-import { addTrackedEventListener, getTrackedEventListeners, normalizePluginName, removeTrackedEventListener, updateGuiTitle } from "./utils";
-import { handleResetToDefault, writeNewConfig } from "./write-add-remove";
 import MarkdownIt from "markdown-it";
+import { Manifest, Plugin } from "../../types/plugins";
 import { getManifestCache } from "../../utils/storage";
+import { extractPluginIdentifier } from "../../utils/strings";
+import { ManifestRenderer } from "../render-manifest";
+import { controlButtons } from "./control-buttons";
+import { processProperties } from "./input-parsing";
+import { addTrackedEventListener, getTrackedEventListeners, removeTrackedEventListener, updateGuiTitle } from "./utils";
+import { handleResetToDefault, writeNewConfig } from "./write-add-remove";
 const md = new MarkdownIt();
 
 /**
@@ -84,8 +85,36 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   }
 
   const parsedConfig = renderer.configParser.parseConfig(renderer.configParser.repoConfig || localStorage.getItem("config"));
-  // for when `resetToDefault` is called and no plugin gets passed in, we still want to show the remove button
-  const isInstalled = parsedConfig.plugins?.find((p) => p.uses[0].plugin.includes(normalizePluginName(pluginManifest?.name || "")));
+
+  // Get the repository URL for the current plugin from the manifest cache
+  const manifestCache = getManifestCache();
+  const pluginUrls = Object.keys(manifestCache);
+  const pluginUrl = pluginUrls.find((url) => {
+    return manifestCache[url].name === pluginManifest?.name;
+  });
+
+  if (!pluginUrl) {
+    throw new Error("Plugin URL not found");
+  }
+
+  const manifestPluginId = extractPluginIdentifier(pluginUrl);
+
+  // Check if plugin is installed by looking for any URL that matches
+  const isInstalled = parsedConfig.plugins?.find((p) => {
+    const installedUrl = p.uses[0].plugin;
+
+    // If the installed plugin is a GitHub URL, extract its identifier
+    const installedPluginId = extractPluginIdentifier(installedUrl);
+
+    // If both are GitHub URLs, compare the repo names
+    const isBothGithubUrls = pluginUrl.includes("github") && installedUrl.includes("github");
+    if (isBothGithubUrls) {
+      return manifestPluginId === installedPluginId;
+    }
+
+    // Otherwise check if the installed URL contains the repo name
+    return installedUrl.toLowerCase().includes(manifestPluginId.toLowerCase());
+  });
 
   loadListeners({
     renderer,
@@ -105,15 +134,6 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   }
 
   resetToDefaultButton.hidden = !!(plugin || isInstalled);
-  const manifestCache = getManifestCache();
-  const pluginUrls = Object.keys(manifestCache);
-  const pluginUrl = pluginUrls.find((url) => {
-    return manifestCache[url].name === pluginManifest?.name;
-  });
-
-  if (!pluginUrl) {
-    throw new Error("Plugin URL not found");
-  }
   const readme = manifestCache[pluginUrl].readme;
 
   if (readme) {
