@@ -21,6 +21,6 @@ export function extractPluginIdentifier(url: string): string {
     }
   }
 
-  // For all other URLs (workers, actions, etc), use the full URL
+  // For all other URLs (workers, etc), use the full URL
   return url;
 }
