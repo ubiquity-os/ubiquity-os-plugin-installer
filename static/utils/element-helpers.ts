@@ -1,4 +1,6 @@
 import { Manifest } from "../types/plugins";
+import MarkdownIt from "markdown-it";
+const md = new MarkdownIt();
 
 const CONFIG_INPUT_STR = "config-input";
 
@@ -128,8 +130,7 @@ export function createTextareaInput(key: string, defaultValue: object | unknown,
 
 function createTooltipText(desc: string, examples: (string | number | object)[]) {
   const tooltipText = createElement("span", { class: "tooltiptext" });
-  const descElem = createElement("p", { textContent: desc });
-  tooltipText.appendChild(descElem);
+  tooltipText.innerHTML = md.renderInline(desc);
 
   if (!examples || typeof examples === "string") {
     return tooltipText;

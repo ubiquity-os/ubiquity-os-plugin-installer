@@ -230,7 +230,7 @@ header #uos-logo path {
 .table-data-value.config-input.buttons > .button-group {
   display: flex;
   gap: 8px;
-  /* left align */
+  margin-bottom: 4px;
 }
 
 .table-data-value.config-input.buttons > .button-group > button {
@@ -285,52 +285,92 @@ textarea {
 
 #buttons {
   display: flex;
+  gap: 8px;
 }
 
 tfoot {
   display: flex;
-  margin-left: auto;
-  margin-right: 0;
+  justify-content: flex-end;
+  width: 100%;
 }
 
 button {
   appearance: none;
-  background: 0 0;
+  background: none;
   color: #fff;
   font-size: 16px;
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
-  opacity: 0.75;
+  opacity: 0.85;
   font-family: "Proxima Nova", sans-serif;
+  transition:
+    background-color 0.2s,
+    opacity 0.2s,
+    transform 0.1s;
 }
+
 button:hover {
   background-color: #404040;
   cursor: pointer;
   opacity: 1;
+  transform: scale(1.05);
 }
+
 button:active {
   background-color: #606060;
+  transform: scale(0.98);
 }
 
 button#reset-to-default {
   background-color: #303030;
   color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
 }
+
+button#reset-to-default::before {
+  content: "\21BA";
+  font-size: 18px;
+}
+
 button#reset-to-default:hover {
   background-color: #404040;
+  transform: scale(1.05);
 }
+
 button#reset-to-default:active {
   background-color: #505050;
+  transform: scale(0.98);
 }
-button#reset-to-default::before {
-  content: "♻️";
+
+button#remove {
+  color: #f00;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
 }
-button#reset-to-default:hover::before {
-  content: "Reset";
+
+button#remove::before {
+  content: "−";
 }
-button#reset-to-default:active::before {
-  content: "♻️♻️♻️♻️♻️";
+
+button#remove:hover {
+  background-color: rgba(255, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+button#remove:active {
+  background-color: rgba(255, 0, 0, 0.2);
+  transform: scale(0.98);
+}
+
+button#remove:active::before {
+  content: "−";
 }
 
 button#remove.disabled {
@@ -341,41 +381,29 @@ button#remove.disabled {
   pointer-events: none;
 }
 
-button#remove::before {
-  content: "−";
+button#add {
+  color: #0f0;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
 }
-button#remove:hover::before {
-  content: "Remove";
-}
-button#remove {
-  color: #f00;
-}
-button#remove:hover {
-  background-color: #ff000010;
-}
-button#remove:active {
-  background-color: #ff000020;
-}
-button#remove:active::before {
-  content: "−−−−−−";
-}
+
 button#add::before {
   content: "+";
 }
-button#add:hover::before {
-  content: "Add";
-}
-button#add {
-  color: #0f0;
-}
+
 button#add:hover {
-  background-color: #00ff0010;
+  background-color: rgba(0, 255, 0, 0.1);
+  transform: scale(1.05);
 }
+
 button#add:active {
-  background-color: #00ff0020;
+  background-color: rgba(0, 255, 0, 0.2);
+  transform: scale(0.98);
 }
+
 button#add:active::before {
-  content: "+++";
+  content: "+";
 }
 
 #manifest-gui pre {
@@ -630,6 +658,16 @@ select option {
 
 .config-input {
   margin-bottom: 16px;
+}
+
+textarea.config-input {
+  resize: vertical;
+  margin: 2px 0;
+}
+
+.table-data-value.config-input.buttons {
+  padding: 0 8px;
+  gap: 8px;
 }
 
 .config-input[type="checkbox"] {
