@@ -1,11 +1,11 @@
-import { ManifestCache, ManifestPreDecode, Plugin } from "../../types/plugins";
+import { Plugin } from "../../types/plugins";
 import { createElement } from "../../utils/element-helpers";
 import { getManifestCache } from "../../utils/storage";
 import { STRINGS } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
 import { renderConfigEditor } from "./config-editor";
 import { controlButtons } from "./control-buttons";
-import { closeAllSelect, normalizePluginName, updateGuiTitle } from "./utils";
+import { closeAllSelect, updateGuiTitle } from "./utils";
 
 /**
  * Renders a dropdown of plugins taken from the marketplace with an installed indicator.
@@ -18,26 +18,20 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
   controlButtons({ hide: true });
 
   const manifestCache = getManifestCache();
-  const pluginUrls = Object.keys(manifestCache);
+  const pluginNames = Object.keys(manifestCache);
 
-  const pickerRow = document.createElement("tr");
-  const pickerCell = document.createElement("td");
-  pickerCell.colSpan = 2;
-  pickerCell.className = STRINGS.TDV_CENTERED;
+  const pickerRow = createElement("tr", { className: STRINGS.TDV_CENTERED });
+  const pickerCell = createElement("td", {
+    colSpan: "2",
+    className: STRINGS.TDV_CENTERED,
+  });
 
   const userConfig = renderer.configParser.repoConfig;
   let installedPlugins: Plugin[] = [];
 
   if (userConfig) {
-    installedPlugins = renderer.configParser.parseConfig(userConfig).plugins;
+    installedPlugins = renderer.configParser.parseConfig(userConfig)?.plugins || [];
   }
-
-  const cleanManifestCache = Object.keys(manifestCache).reduce((acc, key) => {
-    if (manifestCache[key]?.name) {
-      acc[key] = manifestCache[key];
-    }
-    return acc;
-  }, {} as ManifestCache);
 
   const customSelect = createElement("div", { class: "custom-select" });
 
@@ -58,15 +52,15 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
 
   renderer.manifestGuiBody.appendChild(pickerRow);
 
-  pluginUrls.forEach((url) => {
-    if (!cleanManifestCache[url]?.name) {
+  pluginNames.forEach((pluginName) => {
+    if (!manifestCache[pluginName]?.manifest.name) {
       return;
     }
-    const normalizedName = normalizePluginName(cleanManifestCache[url].name);
-    const reg = new RegExp(normalizedName, "i");
-    const installedPlugin: Plugin | undefined = installedPlugins.find((plugin) => plugin.uses[0].plugin.match(reg));
-    const defaultForInstalled: ManifestPreDecode | null = cleanManifestCache[url];
-    const optionText = defaultForInstalled.name;
+    const reg = new RegExp(pluginName, "i");
+    const installedPlugin: Plugin | undefined = installedPlugins.find((plugin) => reg.test(plugin.uses[0].plugin));
+
+    const defaultForInstalled = manifestCache[pluginName];
+    const optionText = pluginName.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
     const indicator = installedPlugin ? "🟢" : "🔴";
 
     const optionDiv = createElement("div", { class: "select-option" });
@@ -76,12 +70,22 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
     optionDiv.appendChild(textSpan);
     optionDiv.appendChild(indicatorSpan);
 
-    optionDiv.addEventListener("click", () => {
-      selectSelected.textContent = optionText;
-      closeAllSelect();
-      localStorage.setItem("selectedPluginManifest", JSON.stringify(defaultForInstalled));
-      renderConfigEditor(renderer, defaultForInstalled, installedPlugin?.uses[0].with);
-    });
+    // if there is no `homepage_url` disable the plugin option
+    if (!manifestCache[pluginName].homepageUrl) {
+      console.log("No homepage url found for", {
+        pluginName,
+        manifest: manifestCache[pluginName].manifest,
+      });
+      optionDiv.style.pointerEvents = "none";
+      optionDiv.style.opacity = "0.5";
+    } else {
+      optionDiv.addEventListener("click", () => {
+        selectSelected.textContent = optionText;
+        closeAllSelect();
+        localStorage.setItem("selectedPluginManifest", JSON.stringify(defaultForInstalled));
+        renderConfigEditor(renderer, defaultForInstalled.manifest, installedPlugin?.uses[0].with);
+      });
+    }
 
     selectItems.appendChild(optionDiv);
   });

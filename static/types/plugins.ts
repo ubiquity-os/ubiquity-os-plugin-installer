@@ -1,42 +1,25 @@
-export type PluginConfig = {
+import { Manifest } from "@ubiquity-os/ubiquity-os-kernel";
+
+type PluginConfig = {
   plugins: Plugin[];
 };
 
-export interface Plugin {
+interface Plugin {
   uses: Uses[];
 }
 
-export interface Uses {
+interface Uses {
   plugin: string;
   with: Record<string, unknown>;
 }
 
-export interface ManifestPreDecode extends Manifest {
-  actionUrl?: string;
-  workerUrl?: string;
+interface ManifestPreDecode {
+  manifest: Manifest;
+  homepageUrl?: string | null;
   error?: string;
+  readme?: string;
 }
 
-export type ManifestCache = Record<string, ManifestPreDecode>;
+type ManifestCache = Record<string, ManifestPreDecode>;
 
-export type Manifest = {
-  name: string;
-  description: string;
-  "ubiquity:listeners": string[];
-  commands?: {
-    [key: string]: {
-      example: string;
-      description: string;
-    };
-  };
-  configuration: {
-    type: string;
-    default: object;
-    items?: {
-      type: string;
-    };
-    properties?: Record<string, Manifest["configuration"]>;
-    required?: string[];
-  };
-  readme?: string;
-};
+export { ManifestCache, PluginConfig, Plugin, Uses, ManifestPreDecode, Manifest };

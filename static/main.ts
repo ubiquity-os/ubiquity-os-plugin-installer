@@ -16,25 +16,23 @@ export async function mainModule() {
   renderer.manifestGuiBody.dataset.loading = "false";
 
   try {
+    // needs handled better
     const ubiquityOrgsToFetchOfficialConfigFrom = ["ubiquity-os"];
     const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit);
-    const cache = fetcher.checkManifestCache();
 
     if (auth.isActiveSession()) {
+      renderer.manifestGuiBody.dataset.loading = "true";
+      const killNotification = toastNotification("Fetching manifest data...", { type: "info", shouldAutoDismiss: true });
       const userOrgs = await auth.getGitHubUserOrgs();
 
-      if (Object.keys(cache).length === 0) {
-        renderer.manifestGuiBody.dataset.loading = "true";
-        const killNotification = toastNotification("Fetching manifest data...", { type: "info", shouldAutoDismiss: true });
-        renderOrgSelector(renderer, []);
+      const userOrgRepos = await auth.getGitHubUserOrgRepos(userOrgs);
+      localStorage.setItem("orgRepos", JSON.stringify(userOrgRepos));
+      renderOrgPicker(renderer, userOrgs);
 
-        await fetcher.fetchMarketplaceManifests();
-        await fetcher.fetchOfficialPluginConfig();
-        killNotification();
-        renderer.manifestGuiBody.dataset.loading = "false";
-      }
-
-      renderOrgSelector(renderer, userOrgs);
+      await fetcher.fetchOrgsUbiquityOsConfigs();
+      await fetcher.fetchMarketplaceManifests();
+      renderer.manifestGuiBody.dataset.loading = "false";
+      killNotification();
     } else {
       renderOrgSelector(renderer, []);
     }

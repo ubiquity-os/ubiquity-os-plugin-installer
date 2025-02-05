@@ -90,6 +90,8 @@ header #uos-logo path {
   max-height: calc(100vh - 192px);
   scrollbar-width: thin;
   scrollbar-color: #303030 #101010;
+  opacity: 1;
+  transition: opacity 0.5s ease;
 }
 
 .readme-container p {
@@ -129,11 +131,11 @@ header #uos-logo path {
   user-select: none;
   background-image: linear-gradient(0deg, #101010, #202020);
   margin: 0 auto;
-  border-radius: 4px;
   box-shadow: 0 24px 48px #000000;
-  overflow: hidden;
   opacity: 0;
   transition: opacity 0.25s cubic-bezier(0, 1, 1, 1);
+  scrollbar-width: thin;
+  scrollbar-color: #303030 #101010;
 }
 
 .template-buttons {
@@ -144,6 +146,22 @@ header #uos-logo path {
 }
 
 #manifest-gui.plugin-editor {
+  max-height: calc(100vh - 192px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px;
+  width: 100%;
+}
+
+#manifest-gui.plugin-editor > #manifest-gui-body.rendered[data-loading="false"] {
+  display: inline-table;
+}
+
+#manifest-gui-title {
+  right: 0;
+  left: 0;
   width: 100%;
 }
 
@@ -210,6 +228,48 @@ header #uos-logo path {
   border-top: 1px solid #303030;
 }
 
+.table-data-value.config-input.buttons {
+  background-color: transparent;
+  border: none;
+  padding: 8px 10px;
+}
+
+.table-data-value.config-input.buttons > .button-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.table-data-value.config-input.buttons > .button-group > button {
+  background-color: #101010;
+  color: #fff;
+  font-size: 16px;
+  border: 1px solid #303030;
+  border-radius: 4px;
+  font-family: "Proxima Nova", sans-serif;
+  cursor: pointer;
+  transition:
+    background-color 0.25s,
+    border-color 0.25s;
+}
+
+.table-data-value.config-input.buttons > .button-group > button:hover {
+  background-color: #404040;
+  border-color: #606060;
+}
+
+.table-data-value.config-input.buttons > .button-group > button:active {
+  background-color: #606060;
+}
+
+.table-data-value.config-input.buttons > .button-group > button.disabled {
+  background-color: #303030;
+  color: #808080;
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .table-data-header {
   padding: 8px 16px;
 }
@@ -221,6 +281,7 @@ header #uos-logo path {
 .table-data-value > input,
 textarea {
   padding: 8px 16px;
+  margin: 8px;
 }
 
 #controls {
@@ -228,44 +289,95 @@ textarea {
   right: 24px;
   top: 24px;
 }
+
+#buttons {
+  display: flex;
+  gap: 8px;
+}
+
+tfoot {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
 button {
   appearance: none;
-  background: 0 0;
+  background: none;
   color: #fff;
   font-size: 16px;
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
-  opacity: 0.75;
+  opacity: 0.85;
   font-family: "Proxima Nova", sans-serif;
+  transition:
+    background-color 0.2s,
+    opacity 0.2s,
+    transform 0.1s;
 }
+
 button:hover {
   background-color: #404040;
   cursor: pointer;
   opacity: 1;
+  transform: scale(1.05);
 }
+
 button:active {
   background-color: #606060;
+  transform: scale(0.98);
 }
 
 button#reset-to-default {
   background-color: #303030;
   color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
 }
+
+button#reset-to-default::before {
+  content: "\21BA";
+  font-size: 18px;
+}
+
 button#reset-to-default:hover {
   background-color: #404040;
+  transform: scale(1.05);
 }
+
 button#reset-to-default:active {
   background-color: #505050;
+  transform: scale(0.98);
 }
-button#reset-to-default::before {
-  content: "♻️";
+
+button#remove {
+  color: #f00;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
 }
-button#reset-to-default:hover::before {
-  content: "Reset";
+
+button#remove::before {
+  content: "−";
 }
-button#reset-to-default:active::before {
-  content: "♻️♻️♻️♻️♻️";
+
+button#remove:hover {
+  background-color: rgba(255, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+button#remove:active {
+  background-color: rgba(255, 0, 0, 0.2);
+  transform: scale(0.98);
+}
+
+button#remove:active::before {
+  content: "−";
 }
 
 button#remove.disabled {
@@ -276,41 +388,74 @@ button#remove.disabled {
   pointer-events: none;
 }
 
-button#remove::before {
-  content: "−";
+button#add {
+  color: #0f0;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
 }
-button#remove:hover::before {
-  content: "Remove";
-}
-button#remove {
-  color: #f00;
-}
-button#remove:hover {
-  background-color: #ff000010;
-}
-button#remove:active {
-  background-color: #ff000020;
-}
-button#remove:active::before {
-  content: "−−−−−−";
-}
+
 button#add::before {
   content: "+";
 }
-button#add:hover::before {
-  content: "Add";
-}
-button#add {
-  color: #0f0;
-}
+
 button#add:hover {
-  background-color: #00ff0010;
+  background-color: rgba(0, 255, 0, 0.1);
+  transform: scale(1.05);
 }
+
 button#add:active {
-  background-color: #00ff0020;
+  background-color: rgba(0, 255, 0, 0.2);
+  transform: scale(0.98);
 }
+
 button#add:active::before {
-  content: "+++";
+  content: "+";
+}
+
+#manifest-gui pre {
+  margin: 0 0 16px;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+  padding-left: 8px;
+}
+
+.tooltip:last-child .tooltiptext {
+  top: -100%;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  min-width: 400px;
+  width: auto;
+  background-color: #101010;
+  color: #fff;
+  text-align: center;
+  border-radius: 4px;
+  padding: 8px;
+  position: absolute;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.25s;
+  font-size: 16px;
+  box-shadow: 0 24px 48px #000000;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  border: 1px solid #303030;
+  text-transform: none;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
 }
 
 .picker-select {
@@ -520,6 +665,16 @@ select option {
 
 .config-input {
   margin-bottom: 16px;
+}
+
+textarea.config-input {
+  resize: vertical;
+  margin: 2px 0;
+}
+
+.table-data-value.config-input.buttons {
+  padding: 0 8px;
+  gap: 8px;
 }
 
 .config-input[type="checkbox"] {

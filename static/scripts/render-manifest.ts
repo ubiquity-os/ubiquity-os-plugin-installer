@@ -15,7 +15,7 @@ export class ManifestRenderer {
   private _configDefaults: { [key: string]: { type: string; value: string; items: { type: string } | null } } = {};
   private _auth: AuthService;
   private _backButton: HTMLButtonElement;
-  private _currentStep: NavSteps = "orgSelector";
+  private _currentStep: "orgPicker" | "repoPicker" | "pluginSelector" | "configEditor" = "orgPicker";
   private _orgs: string[] = [];
 
   constructor(auth: AuthService) {
@@ -45,11 +45,11 @@ export class ManifestRenderer {
     this._orgs = orgs;
   }
 
-  get currentStep(): NavSteps {
+  get currentStep(): "orgPicker" | "repoPicker" | "pluginSelector" | "configEditor" {
     return this._currentStep;
   }
 
-  set currentStep(step: NavSteps) {
+  set currentStep(step: "orgPicker" | "repoPicker" | "pluginSelector" | "configEditor") {
     this._currentStep = step;
   }
 

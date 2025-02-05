@@ -70,6 +70,10 @@ export class ConfigParser {
   }
 
   async fetchUserInstalledConfig(org: string, octokit: Octokit, repo = CONFIG_ORG_REPO, path = CONFIG_FULL_PATH) {
+    if (org === repo) {
+      repo = CONFIG_ORG_REPO;
+    }
+
     if (repo === CONFIG_ORG_REPO) {
       await this.configRepoExistenceCheck(org, repo, octokit);
     }
@@ -107,22 +111,20 @@ export class ConfigParser {
   }
 
   parseConfig(config?: string | null): PluginConfig {
-    if (config) {
+    if (config && typeof config === "string" && config.trim() !== "") {
       return YAML.parse(config);
+    } else {
+      return YAML.parse(this.loadConfig());
     }
-    if (!this.newConfigYml) {
-      this.loadConfig();
-    }
-    return YAML.parse(`${this.newConfigYml}`);
   }
 
-  async updateConfig(org: string, octokit: Octokit, path = CONFIG_FULL_PATH, repo = CONFIG_ORG_REPO) {
+  async updateConfig(org: string, octokit: Octokit, repo = CONFIG_ORG_REPO, path = CONFIG_FULL_PATH) {
     return this.createOrUpdateFileContents(org, repo, path, octokit);
   }
 
-  async createOrUpdateFileContents(org: string, repo: string, path: string, octokit: AuthService["octokit"]) {
-    if (!octokit) {
-      throw new Error("Octokit not found");
+  async createOrUpdateFileContents(org: string, repo: string, path: string, octokit: Octokit) {
+    if (org === repo) {
+      repo = CONFIG_ORG_REPO;
     }
 
     const recentSha = await octokit.repos.getContent({

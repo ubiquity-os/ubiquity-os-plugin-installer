@@ -3,13 +3,14 @@ import { STRINGS } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
 import { controlButtons } from "./control-buttons";
 import { renderTemplateSelector } from "./template-selector";
+import { renderRepoPicker } from "./repo-select";
 import { closeAllSelect, updateGuiTitle } from "./utils";
 
 /**
  * Renders the orgs for the authenticated user to select from.
  */
 export function renderOrgSelector(renderer: ManifestRenderer, orgs: string[]) {
-  renderer.currentStep = "orgSelector";
+  renderer.currentStep = "orgPicker";
   controlButtons({ hide: true });
   renderer.backButton.style.display = "none";
   renderer.manifestGui?.classList.add("rendering");
@@ -85,4 +86,6 @@ function handleOrgSelection(renderer: ManifestRenderer, org: string): void {
   }
   localStorage.setItem("selectedOrg", org);
   renderTemplateSelector(renderer);
+  const repos = JSON.parse(localStorage.getItem("orgRepos") || "{}");
+  renderRepoPicker(renderer, repos);
 }
