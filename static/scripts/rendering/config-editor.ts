@@ -29,7 +29,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   renderer.backButton.style.display = "block";
   renderer.manifestGuiBody.innerHTML = null;
   controlButtons({ hide: false });
-  processProperties(renderer, pluginManifest, pluginManifest?.configuration.properties || {}, null);
+  processProperties(renderer, pluginManifest, pluginManifest?.configuration?.properties || {}, null);
   const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
   // If plugin is passed in, we want to inject those values into the inputs
@@ -43,9 +43,6 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
       const keys = key.split(".");
       let currentObj = plugin;
       for (let i = 0; i < keys.length; i++) {
-        if (!currentObj[keys[i]]) {
-          break;
-        }
         currentObj = currentObj[keys[i]] as Record<string, unknown>;
       }
 
@@ -61,12 +58,10 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
       if (input.tagName === "TEXTAREA") {
         (input as HTMLTextAreaElement).value = value;
+      } else if (input.tagName === "INPUT" && (input as HTMLInputElement).type === "checkbox") {
+        (input as HTMLInputElement).checked = value === "true";
       } else {
         (input as HTMLInputElement).value = value;
-      }
-
-      if (input.tagName === "INPUT" && (input as HTMLInputElement).type === "checkbox") {
-        (input as HTMLInputElement).checked = value === "true";
       }
     });
   }
@@ -80,11 +75,11 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
   const parsedConfig = renderer.configParser.parseConfig(renderer.configParser.repoConfig || localStorage.getItem("config"));
   // for when `resetToDefault` is called and no plugin gets passed in, we still want to show the remove button
-  const isInstalled = parsedConfig.plugins?.find((p) => p.uses[0].plugin.includes(normalizePluginName(pluginManifest?.name || "")));
+  const isInstalled = parsedConfig?.plugins?.find((p) => p.uses[0].plugin.includes(normalizePluginName(pluginManifest?.name || "")));
 
   loadListeners({
     renderer,
-    pluginManifest,
+    pluginManifest: pluginManifest || null,
     withPluginOrInstalled: !!(plugin || isInstalled),
     add,
     remove,
@@ -101,15 +96,15 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
   resetToDefaultButton.hidden = !!(plugin || isInstalled);
   const manifestCache = getManifestCache();
-  const pluginUrls = Object.keys(manifestCache);
-  const pluginUrl = pluginUrls.find((url) => {
-    return manifestCache[url].name === pluginManifest?.name;
+  const pluginNames = Object.keys(manifestCache);
+  const pluginName = pluginNames.find((pluginName) => {
+    return pluginManifest?.name === pluginName;
   });
 
-  if (!pluginUrl) {
+  if (!pluginName) {
     throw new Error("Plugin URL not found");
   }
-  const readme = manifestCache[pluginUrl].readme;
+  const readme = manifestCache[pluginName].readme;
 
   if (readme) {
     const viewportCell = document.getElementById("viewport-cell");
@@ -124,7 +119,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
   const org = localStorage.getItem("selectedOrg");
 
-  updateGuiTitle(`Editing Configuration for ${pluginManifest?.name} in ${org}`);
+  updateGuiTitle(`Editing configuration for ${pluginName.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())} in ${org}`);
   renderer.manifestGui?.classList.add("plugin-editor");
   renderer.manifestGui?.classList.add("rendered");
 }

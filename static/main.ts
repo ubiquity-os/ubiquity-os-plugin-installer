@@ -16,6 +16,7 @@ export async function mainModule() {
   renderer.manifestGuiBody.dataset.loading = "false";
 
   try {
+    // needs handled better
     const ubiquityOrgsToFetchOfficialConfigFrom = ["ubiquity-os"];
     const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit);
     const cache = fetcher.checkManifestCache();
@@ -28,8 +29,8 @@ export async function mainModule() {
         const killNotification = toastNotification("Fetching manifest data...", { type: "info", shouldAutoDismiss: true });
         renderOrgPicker(renderer, []);
 
+        await fetcher.fetchOrgsUbiquityOsConfigs();
         await fetcher.fetchMarketplaceManifests();
-        await fetcher.fetchOfficialPluginConfig();
         killNotification();
         renderer.manifestGuiBody.dataset.loading = "false";
       }

@@ -106,7 +106,7 @@ export class ConfigParser {
   }
 
   parseConfig(config?: string | null): PluginConfig {
-    if (config) {
+    if (config && config.trim() !== "") {
       return YAML.parse(config);
     }
     if (!this.newConfigYml) {
