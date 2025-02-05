@@ -3,7 +3,6 @@ import { Plugin, PluginConfig } from "../types/plugins";
 import { Octokit } from "@octokit/rest";
 import { toastNotification } from "../utils/toaster";
 import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
-import { AuthService } from "./authentication";
 
 /**
  * Responsible for fetching, parsing, and updating the user's installed plugin configurations.
@@ -122,7 +121,11 @@ export class ConfigParser {
     return this.createOrUpdateFileContents(org, repo, path, octokit);
   }
 
-  async createOrUpdateFileContents(org: string, repo: string, path: string, octokit: Octokit) {
+  async createOrUpdateFileContents(org: string, repo: string, path: string, octokit: Octokit | null) {
+    if (!octokit) {
+      throw new Error("Failed to create or update file contents: Octokit not found");
+    }
+
     if (org === repo) {
       repo = CONFIG_ORG_REPO;
     }

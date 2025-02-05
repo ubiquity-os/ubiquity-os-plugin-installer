@@ -27,7 +27,7 @@ export async function mainModule() {
 
       const userOrgRepos = await auth.getGitHubUserOrgRepos(userOrgs);
       localStorage.setItem("orgRepos", JSON.stringify(userOrgRepos));
-      renderOrgPicker(renderer, userOrgs);
+      renderOrgSelector(renderer, userOrgs);
 
       await fetcher.fetchOrgsUbiquityOsConfigs();
       await fetcher.fetchMarketplaceManifests();

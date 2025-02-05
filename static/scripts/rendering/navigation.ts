@@ -4,7 +4,7 @@ import { renderOrgSelector } from "./org-select";
 import { renderPluginSelector } from "./plugin-select";
 import { renderRepoPicker } from "./repo-select";
 
-export type NavSteps = "orgSelector" | "pluginSelector" | "templateSelector" | "configEditor";
+export type NavSteps = "orgSelector" | "pluginSelector" | "templateSelector" | "configEditor" | "repoSelector" | "templateSelector";
 
 export function createBackButton(renderer: ManifestRenderer): HTMLButtonElement {
   const backButton = createElement("button", {
@@ -26,7 +26,7 @@ export function handleBackButtonClick(renderer: ManifestRenderer): void {
   }
   //   "pluginSelector" | "configEditor"
   const step = renderer.currentStep;
-  if (step === "repoPicker" || step === "orgPicker") {
+  if (step === "repoSelector" || step === "orgSelector") {
     renderOrgSelector(renderer, renderer.orgs);
   } else if (step === "pluginSelector") {
     renderRepoPicker(renderer, JSON.parse(localStorage.getItem("orgRepos") || "{}"));

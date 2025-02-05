@@ -94,13 +94,13 @@ export function parseConfigInputs(
   manifest: Manifest,
   fullDefaultTemplate?: {
     name: string;
-    defaults: Record<string, unknown>;
+    defaults: Record<string, unknown> | undefined;
   }[]
 ): { config: Record<string, unknown>; missing: string[] } {
   const config: Record<string, unknown> = {};
   const { configuration } = manifest;
 
-  if (!(configuration && fullDefaultTemplate) || !configuration) {
+  if (!configuration && !fullDefaultTemplate) {
     throw new Error("No schema found in manifest");
   }
 
@@ -108,7 +108,7 @@ export function parseConfigInputs(
     return { config: handleFullDefault(configInputs, fullDefaultTemplate), missing: [] };
   }
 
-  const required = configuration.required || [];
+  const required = configuration?.required || [];
   const validate = ajv.compile(configuration as AnySchemaObject);
 
   let tempConfig: Record<string, unknown> = {};
@@ -140,7 +140,7 @@ export function parseConfigInputs(
   if (validate(tempConfig)) {
     const missing = [];
     for (const key of required) {
-      const isBoolean = configuration.properties && configuration.properties[key] && configuration.properties[key].type === "boolean";
+      const isBoolean = configuration?.properties && configuration.properties[key] && configuration.properties[key].type === "boolean";
       if ((isBoolean && config[key] === false) || config[key] === true) {
         continue;
       }
@@ -169,10 +169,10 @@ export function parseConfigInputs(
 }
 
 function handleFullDefault(
-  configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement>,
+  configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement | HTMLDivElement>,
   fullDefaultTemplate: {
     name: string;
-    defaults: Record<string, unknown>;
+    defaults: Record<string, unknown> | undefined;
   }[]
 ) {
   configInputs.forEach((input) => {
@@ -181,7 +181,7 @@ function handleFullDefault(
       throw new Error("Input key is required");
     }
 
-    const template = fullDefaultTemplate.find((plugin) => Object.keys(plugin.defaults).includes(key));
+    const template = fullDefaultTemplate.find((plugin) => Object.keys(plugin.defaults || {}).includes(key));
     if (!template) {
       throw new Error(`No template found for key: ${key}`);
     }
@@ -196,12 +196,15 @@ function handleFullDefault(
         value = JSON.parse((input as HTMLTextAreaElement).value);
       } catch (e) {
         console.error(e);
-        throw new Error(`Invalid JSON input for ${expectedType} at key "${key}": ${input.value}`);
+        throw new Error(
+          `Invalid JSON input for ${expectedType} at key "${key}": ${"value" in input ? (input as HTMLTextAreaElement).value : (input as HTMLDivElement).textContent}`
+        );
       }
     } else {
       value = (input as HTMLInputElement).value;
     }
 
+    template.defaults ??= {};
     template.defaults[key] = value;
 
     fullDefaultTemplate.forEach((plugin) => {

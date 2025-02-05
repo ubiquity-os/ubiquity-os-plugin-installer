@@ -7,7 +7,7 @@ import { renderPluginSelector } from "./plugin-select";
 import { updateGuiTitle } from "./utils";
 
 export function renderRepoPicker(renderer: ManifestRenderer, repos: Record<string, string[]>): void {
-  renderer.currentStep = "repoPicker";
+  renderer.currentStep = "repoSelector";
   controlButtons({ hide: true });
   renderer.backButton.style.display = "block";
   renderer.manifestGui?.classList.add("rendering");
