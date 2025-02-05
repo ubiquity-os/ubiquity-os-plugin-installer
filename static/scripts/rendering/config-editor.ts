@@ -1,11 +1,11 @@
+import MarkdownIt from "markdown-it";
 import { Manifest, Plugin } from "../../types/plugins";
-import { controlButtons } from "./control-buttons";
+import { getManifestCache } from "../../utils/storage";
 import { ManifestRenderer } from "../render-manifest";
+import { controlButtons } from "./control-buttons";
 import { processProperties } from "./input-parsing";
 import { addTrackedEventListener, getTrackedEventListeners, normalizePluginName, removeTrackedEventListener, updateGuiTitle } from "./utils";
 import { handleResetToDefault, writeNewConfig } from "./write-add-remove";
-import MarkdownIt from "markdown-it";
-import { getManifestCache } from "../../utils/storage";
 const md = new MarkdownIt();
 
 /**
@@ -49,9 +49,16 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
       let value: string;
 
       if (typeof currentObj === "object" || Array.isArray(currentObj)) {
-        value = JSON.stringify(currentObj, null, 2);
+        value = currentObj[key] ? JSON.stringify(currentObj[key]) : "";
+        if (value === "") {
+          // no-op
+        } else if (!value) {
+          value = currentObj ? JSON.stringify(currentObj) : "";
+        }
       } else if (typeof currentObj === "boolean") {
         value = currentObj ? "true" : "false";
+      } else if (!currentObj) {
+        value = "";
       } else {
         value = currentObj as string;
       }
@@ -122,6 +129,8 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   updateGuiTitle(`Editing configuration for ${pluginName.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())} in ${org}`);
   renderer.manifestGui?.classList.add("plugin-editor");
   renderer.manifestGui?.classList.add("rendered");
+
+  console.log("Config editor rendered");
 }
 
 async function loadListeners({

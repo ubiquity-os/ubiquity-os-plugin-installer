@@ -8,6 +8,7 @@ export function toastNotification(
     action?: () => void;
     shouldAutoDismiss?: boolean;
     duration?: number;
+    killAll?: boolean;
   } = {}
 ): () => void {
   const { type = "info", actionText, action, shouldAutoDismiss = false, duration = 5000 } = options;
@@ -27,8 +28,7 @@ export function toastNotification(
   });
 
   closeButton.addEventListener("click", () => {
-    toastElement.classList.remove("show");
-    setTimeout(() => toastElement.remove(), 250);
+    kill();
   });
 
   toastElement.appendChild(messageElement);
@@ -38,7 +38,16 @@ export function toastNotification(
       class: "toast-action",
       textContent: actionText,
     });
-    actionButton.addEventListener("click", action);
+
+    actionButton.addEventListener("click", async () => {
+      action();
+      setTimeout(() => {
+        document.querySelectorAll(".toast").forEach((toast) => {
+          toast.classList.remove("show");
+          setTimeout(() => toast.remove(), 250);
+        });
+      }, 5000);
+    });
     toastElement.appendChild(actionButton);
   }
 
@@ -58,21 +67,35 @@ export function toastNotification(
     toastElement.classList.add("show");
   });
 
-  function kill(withTimeout = false) {
-    if (withTimeout) {
-      setTimeout(() => {
-        toastElement.classList.remove("show");
-        setTimeout(() => toastElement.remove(), 250);
-      }, duration);
-    } else {
-      toastElement.classList.remove("show");
-      setTimeout(() => toastElement.remove(), 250);
+  let autoDismissTimeout: number | undefined;
+
+  function kill() {
+    toastElement.classList.remove("show");
+    setTimeout(() => toastElement.remove(), 250);
+    if (autoDismissTimeout) {
+      clearTimeout(autoDismissTimeout);
     }
   }
 
-  if (shouldAutoDismiss) {
-    kill(shouldAutoDismiss);
+  function startAutoDismiss() {
+    if (shouldAutoDismiss) {
+      autoDismissTimeout = window.setTimeout(() => {
+        kill();
+      }, duration);
+    }
   }
+
+  toastElement.addEventListener("mouseenter", () => {
+    if (autoDismissTimeout) {
+      clearTimeout(autoDismissTimeout);
+    }
+  });
+
+  toastElement.addEventListener("mouseleave", () => {
+    startAutoDismiss();
+  });
+
+  startAutoDismiss();
 
   return kill;
 }

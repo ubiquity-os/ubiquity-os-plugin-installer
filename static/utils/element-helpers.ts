@@ -50,7 +50,7 @@ export function createInputRow(
   valueCell.className = "table-data-value";
   valueCell.ariaRequired = `${required}`;
 
-  const input = createInput(key, prop?.default, prop);
+  const input = createInput(key, prop?.default, prop?.type);
   valueCell.appendChild(input);
 
   row.appendChild(valueCell);
@@ -62,23 +62,21 @@ export function createInputRow(
     items: prop?.items ? { type: prop?.items.type } : null,
   };
 }
-export function createInput(key: string, defaultValue: unknown, prop: Manifest["configuration"]): HTMLElement {
+export function createInput(key: string, defaultValue: unknown, prop: string): HTMLElement {
   if (!key) {
     throw new Error("Input name is required");
   }
 
   let ele: HTMLElement | null = null;
 
-  const dataType = prop?.type;
-
-  if (dataType === "object" || typeof defaultValue === "object") {
-    ele = createTextareaInput(key, defaultValue as object, dataType);
-  } else if (dataType === "boolean") {
+  if (prop === "object" || typeof defaultValue === "object") {
+    ele = createTextareaInput(key, defaultValue as object, prop);
+  } else if (prop === "boolean") {
     ele = createBooleanInput(key, defaultValue as boolean);
-  } else if (dataType === "number" || dataType === "integer") {
+  } else if (prop === "number" || prop === "integer") {
     ele = createStringInput(key, defaultValue as string, "number");
   } else {
-    ele = createStringInput(key, defaultValue ? (defaultValue as string) : "", dataType ?? typeof defaultValue);
+    ele = createStringInput(key, defaultValue ? (defaultValue as string) : "", prop ?? typeof defaultValue);
   }
 
   return ele;

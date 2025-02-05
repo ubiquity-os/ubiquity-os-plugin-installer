@@ -19,23 +19,20 @@ export async function mainModule() {
     // needs handled better
     const ubiquityOrgsToFetchOfficialConfigFrom = ["ubiquity-os"];
     const fetcher = new ManifestFetcher(ubiquityOrgsToFetchOfficialConfigFrom, auth.octokit);
-    const cache = fetcher.checkManifestCache();
 
     if (auth.isActiveSession()) {
+      renderer.manifestGuiBody.dataset.loading = "true";
+      const killNotification = toastNotification("Fetching manifest data...", { type: "info", shouldAutoDismiss: true });
       const userOrgs = await auth.getGitHubUserOrgs();
 
-      if (Object.keys(cache).length === 0) {
-        renderer.manifestGuiBody.dataset.loading = "true";
-        const killNotification = toastNotification("Fetching manifest data...", { type: "info", shouldAutoDismiss: true });
-        renderOrgPicker(renderer, []);
-
-        await fetcher.fetchOrgsUbiquityOsConfigs();
-        await fetcher.fetchMarketplaceManifests();
-        killNotification();
-        renderer.manifestGuiBody.dataset.loading = "false";
-      }
-
+      const userOrgRepos = await auth.getGitHubUserOrgRepos(userOrgs);
+      localStorage.setItem("orgRepos", JSON.stringify(userOrgRepos));
       renderOrgPicker(renderer, userOrgs);
+
+      await fetcher.fetchOrgsUbiquityOsConfigs();
+      await fetcher.fetchMarketplaceManifests();
+      renderer.manifestGuiBody.dataset.loading = "false";
+      killNotification();
     } else {
       renderOrgPicker(renderer, []);
     }

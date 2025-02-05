@@ -1,6 +1,6 @@
 import { Octokit } from "@octokit/rest";
+import { CONFIG_FULL_PATH, CONFIG_ORG_REPO, DEV_CONFIG_FULL_PATH } from "@ubiquity-os/plugin-sdk/constants";
 import { ManifestPreDecode, PluginConfig } from "../types/plugins";
-import { DEV_CONFIG_FULL_PATH, CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 import YAML from "yaml";
 
 /**
