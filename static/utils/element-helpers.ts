@@ -9,6 +9,7 @@ export function createElement<TK extends keyof HTMLElementTagNameMap>(
   attributes: { [key: string]: string | boolean | null }
 ): HTMLElementTagNameMap[TK] {
   const element = document.createElement(tagName);
+
   Object.keys(attributes).forEach((key) => {
     if (key === "textContent") {
       element.textContent = attributes[key] as string;
@@ -18,38 +19,47 @@ export function createElement<TK extends keyof HTMLElementTagNameMap>(
       element.setAttribute(key, `${attributes[key]}`);
     }
   });
+
   return element;
 }
 export function createInputRow(
   key: string,
   prop: Manifest["configuration"],
   configDefaults: Record<string, { type: string; value: unknown; items: { type: string } | null }>,
+  desc?: string,
+  examples?: string[],
   required = false
 ): void {
   const row = document.createElement("tr");
-
   const headerCell = document.createElement("td");
   headerCell.className = "table-data-header";
   headerCell.textContent = key.replace(/([A-Z])/g, " $1");
 
-  createConfigParamTooltip(headerCell, prop);
+  if (prop && !prop.description && desc) {
+    prop.description = desc;
+  }
 
+  if (prop && !prop.examples && examples) {
+    prop.examples = examples;
+  }
+
+  createConfigParamTooltip(headerCell, prop);
   row.appendChild(headerCell);
 
   const valueCell = document.createElement("td");
   valueCell.className = "table-data-value";
   valueCell.ariaRequired = `${required}`;
 
-  const input = createInput(key, prop.default, prop);
+  const input = createInput(key, prop?.default, prop);
   valueCell.appendChild(input);
 
   row.appendChild(valueCell);
   manifestGuiBody?.appendChild(row);
 
   configDefaults[key] = {
-    type: prop.type,
-    value: prop.default,
-    items: prop.items ? { type: prop.items.type } : null,
+    type: prop?.type,
+    value: prop?.default,
+    items: prop?.items ? { type: prop?.items.type } : null,
   };
 }
 export function createInput(key: string, defaultValue: unknown, prop: Manifest["configuration"]): HTMLElement {
@@ -57,21 +67,23 @@ export function createInput(key: string, defaultValue: unknown, prop: Manifest["
     throw new Error("Input name is required");
   }
 
-  let ele: HTMLElement;
+  let ele: HTMLElement | null = null;
 
-  const dataType = prop.type;
+  const dataType = prop?.type;
 
-  if (dataType === "object" || dataType === "array") {
-    ele = createTextareaInput(key, defaultValue, dataType);
+  if (dataType === "object" || typeof defaultValue === "object") {
+    ele = createTextareaInput(key, defaultValue as object, dataType);
   } else if (dataType === "boolean") {
-    ele = createBooleanInput(key, defaultValue);
+    ele = createBooleanInput(key, defaultValue as boolean);
+  } else if (dataType === "number" || dataType === "integer") {
+    ele = createStringInput(key, defaultValue as string, "number");
   } else {
-    ele = createStringInput(key, defaultValue, dataType);
+    ele = createStringInput(key, defaultValue ? (defaultValue as string) : "", dataType ?? typeof defaultValue);
   }
 
   return ele;
 }
-export function createStringInput(key: string, defaultValue: string | unknown, dataType: string): HTMLElement {
+export function createStringInput(key: string, defaultValue: string, dataType: string): HTMLElement {
   return createElement("input", {
     type: "text",
     id: key,
@@ -79,27 +91,32 @@ export function createStringInput(key: string, defaultValue: string | unknown, d
     "data-config-key": key,
     "data-type": dataType,
     class: CONFIG_INPUT_STR,
-    value: `${defaultValue}`,
+    value: defaultValue,
   });
 }
 export function createBooleanInput(key: string, defaultValue: boolean | unknown): HTMLElement {
-  const inputElem = createElement("input", {
+  return createElement("input", {
     type: "checkbox",
     id: key,
     name: key,
     "data-config-key": key,
     "data-type": "boolean",
     class: CONFIG_INPUT_STR,
+    checked: defaultValue as boolean,
   });
-
-  if (defaultValue) {
-    inputElem.setAttribute("checked", "");
-  }
-
-  return inputElem;
 }
 export function createTextareaInput(key: string, defaultValue: object | unknown, dataType: string): HTMLElement {
-  const inputElem = createElement("textarea", {
+  let text = "";
+
+  if (typeof defaultValue === "object") {
+    text = JSON.stringify(defaultValue, null, 2);
+  } else {
+    text = defaultValue ? (defaultValue as string) : "";
+  }
+
+  const textContent = dataType === undefined ? "" : text;
+
+  return createElement("textarea", {
     id: key,
     name: key,
     "data-config-key": key,
@@ -107,37 +124,70 @@ export function createTextareaInput(key: string, defaultValue: object | unknown,
     class: CONFIG_INPUT_STR,
     rows: "5",
     cols: "50",
+    textContent,
   });
-  inputElem.textContent = JSON.stringify(defaultValue, null, 2);
-
-  inputElem.setAttribute("placeholder", `Enter ${dataType} in JSON format`);
-
-  return inputElem;
 }
 
-function createConfigParamTooltip(headerCell: HTMLElement, prop: ManifestProps) {
-  if (!prop.description) return;
+function createTooltipText(desc: string, examples: (string | number | object)[]) {
+  const tooltipText = createElement("span", { class: "tooltiptext" });
+  const descElem = createElement("p", { textContent: desc });
+  tooltipText.appendChild(descElem);
 
-  const tooltip = createElement("span", { class: "tooltip", textContent: "?" });
-  const tooltipText = createElement("span", { class: "tooltiptext", textContent: prop.description });
+  if (!examples || typeof examples === "string") {
+    return tooltipText;
+  }
+
+  if (examples.length) {
+    let str;
+    try {
+      str = `Examples: ${examples
+        .map((ex) => {
+          if (!ex) {
+            return "";
+          }
+          if (typeof ex === "object") {
+            return JSON.stringify(ex);
+          }
+
+          if (typeof ex === "number") {
+            ex = ex.toString();
+          }
+
+          if (ex.includes("[") || ex.includes("{")) {
+            return ex;
+          }
+
+          return `${ex}`;
+        })
+        .join(", ")}`;
+    } catch (er) {
+      console.log(`Error parsing examples: `, examples);
+      console.error(er);
+    }
+
+    if (!str) {
+      return tooltipText;
+    }
+
+    const exampleElem = createElement("p", { textContent: str });
+    tooltipText.appendChild(exampleElem);
+  }
+
+  return tooltipText;
+}
+
+export function createConfigParamTooltip(headerCell: HTMLElement, prop: Manifest["configuration"]): void {
+  if (!prop || !prop.description) {
+    return;
+  }
+
+  const tooltip = createElement("span", { class: "tooltip", textContent: "?", id: prop?.id });
+  const tooltipText = createTooltipText(prop?.description, prop?.examples || []);
 
   tooltip.appendChild(tooltipText);
   headerCell.appendChild(tooltip);
 
   tooltip.addEventListener("mouseenter", () => {
-    const tooltipRect = tooltip.getBoundingClientRect();
-    const tooltipTextRect = tooltipText.getBoundingClientRect();
-    const spaceAbove = tooltipRect.top;
-    const spaceBelow = window.innerHeight - tooltipRect.bottom;
-
-    if (spaceBelow < tooltipTextRect.height && spaceAbove > spaceBelow) {
-      tooltipText.style.bottom = `${tooltipRect.height}px`;
-      tooltipText.style.top = "auto";
-    } else {
-      tooltipText.style.top = `${tooltipRect.height}px`;
-      tooltipText.style.bottom = "auto";
-    }
-
     tooltipText.style.visibility = "visible";
     tooltipText.style.opacity = "1";
   });
