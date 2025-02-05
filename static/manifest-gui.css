@@ -129,14 +129,30 @@ header #uos-logo path {
   user-select: none;
   background-image: linear-gradient(0deg, #101010, #202020);
   margin: 0 auto;
-  border-radius: 4px;
   box-shadow: 0 24px 48px #000000;
-  overflow: hidden;
   opacity: 0;
   transition: opacity 0.25s cubic-bezier(0, 1, 1, 1);
+  scrollbar-width: thin;
+  scrollbar-color: #303030 #101010;
 }
 
 #manifest-gui.plugin-editor {
+  max-height: calc(100vh - 192px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px;
+  width: 100%;
+}
+
+#manifest-gui.plugin-editor > #manifest-gui-body.rendered[data-loading="false"] {
+  display: inline-table;
+}
+
+#manifest-gui-title {
+  right: 0;
+  left: 0;
   width: 100%;
 }
 
@@ -203,6 +219,48 @@ header #uos-logo path {
   border-top: 1px solid #303030;
 }
 
+.table-data-value.config-input.buttons {
+  background-color: transparent;
+  border: none;
+  padding: 8px 10px;
+}
+
+.table-data-value.config-input.buttons > .button-group {
+  display: flex;
+  gap: 8px;
+  /* left align */
+}
+
+.table-data-value.config-input.buttons > .button-group > button {
+  background-color: #101010;
+  color: #fff;
+  font-size: 16px;
+  border: 1px solid #303030;
+  border-radius: 4px;
+  font-family: "Proxima Nova", sans-serif;
+  cursor: pointer;
+  transition:
+    background-color 0.25s,
+    border-color 0.25s;
+}
+
+.table-data-value.config-input.buttons > .button-group > button:hover {
+  background-color: #404040;
+  border-color: #606060;
+}
+
+.table-data-value.config-input.buttons > .button-group > button:active {
+  background-color: #606060;
+}
+
+.table-data-value.config-input.buttons > .button-group > button.disabled {
+  background-color: #303030;
+  color: #808080;
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .table-data-header {
   padding: 8px 16px;
 }
@@ -214,6 +272,7 @@ header #uos-logo path {
 .table-data-value > input,
 textarea {
   padding: 8px 16px;
+  margin: 8px;
 }
 
 #controls {
@@ -221,6 +280,17 @@ textarea {
   right: 24px;
   top: 24px;
 }
+
+#buttons {
+  display: flex;
+}
+
+tfoot {
+  display: flex;
+  margin-left: auto;
+  margin-right: 0;
+}
+
 button {
   appearance: none;
   background: 0 0;
@@ -231,6 +301,7 @@ button {
   border-radius: 4px;
   opacity: 0.75;
   font-family: "Proxima Nova", sans-serif;
+  min-width: max-content;
 }
 button:hover {
   background-color: #404040;
@@ -255,7 +326,7 @@ button#reset-to-default::before {
   content: "♻️";
 }
 button#reset-to-default:hover::before {
-  content: "Use Defaults";
+  content: "Reset";
 }
 button#reset-to-default:active::before {
   content: "♻️♻️♻️♻️♻️";
@@ -317,9 +388,14 @@ button#add:active::before {
   padding-left: 8px;
 }
 
+.tooltip:last-child .tooltiptext {
+  top: -100%;
+}
+
 .tooltip .tooltiptext {
   visibility: hidden;
-  width: 200px;
+  min-width: 400px;
+  width: auto;
   background-color: #101010;
   color: #fff;
   text-align: center;
@@ -329,6 +405,16 @@ button#add:active::before {
   z-index: 1;
   opacity: 0;
   transition: opacity 0.25s;
+  font-size: 16px;
+  box-shadow: 0 24px 48px #000000;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  border: 1px solid #303030;
+  text-transform: none;
 }
 
 .tooltip:hover .tooltiptext {
