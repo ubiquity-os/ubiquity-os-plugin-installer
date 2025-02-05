@@ -1,31 +1,34 @@
 import { Octokit } from "@octokit/rest";
-import { Manifest, ManifestPreDecode } from "../types/plugins";
+import { ManifestPreDecode, PluginConfig } from "../types/plugins";
 import { DEV_CONFIG_FULL_PATH, CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
-import { getOfficialPluginConfig } from "../utils/storage";
+import YAML from "yaml";
 
 /**
  * Responsible for:
- * - Mainly UbiquityOS Marketplace data fetching (config-parser fetches user configs)
+ * - UbiquityOS Marketplace data fetching (`config-parser` fetches user configs)
  * - Fetching the manifest.json files from the marketplace
  * - Fetching the README.md files from the marketplace
- * - Fetching the official plugin config from the orgs
- * - Capturing the worker and action urls from the official plugin config (will be taken from the manifest directly soon)
  * - Storing the fetched data in localStorage
+ * - building the `ManifestCache` from the fetched data
  */
 export class ManifestFetcher {
   private _orgs: string[];
   private _octokit: Octokit | null;
 
-  workerUrlRegex = /https:\/\/([a-z0-9-]+)\.ubiquity\.workers\.dev/g;
-  actionUrlRegex = /[a-z0-9-]+\/[a-z0-9-]+(?:\/[^@]+)?@[a-z0-9-]+/g;
-  workerUrls = new Set<string>();
-  actionUrls = new Set<string>();
+  pluginUrls = new Set<string>();
 
   constructor(orgs: string[], octokit: Octokit | null) {
     this._orgs = orgs;
     this._octokit = octokit;
   }
 
+  /**
+   * Setups up our `manifestCache` with the fetched data from the marketplace.
+   *
+   * Removes entries that caused an error during fetching, typically .github etc
+   * as well as nulls any malformed `homepage_url` entries which is
+   * used to `disable` the `plugin-select` button in the UI.
+   */
   async fetchMarketplaceManifests() {
     const org = "ubiquity-os-marketplace";
     if (!this._octokit) {
@@ -37,12 +40,34 @@ export class ManifestFetcher {
     for (const repo of repos.data) {
       const manifestUrl = this.createGithubRawEndpoint(org, repo.name, "development", "manifest.json");
       const manifest = await this.fetchPluginManifest(manifestUrl);
-      const decoded = this.decodeManifestFromFetch(manifest);
-      const readme = await this.fetchPluginReadme(this.createGithubRawEndpoint(org, repo.name, "development", "README.md"));
-
-      if (decoded) {
-        manifestCache[manifestUrl] = { ...decoded, readme };
+      if (manifest.error) {
+        // naively, repos such as .github, .ubiquity-os
+        continue;
       }
+      const readme = await this.fetchPluginReadme(this.createGithubRawEndpoint(org, repo.name, "development", "README.md"));
+      let homepageUrl = manifest.homepage_url || null;
+
+      if (homepageUrl && !homepageUrl.endsWith("ubiquity.workers.dev") && !homepageUrl.startsWith("ubiquity-os")) {
+        console.error("Invalid homepage url", homepageUrl);
+        homepageUrl = null;
+      }
+
+      if (!homepageUrl) {
+        const repoUrls = Array.from(this.pluginUrls);
+        for (const url of repoUrls) {
+          if (url.includes(repo.name)) {
+            homepageUrl = url;
+            break;
+          }
+        }
+      }
+
+      // hacky but the issue remains in some plugins
+      if (repo.name !== manifest.name) {
+        manifest.name = repo.name;
+      }
+
+      manifestCache[repo.name] = { manifest, readme, homepageUrl };
     }
 
     localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
@@ -57,44 +82,9 @@ export class ManifestFetcher {
     return {};
   }
 
-  captureWorkerUrls(config: string) {
-    // take the full url and just ping the endpoint
-    let match;
-    while ((match = this.workerUrlRegex.exec(config)) !== null) {
-      const workerUrl = match[0];
-      this.workerUrls.add(workerUrl);
-    }
-  }
-
   createGithubRawEndpoint(owner: string, repo: string, branch: string, path: string) {
     // no endpoint so we fetch the raw content from the owner/repo/branch
     return `https://raw.githubusercontent.com/${owner}/${repo}/refs/heads/${branch}/${path}`;
-  }
-
-  captureActionUrls(config: string) {
-    let match;
-    while ((match = this.actionUrlRegex.exec(config)) !== null) {
-      this.actionUrls.add(match[0]);
-    }
-  }
-
-  async fetchOfficialPluginConfig() {
-    await this.fetchOrgsUbiquityOsConfigs();
-    const officialPluginConfig = getOfficialPluginConfig();
-
-    this.workerUrls.forEach((url) => {
-      officialPluginConfig[url] = { workerUrl: url };
-    });
-
-    this.actionUrls.forEach((url) => {
-      if (url.includes("ubiquibot")) {
-        return;
-      }
-      officialPluginConfig[url] = { actionUrl: url };
-    });
-
-    localStorage.setItem("officialPluginConfig", JSON.stringify(officialPluginConfig));
-    return officialPluginConfig;
   }
 
   async fetchPluginManifest(actionUrl: string) {
@@ -147,6 +137,12 @@ export class ManifestFetcher {
     }
   }
 
+  /**
+   * Fetches the yaml config from the orgs used when initializing this class.
+   *
+   * This is used to get the action urls for the plugins and a fallback for worker
+   * which may not have `homepage_url` in the manifest.
+   */
   async fetchOrgsUbiquityOsConfigs() {
     const configFileContents: Record<string, string> = {};
 
@@ -185,23 +181,18 @@ export class ManifestFetcher {
     }
 
     for (const config of Object.values(configFileContents)) {
-      this.captureWorkerUrls(config);
-      this.captureActionUrls(config);
+      const configObj = YAML.parse(config) as PluginConfig;
+      for (const plugin of configObj.plugins) {
+        const pluginUrl = plugin.uses?.[0].plugin; // we only use single chain plugins for now, needs to be updated for multi-chain
+        if (!pluginUrl) {
+          console.error("No plugin url found in config", {
+            plugin,
+            configObj,
+          });
+        } else {
+          this.pluginUrls.add(pluginUrl);
+        }
+      }
     }
-  }
-
-  decodeManifestFromFetch(manifest: ManifestPreDecode) {
-    if (manifest.error) {
-      return null;
-    }
-
-    const decodedManifest: Manifest = {
-      name: manifest.name,
-      description: manifest.description,
-      "ubiquity:listeners": manifest["ubiquity:listeners"],
-      configuration: manifest.configuration,
-    };
-
-    return decodedManifest;
   }
 }
