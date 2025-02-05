@@ -2,28 +2,17 @@ import { toastNotification } from "../../utils/toaster";
 import { ManifestRenderer } from "../render-manifest";
 import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 import { STRINGS } from "../../utils/strings";
-import { Manifest, ManifestCache, ManifestPreDecode, Plugin, PluginConfig } from "../../types/plugins";
+import { Manifest, ManifestPreDecode, Plugin, PluginConfig } from "../../types/plugins";
 import { AnySchemaObject } from "ajv";
-import { createInputRow } from "../../utils/element-helpers";
 import { controlButtons } from "../rendering/control-buttons";
 import { updateGuiTitle } from "../rendering/utils";
 import { parseConfigInputs } from "../rendering/input-parsing";
 import YAML from "yaml";
 import { AuthService } from "../authentication";
+import { getManifestCache } from "../../utils/storage";
+import { createConfigParamTooltip, createElement, createInputRow } from "../../utils/element-helpers";
 
 type TemplateTypes = "minimal" | "full-defaults" | "custom";
-type MinimalPredefinedConfig = {
-  "text-conversation-rewards": {
-    yamlConfig: string;
-  };
-  "command-start-stop": {
-    yamlConfig: string;
-  };
-  "daemon-pricing": {
-    yamlConfig: string;
-  };
-};
-
 declare const MINIMAL_PREDEFINED_CONFIG: string;
 
 export async function configTemplateHandler(type: TemplateTypes, renderer: ManifestRenderer) {
@@ -31,8 +20,7 @@ export async function configTemplateHandler(type: TemplateTypes, renderer: Manif
   if (type === "minimal") {
     config = await handleMinimalTemplate();
   } else if (type === "full-defaults") {
-    await handleFullDefaultsTemplate(renderer);
-    return;
+    config = await handleFullDefaultsTemplate(renderer);
   } else {
     throw new Error("Invalid template type");
   }
@@ -104,10 +92,9 @@ async function writeTemplate(renderer: ManifestRenderer, config: string, type: T
 
 async function handleMinimalTemplate(): Promise<string> {
   try {
-    const obj = JSON.parse(MINIMAL_PREDEFINED_CONFIG) as MinimalPredefinedConfig;
-
+    const obj = JSON.parse(MINIMAL_PREDEFINED_CONFIG);
     const parts = Array.from(Object.entries(obj)).map(([, value]) => {
-      return `\n  ${value.yamlConfig}`;
+      return `\n  ${typeof value === "object" && value && "yamlConfig" in value && value.yamlConfig ? value.yamlConfig : ""}`;
     });
 
     return `plugins:${parts.join("")}`;
@@ -117,54 +104,45 @@ async function handleMinimalTemplate(): Promise<string> {
   }
 }
 
-async function handleFullDefaultsTemplate(renderer: ManifestRenderer) {
+async function handleFullDefaultsTemplate(renderer: ManifestRenderer): Promise<string> {
   renderer.configParser.writeBlankConfig();
 
-  const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
-  const pluginUrls = Object.keys(manifestCache);
-  const cleanManifestCache = Object.keys(manifestCache).reduce((acc, key) => {
-    if (manifestCache[key]?.name) {
-      acc[key] = manifestCache[key];
-    }
-    return acc;
-  }, {} as ManifestCache);
+  // fetch the raw config from https://github.com/ubiquity/onboard.ubq.fi/blob/development/static/types/default-configuration.yml
+  const response = await fetch("https://raw.githubusercontent.com/ubiquity/onboard.ubq.fi/development/static/types/default-configuration.yml");
 
-  const plugins: { name: string; defaults: ManifestPreDecode["configuration"] }[] = [];
+  if (!response.ok) {
+    throw new Error("Failed to fetch full defaults template");
+  }
 
-  pluginUrls.forEach((url) => {
-    if (!cleanManifestCache[url]?.name) {
+  // if there was no required field we would just return the config
+  const config = await response.text();
+
+  const manifestCache = getManifestCache();
+  const plugins = Object.keys(manifestCache).map((key) => manifestCache[key]);
+  const pluginWithDefaults: { name: string; defaults: ManifestPreDecode }[] = [];
+
+  plugins.forEach((plugin) => {
+    const {
+      manifest: { configuration },
+    } = plugin;
+    if (!configuration) {
       return;
     }
-
-    const defaultForInstalled: ManifestPreDecode | null = cleanManifestCache[url];
-    const manifestCache = JSON.parse(localStorage.getItem("manifestCache") || "{}") as ManifestCache;
-    const pluginUrls = Object.keys(manifestCache);
-    const pluginUrl = pluginUrls.find((url) => {
-      return manifestCache[url].name === defaultForInstalled.name;
-    });
-
-    const plugin = manifestCache[pluginUrl || ""];
-    const config = plugin?.configuration;
-
-    if (!config) {
-      return;
-    }
-
-    const defaults = buildDefaultValues<ManifestPreDecode["configuration"]>(config);
-
-    plugins.push({
-      name: plugin.name,
-      defaults,
+    pluginWithDefaults.push({
+      name: plugin.manifest.name,
+      defaults: buildDefaultValues(configuration),
     });
   });
 
-  renderRequiredFields(renderer, plugins).catch((error) => {
+  renderRequiredFields(renderer, pluginWithDefaults).catch((error) => {
     console.error("Error rendering required fields:", error);
     toastNotification("An error occurred while rendering the required fields.", {
       type: "error",
       shouldAutoDismiss: true,
     });
   });
+
+  return config;
 }
 
 /**
@@ -177,19 +155,30 @@ async function handleFullDefaultsTemplate(renderer: ManifestRenderer) {
  *
  */
 
-async function renderRequiredFields(renderer: ManifestRenderer, plugins: { name: string; defaults: ManifestPreDecode["configuration"] }[]) {
+async function renderRequiredFields(renderer: ManifestRenderer, plugins: { name: string; defaults: Manifest["configuration"] }[]) {
   const configDefaults: Record<string, { type: string; value: unknown; items: { type: string } | null }> = {};
+  const pluginWithDefaults: { name: string; defaults: Manifest["configuration"] }[] = [];
   renderer.manifestGuiBody.innerHTML = null;
 
   plugins.forEach((plugin) => {
-    const { defaults } = plugin;
-    const keys = Object.keys(defaults);
-    keys.forEach((key) => {
-      if (defaults[key as keyof typeof defaults] === null) {
-        createInputRow(key, defaults, configDefaults);
-      }
-    });
+    const { name, defaults } = plugin;
+    pluginWithDefaults.push({ name, defaults });
   });
+
+  for (const plugin of pluginWithDefaults) {
+    const { defaults } = plugin;
+
+    for (const [key, prop] of Object.entries(defaults || {})) {
+      if (prop === null) {
+        const row = createElement("tr", { className: "config-row" });
+        const headerCell = createElement("td", { className: "table-data-header" });
+        headerCell.textContent = key.replace(/([A-Z])/g, " $1");
+        createConfigParamTooltip(headerCell, prop);
+        row.appendChild(headerCell);
+        createInputRow(key, prop, configDefaults, undefined, undefined, true);
+      }
+    }
+  }
 
   updateGuiTitle("Fill in required fields");
   controlButtons({ hide: false });
@@ -214,16 +203,18 @@ async function renderRequiredFields(renderer: ManifestRenderer, plugins: { name:
   if (!add || !remove) {
     throw new Error("Add or remove button not found");
   }
-  remove.remove();
+  remove.classList.add("disabled");
 
   add.addEventListener("click", () => {
     const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
     const newConfig = parseConfigInputs(configInputs, {} as Manifest, plugins);
 
-    const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = JSON.parse(localStorage.getItem("officialPluginConfig") || "{}");
+    const manifestCache = getManifestCache();
+    const pluginNames = Object.keys(manifestCache);
 
     const pluginArr: Plugin[] = [];
-    for (const [name, config] of Object.entries(newConfig)) {
+
+    for (const [name, config] of Object.entries(newConfig.config)) {
       // this relies on the manifest matching the repo name
       const normalizedPluginName = name
         .toLowerCase()
@@ -231,7 +222,7 @@ async function renderRequiredFields(renderer: ManifestRenderer, plugins: { name:
         .replace(/[^a-z0-9-]/g, "")
         .replace(/-+/g, "-");
 
-      const pluginUrl = Object.keys(officialPluginConfig).find((url) => {
+      const pluginUrl = pluginNames.find((url) => {
         return url.includes(normalizedPluginName);
       });
 
@@ -273,6 +264,9 @@ async function renderRequiredFields(renderer: ManifestRenderer, plugins: { name:
       });
     });
   });
+
+  renderer.manifestGui?.classList.add("plugin-editor");
+  renderer.manifestGui?.classList.add("rendered");
 }
 
 function buildDefaultValues<T>(schema: AnySchemaObject): T {
