@@ -30,7 +30,7 @@ export class ConfigParser {
       });
       exists = true;
     } catch (error) {
-      console.log(error);
+      console.log(`${repo} does not exist in ${org}`, error);
       exists = false;
     }
 
@@ -44,8 +44,14 @@ export class ConfigParser {
 
         toastNotification("We noticed you don't have a '.ubiquity-os' config repo, so we created one for you.", { type: "success" });
       } catch (er) {
-        console.log(er);
-        throw new Error("Config repo creation failed");
+        if (er instanceof Error && er.message.includes("name already exists on this account")) {
+          // https://github.com/ubiquity-os/ubiquity-os-plugin-installer/issues/40
+          console.info(`Config repo could not be found but failed to create because it already exists:`, er);
+          exists = true;
+        } else {
+          console.log(er);
+          throw new Error("Config repo creation failed");
+        }
       }
     }
 
@@ -148,7 +154,7 @@ export class ConfigParser {
       owner: org,
       repo: repo,
       path,
-      message: `chore: Plugin Installer UI - update`,
+      message: `chore: updating config (Plugin Installer UI)`,
       content: btoa(this.newConfigYml),
       sha,
     });

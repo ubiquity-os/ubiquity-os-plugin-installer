@@ -72,6 +72,12 @@ export function createAnyOfToggle(key: string, prop: Manifest["configuration"], 
     valueCell.dataset.toggleType = "union";
   }
 
+  buttonGroup.childNodes.forEach((button) => {
+    if ((button as HTMLButtonElement).value === kinds[0]) {
+      (button as HTMLButtonElement).classList.add("selected");
+    }
+  });
+
   // build the first tooltip
   if (prop && "description" in prop && prop.description) {
     createConfigParamTooltip(headerCell, {
@@ -129,6 +135,11 @@ export function createAnyOfToggle(key: string, prop: Manifest["configuration"], 
           id: `tooltip-${key}`,
         });
       }
+
+      buttonGroup.childNodes.forEach((button) => {
+        (button as HTMLButtonElement).classList.remove("selected");
+      });
+      (button as HTMLButtonElement).classList.add("selected");
     };
   });
 
@@ -244,9 +255,9 @@ function createToggleOptions(
   function buildButton(kind: string) {
     const button = createElement("button", {
       class: "button",
+      textContent: kind,
+      value: kind,
     });
-    button.textContent = kind;
-    button.value = kind;
 
     if (kind === "Disabled" || kind === "Enabled") {
       valueCell.dataset.toggleType = "boolean";
