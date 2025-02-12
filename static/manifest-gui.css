@@ -240,6 +240,10 @@ header #uos-logo path {
   margin-bottom: 4px;
 }
 
+.button-group {
+  margin: 8px;
+}
+
 .table-data-value.config-input.buttons > .button-group > button {
   background-color: #101010;
   color: #fff;
@@ -262,12 +266,13 @@ header #uos-logo path {
   background-color: #606060;
 }
 
-.table-data-value.config-input.buttons > .button-group > button.disabled {
+.table-data-value.config-input.buttons > .button-group > button:active {
+  background-color: #606060;
+}
+
+.table-data-value.config-input.buttons > .button-group > button.selected {
   background-color: #303030;
-  color: #808080;
-  cursor: not-allowed;
-  opacity: 0.5;
-  pointer-events: none;
+  border-color: #606060;
 }
 
 .table-data-header {
@@ -663,13 +668,8 @@ select option {
   border-color: #808080;
 }
 
-.config-input {
-  margin-bottom: 16px;
-}
-
 textarea.config-input {
   resize: vertical;
-  margin: 2px 0;
 }
 
 .table-data-value.config-input.buttons {
