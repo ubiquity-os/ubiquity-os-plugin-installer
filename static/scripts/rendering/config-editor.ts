@@ -129,8 +129,6 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   updateGuiTitle(`Editing configuration for ${pluginName.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())} in ${org}`);
   renderer.manifestGui?.classList.add("plugin-editor");
   renderer.manifestGui?.classList.add("rendered");
-
-  console.log("Config editor rendered");
 }
 
 async function loadListeners({
