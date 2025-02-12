@@ -233,6 +233,10 @@ header #uos-logo path {
   margin-bottom: 4px;
 }
 
+.button-group {
+  margin: 8px;
+}
+
 .table-data-value.config-input.buttons > .button-group > button {
   background-color: #101010;
   color: #fff;
