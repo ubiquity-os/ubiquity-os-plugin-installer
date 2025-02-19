@@ -53,7 +53,7 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
   renderer.manifestGuiBody.appendChild(pickerRow);
 
   pluginNames.forEach((pluginName) => {
-    if (!manifestCache[pluginName]?.manifest.name) {
+    if (!manifestCache[pluginName]?.manifest?.name) {
       return;
     }
     const reg = new RegExp(pluginName, "i");
