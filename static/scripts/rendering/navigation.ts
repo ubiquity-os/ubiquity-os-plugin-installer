@@ -3,6 +3,7 @@ import { ManifestRenderer } from "../render-manifest";
 import { renderOrgSelector } from "./org-select";
 import { renderPluginSelector } from "./plugin-select";
 import { renderRepoPicker } from "./repo-select";
+import { renderTemplateSelector } from "./template-selector";
 
 export type NavSteps = "orgSelector" | "pluginSelector" | "templateSelector" | "configEditor" | "repoSelector" | "templateSelector";
 
@@ -24,12 +25,14 @@ export function handleBackButtonClick(renderer: ManifestRenderer): void {
   if (readmeContainer) {
     readmeContainer.remove();
   }
-  //   "pluginSelector" | "configEditor"
+
   const step = renderer.currentStep;
   if (step === "repoSelector" || step === "orgSelector") {
     renderOrgSelector(renderer, renderer.orgs);
-  } else if (step === "pluginSelector") {
+  } else if (step === "templateSelector") {
     renderRepoPicker(renderer, JSON.parse(localStorage.getItem("orgRepos") || "{}"));
+  } else if (step === "pluginSelector") {
+    renderTemplateSelector(renderer);
   } else if (step === "configEditor") {
     renderPluginSelector(renderer);
   }

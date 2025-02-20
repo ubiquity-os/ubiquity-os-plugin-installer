@@ -4,6 +4,7 @@ import { toastNotification } from "../../utils/toaster";
 import { ManifestRenderer } from "../render-manifest";
 import { controlButtons } from "./control-buttons";
 import { renderPluginSelector } from "./plugin-select";
+import { renderTemplateSelector } from "./template-selector";
 import { updateGuiTitle } from "./utils";
 
 export function renderRepoPicker(renderer: ManifestRenderer, repos: Record<string, string[]>): void {
@@ -19,8 +20,6 @@ export function renderRepoPicker(renderer: ManifestRenderer, repos: Record<strin
     renderer.manifestGui?.classList.add("rendered");
     return;
   }
-
-  localStorage.setItem("orgRepos", JSON.stringify(repos));
 
   const selectedOrg = localStorage.getItem("selectedOrg");
 
@@ -45,7 +44,7 @@ export function renderRepoPicker(renderer: ManifestRenderer, repos: Record<strin
     localStorage.setItem("selectedRepo", selectedOrg);
     fetchOrgConfig(renderer, selectedOrg, selectedOrg)
       .then(() => {
-        renderPluginSelector(renderer);
+        renderTemplateSelector(renderer);
       })
       .catch((error) => {
         console.error(error);
@@ -126,5 +125,7 @@ function handleRepoSelection(event: Event, renderer: ManifestRenderer): void {
         console.error(error);
         toastNotification("Error fetching org config", { type: "error" });
       });
+  } else {
+    throw new Error("No selected repo found");
   }
 }

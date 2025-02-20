@@ -107,7 +107,6 @@ async function handleMinimalTemplate(): Promise<string> {
 async function handleFullDefaultsTemplate(renderer: ManifestRenderer): Promise<string> {
   renderer.configParser.writeBlankConfig();
 
-  // fetch the raw config from https://github.com/ubiquity/onboard.ubq.fi/blob/development/static/types/default-configuration.yml
   const response = await fetch("https://raw.githubusercontent.com/ubiquity/onboard.ubq.fi/development/static/types/default-configuration.yml");
 
   if (!response.ok) {
@@ -129,7 +128,7 @@ async function handleFullDefaultsTemplate(renderer: ManifestRenderer): Promise<s
       return;
     }
     pluginWithDefaults.push({
-      name: plugin.manifest.name,
+      name: plugin.homepageUrl || plugin.manifest.name,
       defaults: buildDefaultValues(configuration),
     });
   });
@@ -210,24 +209,18 @@ async function renderRequiredFields(renderer: ManifestRenderer, plugins: { name:
     const newConfig = parseConfigInputs(configInputs, {} as Manifest, plugins);
 
     const manifestCache = getManifestCache();
-    const pluginNames = Object.keys(manifestCache);
+    const pluginNames = Object.values(manifestCache).map((plugin) => plugin.homepageUrl || plugin.manifest.name);
 
     const pluginArr: Plugin[] = [];
 
     for (const [name, config] of Object.entries(newConfig.config)) {
-      // this relies on the manifest matching the repo name
-      const normalizedPluginName = name
-        .toLowerCase()
-        .replace(/ /g, "-")
-        .replace(/[^a-z0-9-]/g, "")
-        .replace(/-+/g, "-");
-
+      // this relies on the worker deployment url containing the plugin name
       const pluginUrl = pluginNames.find((url) => {
-        return url.includes(normalizedPluginName);
+        return url.includes(name);
       });
 
       if (!pluginUrl) {
-        toastNotification(`No plugin URL found for ${normalizedPluginName}.`, {
+        toastNotification(`No plugin URL found for ${name}.`, {
           type: "error",
           shouldAutoDismiss: true,
         });

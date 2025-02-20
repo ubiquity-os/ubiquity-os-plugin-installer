@@ -4,7 +4,6 @@ import { toastNotification } from "../../utils/toaster";
 import { configTemplateHandler } from "../predefined-configs/template-handler";
 import { ManifestRenderer } from "../render-manifest";
 import { controlButtons } from "./control-buttons";
-import { renderOrgSelector } from "./org-select";
 import { renderPluginSelector } from "./plugin-select";
 import { updateGuiTitle } from "./utils";
 
@@ -50,11 +49,6 @@ export function renderTemplateSelector(renderer: ManifestRenderer): void {
   renderer.manifestGuiBody.appendChild(templateRow);
 
   updateGuiTitle("Select a Template");
-
-  renderer.backButton.style.display = "block";
-  renderer.backButton.addEventListener("click", () => {
-    renderOrgSelector(renderer, renderer.orgs);
-  });
 
   renderer.manifestGui?.classList.remove("rendering");
   renderer.manifestGui?.classList.add("rendered");

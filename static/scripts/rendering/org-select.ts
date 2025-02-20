@@ -2,7 +2,7 @@ import { createElement } from "../../utils/element-helpers";
 import { STRINGS } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
 import { controlButtons } from "./control-buttons";
-import { renderTemplateSelector } from "./template-selector";
+import { renderRepoPicker } from "./repo-select";
 import { closeAllSelect, updateGuiTitle } from "./utils";
 
 /**
@@ -84,5 +84,7 @@ function handleOrgSelection(renderer: ManifestRenderer, org: string): void {
     throw new Error("No org selected");
   }
   localStorage.setItem("selectedOrg", org);
-  renderTemplateSelector(renderer);
+
+  const orgRepos = JSON.parse(localStorage.getItem("orgRepos") || "{}");
+  renderRepoPicker(renderer, orgRepos);
 }

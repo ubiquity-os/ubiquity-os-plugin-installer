@@ -115,7 +115,6 @@ export function parseConfigInputs(
 
   configInputs.forEach((input) => {
     const key = input.getAttribute("data-config-key");
-    console.log("key", key);
     if (!key) {
       throw new Error("Input key is required");
     }
