@@ -16,8 +16,6 @@ type TemplateTypes = "minimal" | "full-defaults" | "custom";
 declare const MINIMAL_PREDEFINED_CONFIG: string;
 
 export async function configTemplateHandler(type: TemplateTypes, renderer: ManifestRenderer) {
-  let config: string | undefined;
-
   const org = localStorage.getItem("selectedOrg");
 
   if (!org) {
@@ -36,10 +34,9 @@ export async function configTemplateHandler(type: TemplateTypes, renderer: Manif
   }
 
   if (type === "minimal") {
-    config = await handleMinimalTemplate();
-    await writeTemplate(renderer, config, type, renderer.auth.octokit, org);
+    await writeTemplate(renderer, await handleMinimalTemplate(), type, renderer.auth.octokit, org);
   } else if (type === "full-defaults") {
-    config = await handleFullDefaultsTemplate(renderer);
+    await handleFullDefaultsTemplate(renderer);
   } else {
     throw new Error("Invalid template type");
   }
