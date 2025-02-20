@@ -138,6 +138,13 @@ header #uos-logo path {
   scrollbar-color: #303030 #101010;
 }
 
+.template-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
 #manifest-gui.plugin-editor {
   max-height: calc(100vh - 192px);
   overflow: auto;

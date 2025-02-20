@@ -8,8 +8,8 @@ import { closeAllSelect, updateGuiTitle } from "./utils";
 /**
  * Renders the orgs for the authenticated user to select from.
  */
-export function renderOrgPicker(renderer: ManifestRenderer, orgs: string[]) {
-  renderer.currentStep = "orgPicker";
+export function renderOrgSelector(renderer: ManifestRenderer, orgs: string[]) {
+  renderer.currentStep = "orgSelector";
   controlButtons({ hide: true });
   renderer.backButton.style.display = "none";
   renderer.manifestGui?.classList.add("rendering");
@@ -84,6 +84,7 @@ function handleOrgSelection(renderer: ManifestRenderer, org: string): void {
     throw new Error("No org selected");
   }
   localStorage.setItem("selectedOrg", org);
-  const repos = JSON.parse(localStorage.getItem("orgRepos") || "{}");
-  renderRepoPicker(renderer, repos);
+
+  const orgRepos = JSON.parse(localStorage.getItem("orgRepos") || "{}");
+  renderRepoPicker(renderer, orgRepos);
 }

@@ -127,7 +127,11 @@ export class ConfigParser {
     return this.createOrUpdateFileContents(org, repo, path, octokit);
   }
 
-  async createOrUpdateFileContents(org: string, repo: string, path: string, octokit: Octokit) {
+  async createOrUpdateFileContents(org: string, repo: string, path: string, octokit: Octokit | null) {
+    if (!octokit) {
+      throw new Error("Failed to create or update file contents: Octokit not found");
+    }
+
     if (org === repo) {
       repo = CONFIG_ORG_REPO;
     }
@@ -189,7 +193,11 @@ export class ConfigParser {
     this.saveConfig();
   }
 
-  loadConfig(): string {
+  loadConfig(config?: string) {
+    if (config) {
+      this.saveConfig(config);
+    }
+
     if (!this.newConfigYml) {
       this.newConfigYml = localStorage.getItem("config") as string;
     }
@@ -205,7 +213,10 @@ export class ConfigParser {
     return this.newConfigYml;
   }
 
-  saveConfig() {
+  saveConfig(config?: string) {
+    if (config) {
+      this.newConfigYml = config;
+    }
     if (this.newConfigYml) {
       localStorage.setItem("config", this.newConfigYml);
     }
