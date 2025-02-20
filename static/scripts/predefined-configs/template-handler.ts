@@ -42,22 +42,11 @@ export async function configTemplateHandler(type: TemplateTypes, renderer: Manif
 
   const userInstalledConfig = await renderer.configParser.fetchUserInstalledConfig(org, octokit);
 
-  try {
-    if (userInstalledConfig.length > 12) {
-      toastNotification("Configuration File Detected: This will be overwritten, are you sure you want to continue?", {
-        type: "warning",
-        actionText: "Continue",
-        action: async () => {
-          await writeTemplate(renderer, config, type, octokit, org);
-        },
-      });
-      return;
-    }
-    await writeTemplate(renderer, config, type, octokit, org);
-  } catch (error) {
-    toastNotification(STRINGS.FAILED_TO_LOAD_TEMPLATE, { type: "error" });
-    throw error;
+  if (userInstalledConfig.length > 12) {
+    toastNotification("Configuration File Detected: This will be overwritten if you continue.", { type: "warning", shouldAutoDismiss: true });
   }
+
+  await writeTemplate(renderer, config, type, renderer.auth.octokit, localStorage.getItem("selectedOrg") || "");
 }
 
 async function writeTemplate(renderer: ManifestRenderer, config: string, type: TemplateTypes, octokit: AuthService["octokit"], org: string) {
@@ -132,7 +121,7 @@ async function handleFullDefaultsTemplate(renderer: ManifestRenderer): Promise<s
     });
   });
 
-  renderRequiredFields(renderer, pluginWithDefaults).catch((error) => {
+  await renderRequiredFields(renderer, pluginWithDefaults).catch((error) => {
     console.error("Error rendering required fields:", error);
     toastNotification("An error occurred while rendering the required fields.", {
       type: "error",
