@@ -1,16 +1,16 @@
-import { toastNotification } from "../../utils/toaster";
-import { ManifestRenderer } from "../render-manifest";
-import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
-import { STRINGS } from "../../utils/strings";
-import { Manifest, ManifestPreDecode, Plugin, PluginConfig } from "../../types/plugins";
-import { AnySchemaObject } from "ajv";
-import { controlButtons } from "../rendering/control-buttons";
-import { updateGuiTitle } from "../rendering/utils";
-import { parseConfigInputs } from "../rendering/input-parsing";
 import YAML from "yaml";
+import { AnySchemaObject } from "ajv";
+import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
 import { AuthService } from "../authentication";
-import { getManifestCache } from "../../utils/storage";
+import { ManifestRenderer } from "../render-manifest";
+import { controlButtons } from "../rendering/control-buttons";
+import { parseConfigInputs } from "../rendering/input-parsing";
+import { updateGuiTitle } from "../rendering/utils";
+import { Manifest, ManifestPreDecode, Plugin, PluginConfig } from "../../types/plugins";
 import { createConfigParamTooltip, createElement, createInputRow } from "../../utils/element-helpers";
+import { getManifestCache } from "../../utils/storage";
+import { STRINGS } from "../../utils/strings";
+import { toastNotification } from "../../utils/toaster";
 
 type TemplateTypes = "minimal" | "full-defaults" | "custom";
 declare const MINIMAL_PREDEFINED_CONFIG: string;
@@ -43,7 +43,6 @@ export async function configTemplateHandler(type: TemplateTypes, renderer: Manif
   const userInstalledConfig = await renderer.configParser.fetchUserInstalledConfig(org, octokit);
 
   try {
-    // YAML.stringify({ plugins: [] }).length === 12
     if (userInstalledConfig.length > 12) {
       toastNotification("Configuration File Detected: This will be overwritten, are you sure you want to continue?", {
         type: "warning",

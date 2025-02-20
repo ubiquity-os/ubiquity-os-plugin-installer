@@ -1,7 +1,7 @@
-import esbuild, { BuildOptions } from "esbuild";
 import * as dotenv from "dotenv";
-dotenv.config();
+import esbuild, { BuildOptions } from "esbuild";
 import MINIMAL_PREDEFINED_CONFIG from "../static/minimal-predefined.json";
+dotenv.config();
 
 const ENTRY_POINTS = {
   typescript: ["static/main.ts"],

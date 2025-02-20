@@ -55,12 +55,12 @@ export function renderTemplateSelector(renderer: ManifestRenderer): void {
 }
 
 async function fetchOrgConfig(renderer: ManifestRenderer, org: string): Promise<void> {
-  const kill = toastNotification("Fetching organization config...", { type: "info", shouldAutoDismiss: true });
+  const removeToast = toastNotification("Fetching organization config...", { type: "info", shouldAutoDismiss: true });
   const octokit = renderer.auth.octokit;
   if (!octokit) {
     throw new Error("No org or octokit found");
   }
   await renderer.configParser.fetchUserInstalledConfig(org, octokit);
   renderPluginSelector(renderer);
-  kill();
+  removeToast();
 }
