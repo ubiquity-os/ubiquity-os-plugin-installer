@@ -1,11 +1,10 @@
 import MarkdownIt from "markdown-it";
 import { Manifest, Plugin } from "../../types/plugins";
 import { getManifestCache } from "../../utils/storage";
-import { extractPluginIdentifier } from "../../utils/strings";
 import { ManifestRenderer } from "../render-manifest";
 import { controlButtons } from "./control-buttons";
 import { processProperties } from "./input-parsing";
-import { addTrackedEventListener, getTrackedEventListeners, removeTrackedEventListener, updateGuiTitle } from "./utils";
+import { addTrackedEventListener, getTrackedEventListeners, normalizePluginName, removeTrackedEventListener, updateGuiTitle } from "./utils";
 import { handleResetToDefault, writeNewConfig } from "./write-add-remove";
 const md = new MarkdownIt();
 
@@ -30,7 +29,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   renderer.backButton.style.display = "block";
   renderer.manifestGuiBody.innerHTML = null;
   controlButtons({ hide: false });
-  processProperties(renderer, pluginManifest, pluginManifest?.configuration.properties || {}, null);
+  processProperties(renderer, pluginManifest, pluginManifest?.configuration?.properties || {}, null);
   const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
   // If plugin is passed in, we want to inject those values into the inputs
@@ -44,9 +43,6 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
       const keys = key.split(".");
       let currentObj = plugin;
       for (let i = 0; i < keys.length; i++) {
-        if (!currentObj[keys[i]]) {
-          break;
-        }
         currentObj = currentObj[keys[i]] as Record<string, unknown>;
       }
 
@@ -85,40 +81,12 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   }
 
   const parsedConfig = renderer.configParser.parseConfig(renderer.configParser.repoConfig || localStorage.getItem("config"));
-
-  // Get the repository URL for the current plugin from the manifest cache
-  const manifestCache = getManifestCache();
-  const pluginUrls = Object.keys(manifestCache);
-  const pluginUrl = pluginUrls.find((url) => {
-    return manifestCache[url].name === pluginManifest?.name;
-  });
-
-  if (!pluginUrl) {
-    throw new Error("Plugin URL not found");
-  }
-
-  const manifestPluginId = extractPluginIdentifier(pluginUrl);
-
-  // Check if plugin is installed by looking for any URL that matches
-  const isInstalled = parsedConfig.plugins?.find((p) => {
-    const installedUrl = p.uses[0].plugin;
-
-    // If the installed plugin is a GitHub URL, extract its identifier
-    const installedPluginId = extractPluginIdentifier(installedUrl);
-
-    // If both are GitHub URLs, compare the repo names
-    const isBothGithubUrls = pluginUrl.includes("github") && installedUrl.includes("github");
-    if (isBothGithubUrls) {
-      return manifestPluginId === installedPluginId;
-    }
-
-    // Otherwise check if the installed URL contains the repo name
-    return installedUrl.toLowerCase().includes(manifestPluginId.toLowerCase());
-  });
+  // for when `resetToDefault` is called and no plugin gets passed in, we still want to show the remove button
+  const isInstalled = parsedConfig?.plugins?.find((p) => p.uses[0].plugin.includes(normalizePluginName(pluginManifest?.name || "")));
 
   loadListeners({
     renderer,
-    pluginManifest,
+    pluginManifest: pluginManifest || null,
     withPluginOrInstalled: !!(plugin || isInstalled),
     add,
     remove,
@@ -134,7 +102,16 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
   }
 
   resetToDefaultButton.hidden = !!(plugin || isInstalled);
-  const readme = manifestCache[pluginUrl].readme;
+  const manifestCache = getManifestCache();
+  const pluginNames = Object.keys(manifestCache);
+  const pluginName = pluginNames.find((pluginName) => {
+    return pluginManifest?.name === pluginName;
+  });
+
+  if (!pluginName) {
+    throw new Error("Plugin URL not found");
+  }
+  const readme = manifestCache[pluginName].readme;
 
   if (readme) {
     const viewportCell = document.getElementById("viewport-cell");
@@ -149,7 +126,7 @@ export function renderConfigEditor(renderer: ManifestRenderer, pluginManifest: M
 
   const org = localStorage.getItem("selectedOrg");
 
-  updateGuiTitle(`Editing Configuration for ${pluginManifest?.name} in ${org}`);
+  updateGuiTitle(`Editing configuration for ${pluginName.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())} in ${org}`);
   renderer.manifestGui?.classList.add("plugin-editor");
   renderer.manifestGui?.classList.add("rendered");
 }

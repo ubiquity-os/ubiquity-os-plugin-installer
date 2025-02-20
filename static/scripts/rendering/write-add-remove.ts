@@ -1,8 +1,7 @@
 import { toastNotification } from "../../utils/toaster";
 import { ManifestRenderer } from "../render-manifest";
-import { Manifest, Plugin } from "../../types/plugins";
+import { Manifest, ManifestPreDecode, Plugin } from "../../types/plugins";
 import { parseConfigInputs } from "./input-parsing";
-import { getOfficialPluginConfig } from "../../utils/storage";
 import { renderConfigEditor } from "./config-editor";
 import { normalizePluginName } from "./utils";
 import { handleBackButtonClick } from "./navigation";
@@ -23,10 +22,10 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
     });
     throw new Error("No selected plugin manifest found");
   }
-  const pluginManifest = JSON.parse(selectedManifest) as Manifest;
+  const pluginManifest = JSON.parse(selectedManifest) as ManifestPreDecode;
   const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
 
-  const { config: newConfig, missing } = parseConfigInputs(configInputs, pluginManifest);
+  const { config: newConfig, missing } = parseConfigInputs(configInputs, pluginManifest.manifest);
 
   if (missing.length) {
     toastNotification("Please fill out all required fields.", {
@@ -46,11 +45,8 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
   }
 
   renderer.configParser.loadConfig();
-  const normalizedPluginName = normalizePluginName(pluginManifest.name);
-  const officialPluginConfig: Record<string, { actionUrl?: string; workerUrl?: string }> = getOfficialPluginConfig();
-  const pluginUrl = Object.keys(officialPluginConfig).find((url) => {
-    return url.includes(normalizedPluginName);
-  });
+  const normalizedPluginName = normalizePluginName(pluginManifest.manifest.name);
+  const pluginUrl = pluginManifest.homepageUrl;
 
   if (!pluginUrl) {
     toastNotification(`No plugin URL found for ${normalizedPluginName}.`, {
@@ -72,9 +68,9 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
   removePushNotificationIfPresent();
 
   if (option === "add") {
-    handleAddPlugin(renderer, plugin, pluginManifest);
+    handleAddPlugin(renderer, plugin, pluginManifest.manifest);
   } else if (option === "remove") {
-    handleRemovePlugin(renderer, plugin, pluginManifest);
+    handleRemovePlugin(renderer, plugin, pluginManifest.manifest);
   }
 }
 
