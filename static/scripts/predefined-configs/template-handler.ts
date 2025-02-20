@@ -5,7 +5,7 @@ import { AuthService } from "../authentication";
 import { ManifestRenderer } from "../render-manifest";
 import { controlButtons } from "../rendering/control-buttons";
 import { parseConfigInputs } from "../rendering/input-parsing";
-import { updateGuiTitle } from "../rendering/utils";
+import { addTrackedEventListener, updateGuiTitle } from "../rendering/utils";
 import { Manifest, ManifestPreDecode, Plugin, PluginConfig } from "../../types/plugins";
 import { createConfigParamTooltip, createElement, createInputRow } from "../../utils/element-helpers";
 import { getManifestCache } from "../../utils/storage";
@@ -17,17 +17,6 @@ declare const MINIMAL_PREDEFINED_CONFIG: string;
 
 export async function configTemplateHandler(type: TemplateTypes, renderer: ManifestRenderer) {
   let config: string | undefined;
-  if (type === "minimal") {
-    config = await handleMinimalTemplate();
-  } else if (type === "full-defaults") {
-    config = await handleFullDefaultsTemplate(renderer);
-  } else {
-    throw new Error("Invalid template type");
-  }
-
-  if (!config) {
-    throw new Error(STRINGS.FAILED_TO_LOAD_TEMPLATE);
-  }
 
   const org = localStorage.getItem("selectedOrg");
 
@@ -46,7 +35,14 @@ export async function configTemplateHandler(type: TemplateTypes, renderer: Manif
     toastNotification("Configuration File Detected: This will be overwritten if you continue.", { type: "warning", shouldAutoDismiss: true });
   }
 
-  await writeTemplate(renderer, config, type, renderer.auth.octokit, localStorage.getItem("selectedOrg") || "");
+  if (type === "minimal") {
+    config = await handleMinimalTemplate();
+    await writeTemplate(renderer, config, type, renderer.auth.octokit, org);
+  } else if (type === "full-defaults") {
+    config = await handleFullDefaultsTemplate(renderer);
+  } else {
+    throw new Error("Invalid template type");
+  }
 }
 
 async function writeTemplate(renderer: ManifestRenderer, config: string, type: TemplateTypes, octokit: AuthService["octokit"], org: string) {
@@ -192,62 +188,66 @@ async function renderRequiredFields(renderer: ManifestRenderer, plugins: { name:
   }
   remove.classList.add("disabled");
 
-  add.addEventListener("click", () => {
-    const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
-    const newConfig = parseConfigInputs(configInputs, {} as Manifest, plugins);
-
-    const manifestCache = getManifestCache();
-    const pluginNames = Object.values(manifestCache).map((plugin) => plugin.homepageUrl || plugin.manifest.name);
-
-    const pluginArr: Plugin[] = [];
-
-    for (const [name, config] of Object.entries(newConfig.config)) {
-      // this relies on the worker deployment url containing the plugin name
-      const pluginUrl = pluginNames.find((url) => {
-        return url.includes(name);
-      });
-
-      if (!pluginUrl) {
-        toastNotification(`No plugin URL found for ${name}.`, {
-          type: "error",
-          shouldAutoDismiss: true,
-        });
-
-        return;
-      }
-
-      const plugin: Plugin = {
-        uses: [
-          {
-            plugin: pluginUrl,
-            with: config as Record<string, unknown>,
-          },
-        ],
-      };
-
-      pluginArr.push(plugin);
-    }
-
-    const pluginConfig: PluginConfig = {
-      plugins: pluginArr,
-    };
-
-    const org = localStorage.getItem("selectedOrg");
-    if (!org) {
-      throw new Error("No selected org found");
-    }
-
-    writeTemplate(renderer, YAML.stringify(pluginConfig), "full-defaults", renderer.auth.octokit, localStorage.getItem("selectedOrg") || "").catch((error) => {
-      console.error("Error writing template:", error);
-      toastNotification("An error occurred while writing the template.", {
-        type: "error",
-        shouldAutoDismiss: true,
-      });
-    });
+  addTrackedEventListener(add, "click", () => {
+    writeRequiredConfig(plugins, renderer);
   });
 
   renderer.manifestGui?.classList.add("plugin-editor");
   renderer.manifestGui?.classList.add("rendered");
+}
+
+function writeRequiredConfig(plugins: { name: string; defaults: Manifest["configuration"] }[], renderer: ManifestRenderer) {
+  const configInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(".config-input");
+  const newConfig = parseConfigInputs(configInputs, {} as Manifest, plugins);
+
+  const manifestCache = getManifestCache();
+  const pluginNames = Object.values(manifestCache).map((plugin) => plugin.homepageUrl || plugin.manifest.name);
+
+  const pluginArr: Plugin[] = [];
+
+  for (const [name, config] of Object.entries(newConfig.config)) {
+    // this relies on the worker deployment url containing the plugin name
+    const pluginUrl = pluginNames.find((url) => {
+      return url.includes(name);
+    });
+
+    if (!pluginUrl) {
+      toastNotification(`No plugin URL found for ${name}.`, {
+        type: "error",
+        shouldAutoDismiss: true,
+      });
+
+      return;
+    }
+
+    const plugin: Plugin = {
+      uses: [
+        {
+          plugin: pluginUrl,
+          with: config as Record<string, unknown>,
+        },
+      ],
+    };
+
+    pluginArr.push(plugin);
+  }
+
+  const pluginConfig: PluginConfig = {
+    plugins: pluginArr,
+  };
+
+  const org = localStorage.getItem("selectedOrg");
+  if (!org) {
+    throw new Error("No selected org found");
+  }
+
+  writeTemplate(renderer, YAML.stringify(pluginConfig), "full-defaults", renderer.auth.octokit, localStorage.getItem("selectedOrg") || "").catch((error) => {
+    console.error("Error writing template:", error);
+    toastNotification("An error occurred while writing the template.", {
+      type: "error",
+      shouldAutoDismiss: true,
+    });
+  });
 }
 
 function buildDefaultValues<T>(schema: AnySchemaObject): T {
