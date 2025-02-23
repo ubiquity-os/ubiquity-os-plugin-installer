@@ -1,7 +1,7 @@
 import { AuthService } from "./scripts/authentication";
 import { ManifestFetcher } from "./scripts/fetch-manifest";
 import { ManifestRenderer } from "./scripts/render-manifest";
-import { renderOrgPicker } from "./scripts/rendering/org-select";
+import { renderOrgSelector } from "./scripts/rendering/org-select";
 import { toastNotification } from "./utils/toaster";
 
 async function handleAuth() {
@@ -27,14 +27,14 @@ export async function mainModule() {
 
       const userOrgRepos = await auth.getGitHubUserOrgRepos(userOrgs);
       localStorage.setItem("orgRepos", JSON.stringify(userOrgRepos));
-      renderOrgPicker(renderer, userOrgs);
+      renderOrgSelector(renderer, userOrgs);
 
       await fetcher.fetchOrgsUbiquityOsConfigs();
       await fetcher.fetchMarketplaceManifests();
       renderer.manifestGuiBody.dataset.loading = "false";
       killNotification();
     } else {
-      renderOrgPicker(renderer, []);
+      renderOrgSelector(renderer, []);
     }
   } catch (error) {
     if (error instanceof Error) {

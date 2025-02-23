@@ -91,15 +91,24 @@ export function processProperties(
  */
 export function parseConfigInputs(
   configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement | HTMLDivElement>,
-  manifest: Manifest
+  manifest: Manifest,
+  fullDefaultTemplate?: {
+    name: string;
+    defaults: Record<string, unknown> | undefined;
+  }[]
 ): { config: Record<string, unknown>; missing: string[] } {
   const config: Record<string, unknown> = {};
   const { configuration } = manifest;
 
-  if (!configuration) {
+  if (!configuration && !fullDefaultTemplate) {
     throw new Error("No schema found in manifest");
   }
-  const required = configuration.required || [];
+
+  if (fullDefaultTemplate) {
+    return { config: handleFullDefault(configInputs, fullDefaultTemplate), missing: [] };
+  }
+
+  const required = configuration?.required || [];
   const validate = ajv.compile(configuration as AnySchemaObject);
 
   let tempConfig: Record<string, unknown> = {};
@@ -130,7 +139,7 @@ export function parseConfigInputs(
   if (validate(tempConfig)) {
     const missing = [];
     for (const key of required) {
-      const isBoolean = configuration.properties && configuration.properties[key] && configuration.properties[key].type === "boolean";
+      const isBoolean = configuration?.properties && configuration.properties[key] && configuration.properties[key].type === "boolean";
       if ((isBoolean && config[key] === false) || config[key] === true) {
         continue;
       }
@@ -156,6 +165,61 @@ export function parseConfigInputs(
   } else {
     throw new Error("Invalid configuration: " + JSON.stringify(validate.errors, null, 2));
   }
+}
+
+function handleFullDefault(
+  configInputs: NodeListOf<HTMLInputElement | HTMLTextAreaElement | HTMLDivElement>,
+  fullDefaultTemplate: {
+    name: string;
+    defaults: Record<string, unknown> | undefined;
+  }[]
+) {
+  configInputs.forEach((input) => {
+    const key = input.getAttribute("data-config-key");
+    if (!key) {
+      throw new Error("Input key is required");
+    }
+
+    const template = fullDefaultTemplate.find((plugin) => Object.keys(plugin.defaults || {}).includes(key));
+    if (!template) {
+      throw new Error(`No template found for key: ${key}`);
+    }
+
+    let value: unknown;
+    const expectedType = input.getAttribute("data-type");
+
+    if (expectedType === "boolean") {
+      value = (input as HTMLInputElement).checked;
+    } else if (expectedType === "object" || expectedType === "array") {
+      try {
+        value = JSON.parse((input as HTMLTextAreaElement).value);
+      } catch (e) {
+        console.error(e);
+        throw new Error(
+          `Invalid JSON input for ${expectedType} at key "${key}": ${"value" in input ? (input as HTMLTextAreaElement).value : (input as HTMLDivElement).textContent}`
+        );
+      }
+    } else {
+      value = (input as HTMLInputElement).value;
+    }
+
+    template.defaults ??= {};
+    template.defaults[key] = value;
+
+    fullDefaultTemplate.forEach((plugin) => {
+      if (plugin.name === template.name) {
+        plugin.defaults = template.defaults;
+      }
+    });
+  });
+
+  return fullDefaultTemplate.reduce(
+    (acc, curr) => {
+      acc[curr.name] = curr.defaults;
+      return acc;
+    },
+    {} as Record<string, unknown>
+  );
 }
 
 function processExpectedType(
