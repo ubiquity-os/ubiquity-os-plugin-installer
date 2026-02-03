@@ -46,20 +46,23 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
 
   renderer.configParser.loadConfig();
   const normalizedPluginName = normalizePluginName(pluginManifest.manifest.name);
-  const pluginUrl = pluginManifest.homepageUrl;
+  const repoName = localStorage.getItem("selectedPluginRepoName");
 
-  if (!pluginUrl) {
-    toastNotification(`No plugin URL found for ${normalizedPluginName}.`, {
+  // Use org/repo format instead of worker URL (per kernel#224)
+  const pluginIdentifier = repoName ? `ubiquity-os-marketplace/${repoName}` : pluginManifest.homepageUrl;
+
+  if (!pluginIdentifier) {
+    toastNotification(`No plugin identifier found for ${normalizedPluginName}.`, {
       type: "error",
       shouldAutoDismiss: true,
     });
-    throw new Error("No plugin URL found");
+    throw new Error("No plugin identifier found");
   }
 
   const plugin: Plugin = {
     uses: [
       {
-        plugin: pluginUrl,
+        plugin: pluginIdentifier,
         with: newConfig,
       },
     ],

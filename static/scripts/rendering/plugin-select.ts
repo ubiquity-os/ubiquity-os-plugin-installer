@@ -83,6 +83,7 @@ export function renderPluginSelector(renderer: ManifestRenderer): void {
         selectSelected.textContent = optionText;
         closeAllSelect();
         localStorage.setItem("selectedPluginManifest", JSON.stringify(defaultForInstalled));
+        localStorage.setItem("selectedPluginRepoName", pluginName);
         renderConfigEditor(renderer, defaultForInstalled.manifest, installedPlugin?.uses[0].with);
       });
     }
