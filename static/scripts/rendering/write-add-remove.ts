@@ -46,20 +46,20 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
 
   renderer.configParser.loadConfig();
   const normalizedPluginName = normalizePluginName(pluginManifest.manifest.name);
-  const pluginUrl = pluginManifest.homepageUrl;
+  const pluginRepository = `ubiquity-os-marketplace/${pluginManifest.manifest.name}`;
 
-  if (!pluginUrl) {
-    toastNotification(`No plugin URL found for ${normalizedPluginName}.`, {
+  if (!pluginManifest.manifest.name) {
+    toastNotification(`No plugin repository found for ${normalizedPluginName}.`, {
       type: "error",
       shouldAutoDismiss: true,
     });
-    throw new Error("No plugin URL found");
+    throw new Error("No plugin repository found");
   }
 
   const plugin: Plugin = {
     uses: [
       {
-        plugin: pluginUrl,
+        plugin: pluginRepository,
         with: newConfig,
       },
     ],

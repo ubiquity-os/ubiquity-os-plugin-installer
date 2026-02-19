@@ -198,18 +198,17 @@ function writeRequiredConfig(plugins: { name: string; defaults: Manifest["config
   const newConfig = parseConfigInputs(configInputs, {} as Manifest, plugins);
 
   const manifestCache = getManifestCache();
-  const pluginNames = Object.values(manifestCache).map((plugin) => plugin.homepageUrl || plugin.manifest.name);
+  const pluginRepositories = Object.values(manifestCache).map((plugin) => `ubiquity-os-marketplace/${plugin.manifest.name}`);
 
   const pluginArr: Plugin[] = [];
 
   for (const [name, config] of Object.entries(newConfig.config)) {
-    // this relies on the worker deployment url containing the plugin name
-    const pluginUrl = pluginNames.find((url) => {
-      return url.includes(name);
+    const pluginRepository = pluginRepositories.find((repo) => {
+      return repo.includes(name);
     });
 
-    if (!pluginUrl) {
-      toastNotification(`No plugin URL found for ${name}.`, {
+    if (!pluginRepository) {
+      toastNotification(`No plugin repository found for ${name}.`, {
         type: "error",
         shouldAutoDismiss: true,
       });
@@ -220,7 +219,7 @@ function writeRequiredConfig(plugins: { name: string; defaults: Manifest["config
     const plugin: Plugin = {
       uses: [
         {
-          plugin: pluginUrl,
+          plugin: pluginRepository,
           with: config as Record<string, unknown>,
         },
       ],
