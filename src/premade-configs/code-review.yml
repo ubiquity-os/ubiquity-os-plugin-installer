@@ -1,0 +1,86 @@
+# Code Review Configuration - Engineering team focused
+# This configuration is optimized for engineering teams requiring code review workflows
+id: code-review
+name: Code Review
+description: Engineering-focused configuration with code review and PR automation plugins
+category: specialized
+version: "1.0.0"
+tags:
+  - code-review
+  - engineering
+  - pr-automation
+plugins:
+  - plugin: ubiquity-os-marketplace/command-start-stop
+    version: development
+    skipBotEvents: false
+    description: Enables /start and /stop commands for task management
+    with:
+      logLevel: "info"
+      enableStartTask: true
+      enableStopTask: true
+
+  - plugin: ubiquity-os-marketplace/assign-issues
+    version: development
+    skipBotEvents: false
+    description: Automatically assigns issues to contributors
+    with:
+      logLevel: "info"
+      autoAssignEnabled: true
+      maxAssignees: 1
+
+  - plugin: ubiquity-os-marketplace/github-automation
+    version: development
+    skipBotEvents: false
+    description: GitHub automation for issue/PR management
+    with:
+      logLevel: "info"
+      enabledCommands:
+        - start
+        - stop
+        - wallet
+        - register
+
+  - plugin: ubiquity-os-marketplace/review-automation
+    version: development
+    skipBotEvents: false
+    description: Automates code review workflows and reviewer assignment
+    with:
+      logLevel: "info"
+      autoRequestReview: true
+      minReviewers: 1
+      maxReviewers: 2
+      reviewLabels:
+        - needs-review
+        - approved
+        - changes-requested
+
+  - plugin: ubiquity-os-marketplace/pr-status-tracker
+    version: development
+    skipBotEvents: false
+    description: Tracks and updates PR status with build/test results
+    with:
+      logLevel: "info"
+      requiredChecks:
+        - ci
+        - tests
+      failOnMissingChecks: true
+
+  - plugin: ubiquity-os-marketplace/code-quality-labeler
+    version: development
+    skipBotEvents: false
+    description: Labels PRs based on code quality metrics
+    with:
+      logLevel: "info"
+      qualityThresholds:
+        critical: 0
+        major: 5
+        minor: 20
+
+  - plugin: ubiquity-os-marketplace/price-labeler
+    version: development
+    skipBotEvents: false
+    description: Automatically labels issues with price estimates
+    with:
+      logLevel: "info"
+      defaultPriceMultiplier: 1
+      defaultPermitUrl: ""

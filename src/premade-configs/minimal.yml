@@ -1,0 +1,39 @@
+# Minimal Configuration - Essential plugins only
+# This configuration provides the minimum required plugins for basic UbiquityOS functionality
+id: minimal
+name: Minimal
+description: Essential plugins only for basic issue assignment and task management
+category: minimal
+version: "1.0.0"
+tags:
+  - minimal
+  - starter
+  - basic
+plugins:
+  - plugin: ubiquity-os-marketplace/command-start-stop
+    version: development
+    skipBotEvents: false
+    description: Enables /start and /stop commands for task management
+    with:
+      logLevel: "info"
+      enableStartTask: true
+      enableStopTask: true
+
+  - plugin: ubiquity-os-marketplace/assign-issues
+    version: development
+    skipBotEvents: false
+    description: Automatically assigns issues to contributors
+    with:
+      logLevel: "info"
+      autoAssignEnabled: true
+      maxAssignees: 1
+
+  - plugin: ubiquity-os-marketplace/github-automation
+    version: development
+    skipBotEvents: false
+    description: Basic GitHub automation for start/stop commands
+    with:
+      logLevel: "info"
+      enabledCommands:
+        - start
+        - stop

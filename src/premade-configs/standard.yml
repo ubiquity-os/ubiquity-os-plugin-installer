@@ -1,0 +1,103 @@
+# Standard Configuration - Full-featured setup with all battle-tested plugins
+# This configuration includes all essential plugins for a complete UbiquityOS setup
+id: standard
+name: Standard
+description: Full-featured configuration with all battle-tested plugins for comprehensive automation
+category: standard
+version: "1.0.0"
+tags:
+  - full-featured
+  - production
+  - recommended
+plugins:
+  - plugin: ubiquity-os-marketplace/text-conversation-rewards
+    version: development
+    skipBotEvents: false
+    description: Rewards contributors for quality conversations and comments
+    with:
+      logLevel: "debug"
+      evmNetworkId: 100
+      evmPrivateEncrypted: "" # User must configure
+      erc20RewardToken: "" # User must configure
+      incentives:
+        requirePriceLabel: true
+        contentEvaluator: {}
+        userExtractor:
+          enabled: true
+          redeemTask: true
+        dataPurge: {}
+        formattingEvaluator:
+          multipliers:
+            - role:
+                - ISSUE_SPECIFICATION
+              multiplier: 3
+              rewards:
+                wordValue: 0.1
+            - role:
+                - ISSUE_AUTHOR
+                - ISSUE_COLLABORATOR
+                - PULL_COLLABORATOR
+              multiplier: 1
+              rewards:
+                wordValue: 0.1
+            - role:
+                - ISSUE_CONTRIBUTOR
+                - ISSUE_ASSIGNEE
+              multiplier: 0.25
+              rewards:
+                wordValue: 0.1
+
+  - plugin: ubiquity-os-marketplace/assign-issues
+    version: development
+    skipBotEvents: false
+    description: Automatically assigns issues to contributors
+    with:
+      logLevel: "info"
+      autoAssignEnabled: true
+      maxAssignees: 1
+
+  - plugin: ubiquity-os-marketplace/github-automation
+    version: development
+    skipBotEvents: false
+    description: General GitHub automation for issue/PR management
+    with:
+      logLevel: "info"
+      enabledCommands:
+        - start
+        - stop
+        - wallet
+        - register
+
+  - plugin: ubiquity-os-marketplace/command-start-stop
+    version: development
+    skipBotEvents: false
+    description: Enables /start and /stop commands for task management
+    with:
+      logLevel: "info"
+      enableStartTask: true
+      enableStopTask: true
+
+  - plugin: ubiquity-os-marketplace/dao-template
+    version: development
+    skipBotEvents: false
+    description: Provides DAO-related templates and workflows
+    with:
+      logLevel: "info"
+
+  - plugin: ubiquity-os-marketplace/price-labeler
+    version: development
+    skipBotEvents: false
+    description: Automatically labels issues with price estimates
+    with:
+      logLevel: "info"
+      defaultPriceMultiplier: 1
+      defaultPermitUrl: ""
+
+  - plugin: ubiquity-os-marketplace/review-assignment
+    version: development
+    skipBotEvents: false
+    description: Automatically assigns reviewers to pull requests
+    with:
+      logLevel: "info"
+      minReviewers: 1
+      maxReviewers: 3
