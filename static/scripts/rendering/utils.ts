@@ -54,3 +54,18 @@ export function removeTrackedEventListener(target: EventTarget, type: string, li
 export function getTrackedEventListeners(target: EventTarget, type: string): EventListener[] {
   return eventListenersMap.get(target)?.get(type) || [];
 }
+
+const MARKETPLACE_ORG = "ubiquity-os-marketplace";
+
+/**
+ * Returns the stable `organization/repository` identifier expected by UbiquityOS
+ * config files. Marketplace manifests are fetched from the marketplace org, so
+ * the manifest name is the repository name.
+ */
+export function getPluginConfigIdentifier(pluginName: string): string {
+  const normalizedPluginName = normalizePluginName(pluginName);
+  if (normalizedPluginName.includes("/")) {
+    return normalizedPluginName;
+  }
+  return `${MARKETPLACE_ORG}/${normalizedPluginName}`;
+}

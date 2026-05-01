@@ -3,7 +3,7 @@ import { ManifestRenderer } from "../render-manifest";
 import { Manifest, ManifestPreDecode, Plugin } from "../../types/plugins";
 import { parseConfigInputs } from "./input-parsing";
 import { renderConfigEditor } from "./config-editor";
-import { normalizePluginName } from "./utils";
+import { getPluginConfigIdentifier, normalizePluginName } from "./utils";
 import { handleBackButtonClick } from "./navigation";
 
 /**
@@ -46,20 +46,12 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
 
   renderer.configParser.loadConfig();
   const normalizedPluginName = normalizePluginName(pluginManifest.manifest.name);
-  const pluginUrl = pluginManifest.homepageUrl;
-
-  if (!pluginUrl) {
-    toastNotification(`No plugin URL found for ${normalizedPluginName}.`, {
-      type: "error",
-      shouldAutoDismiss: true,
-    });
-    throw new Error("No plugin URL found");
-  }
+  const pluginIdentifier = getPluginConfigIdentifier(normalizedPluginName);
 
   const plugin: Plugin = {
     uses: [
       {
-        plugin: pluginUrl,
+        plugin: pluginIdentifier,
         with: newConfig,
       },
     ],
