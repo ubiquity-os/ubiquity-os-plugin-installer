@@ -12,8 +12,21 @@ import { getManifestCache } from "../../utils/storage";
 import { STRINGS } from "../../utils/strings";
 import { toastNotification } from "../../utils/toaster";
 
-type TemplateTypes = "minimal" | "full-defaults" | "custom";
+export type TemplateTypes = "minimal" | "full-defaults" | "custom" | "premade-lite" | "premade-dao" | "premade-ai-manager";
 declare const MINIMAL_PREDEFINED_CONFIG: string;
+declare const PREMADE_CONFIGS: string;
+
+type PremadeConfigKey = "lite" | "dao" | "ai-manager";
+type PremadeConfig = {
+  name: string;
+  description: string;
+  version: string;
+  plugins: Plugin[];
+};
+type PremadeTemplate = {
+  metadata: Omit<PremadeConfig, "plugins">;
+  plugins: Plugin[];
+};
 
 export async function configTemplateHandler(type: TemplateTypes, renderer: ManifestRenderer) {
   const org = localStorage.getItem("selectedOrg");
@@ -37,6 +50,8 @@ export async function configTemplateHandler(type: TemplateTypes, renderer: Manif
     await writeTemplate(renderer, await handleMinimalTemplate(), type, renderer.auth.octokit, org);
   } else if (type === "full-defaults") {
     await handleFullDefaultsTemplate(renderer);
+  } else if (type.startsWith("premade-")) {
+    await writeTemplate(renderer, handlePremadeTemplate(type.replace("premade-", "") as PremadeConfigKey), type, renderer.auth.octokit, org);
   } else {
     throw new Error("Invalid template type");
   }
@@ -81,6 +96,29 @@ async function handleMinimalTemplate(): Promise<string> {
     return `plugins:${parts.join("")}`;
   } catch (error) {
     toastNotification("Failed to fetch minimal predefined config", { type: "error" });
+    throw error;
+  }
+}
+
+function handlePremadeTemplate(key: PremadeConfigKey): string {
+  try {
+    const premadeConfigs = JSON.parse(PREMADE_CONFIGS) as Record<PremadeConfigKey, PremadeConfig>;
+    const premadeConfig = premadeConfigs[key];
+    if (!premadeConfig) {
+      throw new Error(`Unknown premade config: ${key}`);
+    }
+
+    const template: PremadeTemplate = {
+      metadata: {
+        name: premadeConfig.name,
+        description: premadeConfig.description,
+        version: premadeConfig.version,
+      },
+      plugins: premadeConfig.plugins,
+    };
+    return YAML.stringify(template);
+  } catch (error) {
+    toastNotification("Failed to fetch premade config", { type: "error" });
     throw error;
   }
 }

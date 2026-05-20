@@ -1,7 +1,7 @@
 import { createElement } from "../../utils/element-helpers";
 import { STRINGS } from "../../utils/strings";
 import { toastNotification } from "../../utils/toaster";
-import { configTemplateHandler } from "../predefined-configs/template-handler";
+import { configTemplateHandler, TemplateTypes } from "../predefined-configs/template-handler";
 import { ManifestRenderer } from "../render-manifest";
 import { controlButtons } from "./control-buttons";
 import { renderPluginSelector } from "./plugin-select";
@@ -30,6 +30,12 @@ export function renderTemplateSelector(renderer: ManifestRenderer): void {
     configTemplateHandler("full-defaults", renderer).catch(console.error);
   });
 
+  const premadeButtons: [TemplateTypes, string][] = [
+    ["premade-lite", "Lite Edition"],
+    ["premade-dao", "DAO Edition"],
+    ["premade-ai-manager", "AI Manager"],
+  ];
+
   const customButton = createElement("button", { textContent: "Custom" });
   customButton.addEventListener("click", () => {
     const selectedOrg = localStorage.getItem("selectedOrg");
@@ -41,6 +47,13 @@ export function renderTemplateSelector(renderer: ManifestRenderer): void {
 
   templateButtons.appendChild(minimalButton);
   templateButtons.appendChild(fullDefaultButton);
+  for (const [templateType, label] of premadeButtons) {
+    const button = createElement("button", { textContent: label });
+    button.addEventListener("click", () => {
+      configTemplateHandler(templateType, renderer).catch(console.error);
+    });
+    templateButtons.appendChild(button);
+  }
   templateButtons.appendChild(customButton);
 
   templateCell.appendChild(templateButtons);
