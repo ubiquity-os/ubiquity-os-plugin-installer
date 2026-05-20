@@ -11,11 +11,9 @@ import { createConfigParamTooltip, createElement, createInputRow } from "../../u
 import { getManifestCache } from "../../utils/storage";
 import { STRINGS } from "../../utils/strings";
 import { toastNotification } from "../../utils/toaster";
+import { buildPremadeConfigYamlById } from "./premade-configs";
 
-type TemplateTypes = "minimal" | "full-defaults" | "custom";
-declare const MINIMAL_PREDEFINED_CONFIG: string;
-
-export async function configTemplateHandler(type: TemplateTypes, renderer: ManifestRenderer) {
+export async function configTemplateHandler(type: string, renderer: ManifestRenderer) {
   const org = localStorage.getItem("selectedOrg");
 
   if (!org) {
@@ -33,16 +31,14 @@ export async function configTemplateHandler(type: TemplateTypes, renderer: Manif
     toastNotification("Configuration File Detected: This will be overwritten if you continue.", { type: "warning", shouldAutoDismiss: true });
   }
 
-  if (type === "minimal") {
-    await writeTemplate(renderer, await handleMinimalTemplate(), type, renderer.auth.octokit, org);
-  } else if (type === "full-defaults") {
+  if (type === "full-defaults") {
     await handleFullDefaultsTemplate(renderer);
   } else {
-    throw new Error("Invalid template type");
+    await writeTemplate(renderer, buildPremadeConfigYamlById(type), type, renderer.auth.octokit, org);
   }
 }
 
-async function writeTemplate(renderer: ManifestRenderer, config: string, type: TemplateTypes, octokit: AuthService["octokit"], org: string) {
+async function writeTemplate(renderer: ManifestRenderer, config: string, type: string, octokit: AuthService["octokit"], org: string) {
   try {
     renderer.configParser.saveConfig(config);
     toastNotification(`Successfully loaded ${type} template. Do you want to push to GitHub? `, {
@@ -67,20 +63,6 @@ async function writeTemplate(renderer: ManifestRenderer, config: string, type: T
     });
   } catch (error) {
     toastNotification(STRINGS.FAILED_TO_LOAD_TEMPLATE, { type: "error" });
-    throw error;
-  }
-}
-
-async function handleMinimalTemplate(): Promise<string> {
-  try {
-    const obj = JSON.parse(MINIMAL_PREDEFINED_CONFIG);
-    const parts = Array.from(Object.entries(obj)).map(([, value]) => {
-      return `\n  ${typeof value === "object" && value && "yamlConfig" in value && value.yamlConfig ? value.yamlConfig : ""}`;
-    });
-
-    return `plugins:${parts.join("")}`;
-  } catch (error) {
-    toastNotification("Failed to fetch minimal predefined config", { type: "error" });
     throw error;
   }
 }

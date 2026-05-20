@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 import esbuild, { BuildOptions } from "esbuild";
 import MINIMAL_PREDEFINED_CONFIG from "../static/minimal-predefined.json";
+import PREMADE_CONFIGS from "../static/premade-configs.json";
 dotenv.config();
 
 const ENTRY_POINTS = {
@@ -18,7 +19,8 @@ export const esbuildOptions: BuildOptions = {
   loader: Object.fromEntries(DATA_URL_LOADERS.map((ext) => [ext, "dataurl"])),
   outdir: "static/dist",
   define: createEnvDefines([], {
-    MINIMAL_PREDEFINED_CONFIG: JSON.stringify(MINIMAL_PREDEFINED_CONFIG),
+    MINIMAL_PREDEFINED_CONFIG,
+    PREMADE_CONFIGS,
     SUPABASE_STORAGE_KEY: generateSupabaseStorageKey(),
     NODE_ENV: process.env.NODE_ENV || "development",
     SUPABASE_URL: process.env.SUPABASE_URL || "https://wfzpewmlyiozupulbuur.supabase.co",

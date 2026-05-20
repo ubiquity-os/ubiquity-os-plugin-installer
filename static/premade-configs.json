@@ -1,0 +1,20 @@
+[
+  {
+    "id": "lite",
+    "name": "UbiquityOS Lite",
+    "description": "Bare task assignment workflow for partners that only need /start and /stop.",
+    "pluginKeys": ["command-start-stop"]
+  },
+  {
+    "id": "dao",
+    "name": "UbiquityOS DAO",
+    "description": "Open-source contributor operations with assignment and task pricing enabled.",
+    "pluginKeys": ["command-start-stop", "daemon-pricing"]
+  },
+  {
+    "id": "standard",
+    "name": "UbiquityOS Standard",
+    "description": "The current Ubiquity configuration packaged as a partner-ready preset with conversation rewards.",
+    "pluginKeys": ["command-start-stop", "daemon-pricing", "text-conversation-rewards"]
+  }
+]

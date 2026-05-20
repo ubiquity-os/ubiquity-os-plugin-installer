@@ -1,6 +1,7 @@
 import { createElement } from "../../utils/element-helpers";
 import { STRINGS } from "../../utils/strings";
 import { toastNotification } from "../../utils/toaster";
+import { getPremadeConfigDefinitions } from "../predefined-configs/premade-configs";
 import { configTemplateHandler } from "../predefined-configs/template-handler";
 import { ManifestRenderer } from "../render-manifest";
 import { controlButtons } from "./control-buttons";
@@ -20,10 +21,13 @@ export function renderTemplateSelector(renderer: ManifestRenderer): void {
 
   const templateButtons = createElement("div", { class: "template-buttons" });
 
-  const minimalButton = createElement("button", { textContent: "Minimal" });
-  minimalButton.addEventListener("click", () => {
-    configTemplateHandler("minimal", renderer).catch(console.error);
-  });
+  for (const premadeConfig of getPremadeConfigDefinitions()) {
+    const premadeButton = createElement("button", { textContent: premadeConfig.name, title: premadeConfig.description });
+    premadeButton.addEventListener("click", () => {
+      configTemplateHandler(premadeConfig.id, renderer).catch(console.error);
+    });
+    templateButtons.appendChild(premadeButton);
+  }
 
   const fullDefaultButton = createElement("button", { textContent: "Full Default" });
   fullDefaultButton.addEventListener("click", () => {
@@ -39,7 +43,6 @@ export function renderTemplateSelector(renderer: ManifestRenderer): void {
     fetchOrgConfig(renderer, selectedOrg).catch(console.error);
   });
 
-  templateButtons.appendChild(minimalButton);
   templateButtons.appendChild(fullDefaultButton);
   templateButtons.appendChild(customButton);
 
