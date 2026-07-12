@@ -67,7 +67,7 @@ export class ManifestFetcher {
         manifest.name = repo.name;
       }
 
-      manifestCache[repo.name] = { manifest, readme, homepageUrl };
+      manifestCache[repo.name] = { manifest, readme, homepageUrl, repository: repo.name };
     }
 
     localStorage.setItem("manifestCache", JSON.stringify(manifestCache));
