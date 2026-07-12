@@ -16,6 +16,7 @@ interface Uses {
 interface ManifestPreDecode {
   manifest: Manifest;
   homepageUrl?: string | null;
+  repository?: string;
   error?: string;
   readme?: string;
 }
