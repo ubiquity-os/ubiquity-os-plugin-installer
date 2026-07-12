@@ -3,6 +3,7 @@ import { Plugin, PluginConfig } from "../types/plugins";
 import { Octokit } from "@octokit/rest";
 import { toastNotification } from "../utils/toaster";
 import { CONFIG_FULL_PATH, CONFIG_ORG_REPO } from "@ubiquity-os/plugin-sdk/constants";
+import { pluginReferenceMatches } from "./plugin-identifiers";
 
 /**
  * Responsible for fetching, parsing, and updating the user's installed plugin configurations.
@@ -164,12 +165,14 @@ export class ConfigParser {
     });
   }
 
-  addPlugin(plugin: Plugin) {
+  addPlugin(plugin: Plugin, aliases: string[] = []) {
     const parsedConfig = this.parseConfig(this.repoConfig);
     parsedConfig.plugins ??= [];
 
-    const existingPlugin = parsedConfig.plugins.find((p) => p.uses[0].plugin === plugin.uses[0].plugin);
+    const pluginReference = plugin.uses[0].plugin;
+    const existingPlugin = parsedConfig.plugins.find((p) => pluginReferenceMatches(p.uses[0].plugin, pluginReference, aliases));
     if (existingPlugin) {
+      existingPlugin.uses[0].plugin = pluginReference;
       existingPlugin.uses[0].with = plugin.uses[0].with;
     } else {
       parsedConfig.plugins.push(plugin);
@@ -180,14 +183,15 @@ export class ConfigParser {
     this.saveConfig();
   }
 
-  removePlugin(plugin: Plugin) {
+  removePlugin(plugin: Plugin, aliases: string[] = []) {
     const parsedConfig = this.parseConfig(this.repoConfig);
     if (!parsedConfig.plugins) {
       toastNotification("No plugins found in config", { type: "error" });
       return;
     }
 
-    parsedConfig.plugins = parsedConfig.plugins.filter((p: Plugin) => p.uses[0].plugin !== plugin.uses[0].plugin);
+    const pluginReference = plugin.uses[0].plugin;
+    parsedConfig.plugins = parsedConfig.plugins.filter((p: Plugin) => !pluginReferenceMatches(p.uses[0].plugin, pluginReference, aliases));
     this.newConfigYml = YAML.stringify(parsedConfig);
     this.repoConfig = this.newConfigYml;
     this.saveConfig();
