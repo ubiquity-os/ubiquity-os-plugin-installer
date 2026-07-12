@@ -3,8 +3,8 @@ import { ManifestRenderer } from "../render-manifest";
 import { Manifest, ManifestPreDecode, Plugin } from "../../types/plugins";
 import { parseConfigInputs } from "./input-parsing";
 import { renderConfigEditor } from "./config-editor";
-import { normalizePluginName } from "./utils";
 import { handleBackButtonClick } from "./navigation";
+import { getMarketplacePluginId, getPluginIdentifierAliases } from "../plugin-identifiers";
 
 /**
  * Writes the new configuration to the config file. This does not push the config to GitHub
@@ -45,21 +45,13 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
   }
 
   renderer.configParser.loadConfig();
-  const normalizedPluginName = normalizePluginName(pluginManifest.manifest.name);
-  const pluginUrl = pluginManifest.homepageUrl;
-
-  if (!pluginUrl) {
-    toastNotification(`No plugin URL found for ${normalizedPluginName}.`, {
-      type: "error",
-      shouldAutoDismiss: true,
-    });
-    throw new Error("No plugin URL found");
-  }
+  const pluginReference = getMarketplacePluginId(pluginManifest);
+  const pluginAliases = getPluginIdentifierAliases(pluginManifest);
 
   const plugin: Plugin = {
     uses: [
       {
-        plugin: pluginUrl,
+        plugin: pluginReference,
         with: newConfig,
       },
     ],
@@ -68,9 +60,9 @@ export function writeNewConfig(renderer: ManifestRenderer, option: "add" | "remo
   removePushNotificationIfPresent();
 
   if (option === "add") {
-    handleAddPlugin(renderer, plugin, pluginManifest.manifest);
+    handleAddPlugin(renderer, plugin, pluginManifest.manifest, pluginAliases);
   } else if (option === "remove") {
-    handleRemovePlugin(renderer, plugin, pluginManifest.manifest);
+    handleRemovePlugin(renderer, plugin, pluginManifest.manifest, pluginAliases);
   }
 }
 
@@ -81,8 +73,8 @@ function removePushNotificationIfPresent() {
   }
 }
 
-function handleAddPlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManifest: Manifest): void {
-  renderer.configParser.addPlugin(plugin);
+function handleAddPlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManifest: Manifest, aliases: string[]): void {
+  renderer.configParser.addPlugin(plugin, aliases);
   toastNotification(`Configuration for ${pluginManifest.name} saved successfully. Do you want to push to GitHub?`, {
     type: "success",
     actionText: "Push to GitHub",
@@ -91,8 +83,8 @@ function handleAddPlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManif
   });
 }
 
-function handleRemovePlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManifest: Manifest): void {
-  renderer.configParser.removePlugin(plugin);
+function handleRemovePlugin(renderer: ManifestRenderer, plugin: Plugin, pluginManifest: Manifest, aliases: string[]): void {
+  renderer.configParser.removePlugin(plugin, aliases);
   toastNotification(`Configuration for ${pluginManifest.name} removed successfully. Do you want to push to GitHub?`, {
     type: "success",
     actionText: "Push to GitHub",
