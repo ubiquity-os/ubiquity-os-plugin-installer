@@ -6,7 +6,8 @@ import { ManifestRenderer } from "../render-manifest";
 import { controlButtons } from "../rendering/control-buttons";
 import { parseConfigInputs } from "../rendering/input-parsing";
 import { addTrackedEventListener, updateGuiTitle } from "../rendering/utils";
-import { Manifest, ManifestPreDecode, Plugin, PluginConfig } from "../../types/plugins";
+import { Manifest, Plugin, PluginConfig } from "../../types/plugins";
+import { getMarketplacePluginId } from "../plugin-identifiers";
 import { createConfigParamTooltip, createElement, createInputRow } from "../../utils/element-helpers";
 import { getManifestCache } from "../../utils/storage";
 import { STRINGS } from "../../utils/strings";
@@ -98,8 +99,8 @@ async function handleFullDefaultsTemplate(renderer: ManifestRenderer): Promise<s
   const config = await response.text();
 
   const manifestCache = getManifestCache();
-  const plugins = Object.keys(manifestCache).map((key) => manifestCache[key]);
-  const pluginWithDefaults: { name: string; defaults: ManifestPreDecode }[] = [];
+  const plugins = Object.entries(manifestCache).map(([repository, plugin]) => ({ ...plugin, repository: plugin.repository || repository }));
+  const pluginWithDefaults: { name: string; defaults: Manifest["configuration"] }[] = [];
 
   plugins.forEach((plugin) => {
     const {
@@ -109,7 +110,7 @@ async function handleFullDefaultsTemplate(renderer: ManifestRenderer): Promise<s
       return;
     }
     pluginWithDefaults.push({
-      name: plugin.homepageUrl || plugin.manifest.name,
+      name: getMarketplacePluginId(plugin),
       defaults: buildDefaultValues(configuration),
     });
   });
@@ -198,18 +199,19 @@ function writeRequiredConfig(plugins: { name: string; defaults: Manifest["config
   const newConfig = parseConfigInputs(configInputs, {} as Manifest, plugins);
 
   const manifestCache = getManifestCache();
-  const pluginNames = Object.values(manifestCache).map((plugin) => plugin.homepageUrl || plugin.manifest.name);
+  const pluginNames = Object.entries(manifestCache).map(([repository, plugin]) =>
+    getMarketplacePluginId({ ...plugin, repository: plugin.repository || repository })
+  );
 
   const pluginArr: Plugin[] = [];
 
   for (const [name, config] of Object.entries(newConfig.config)) {
-    // this relies on the worker deployment url containing the plugin name
-    const pluginUrl = pluginNames.find((url) => {
-      return url.includes(name);
+    const pluginReference = pluginNames.find((reference) => {
+      return reference === name;
     });
 
-    if (!pluginUrl) {
-      toastNotification(`No plugin URL found for ${name}.`, {
+    if (!pluginReference) {
+      toastNotification(`No plugin reference found for ${name}.`, {
         type: "error",
         shouldAutoDismiss: true,
       });
@@ -220,7 +222,7 @@ function writeRequiredConfig(plugins: { name: string; defaults: Manifest["config
     const plugin: Plugin = {
       uses: [
         {
-          plugin: pluginUrl,
+          plugin: pluginReference,
           with: config as Record<string, unknown>,
         },
       ],
