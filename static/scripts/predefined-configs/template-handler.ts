@@ -5,7 +5,7 @@ import { AuthService } from "../authentication";
 import { ManifestRenderer } from "../render-manifest";
 import { controlButtons } from "../rendering/control-buttons";
 import { parseConfigInputs } from "../rendering/input-parsing";
-import { addTrackedEventListener, updateGuiTitle } from "../rendering/utils";
+import { addTrackedEventListener, resolvePluginReference, updateGuiTitle } from "../rendering/utils";
 import { Manifest, ManifestPreDecode, Plugin, PluginConfig } from "../../types/plugins";
 import { createConfigParamTooltip, createElement, createInputRow } from "../../utils/element-helpers";
 import { getManifestCache } from "../../utils/storage";
@@ -109,7 +109,7 @@ async function handleFullDefaultsTemplate(renderer: ManifestRenderer): Promise<s
       return;
     }
     pluginWithDefaults.push({
-      name: plugin.homepageUrl || plugin.manifest.name,
+      name: resolvePluginReference(plugin) || plugin.manifest.name,
       defaults: buildDefaultValues(configuration),
     });
   });
@@ -198,7 +198,7 @@ function writeRequiredConfig(plugins: { name: string; defaults: Manifest["config
   const newConfig = parseConfigInputs(configInputs, {} as Manifest, plugins);
 
   const manifestCache = getManifestCache();
-  const pluginNames = Object.values(manifestCache).map((plugin) => plugin.homepageUrl || plugin.manifest.name);
+  const pluginNames = Object.values(manifestCache).map((plugin) => resolvePluginReference(plugin) || plugin.manifest.name);
 
   const pluginArr: Plugin[] = [];
 

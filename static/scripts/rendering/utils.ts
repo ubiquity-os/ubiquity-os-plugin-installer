@@ -9,6 +9,19 @@ export function normalizePluginName(pluginName: string): string {
     .replace(/-+/g, "-");
 }
 
+export function resolvePluginReference(plugin: { manifest: { name: string }; repository?: string; homepageUrl?: string | null }): string | null {
+  if (plugin.repository) {
+    return plugin.repository;
+  }
+
+  if (plugin.homepageUrl?.startsWith("ubiquity-os/")) {
+    return plugin.homepageUrl;
+  }
+
+  const normalizedName = normalizePluginName(plugin.manifest.name);
+  return normalizedName ? `ubiquity-os-marketplace/${normalizedName}` : null;
+}
+
 export function updateGuiTitle(title: string): void {
   const guiTitle = document.querySelector("#manifest-gui-title");
   if (!guiTitle) {
