@@ -1,0 +1,7 @@
+metadata:
+  name: "UbiquityOS Minimal Config"
+  description: "Lightweight starter configuration with core commands only."
+  version: "1.0.0"
+
+plugins:
+  - uses: "ubiquity-os-marketplace/command-start-stop"

@@ -1,0 +1,10 @@
+metadata:
+  name: "UbiquityOS Partner Bounties Config"
+  description: "Optimized configuration for ecosystem partners running sponsored bounties and DevPool integration."
+  version: "1.0.0"
+
+plugins:
+  - uses: "ubiquity-os-marketplace/command-start-stop"
+  - uses: "ubiquity-os-marketplace/daemon-pricing"
+  - uses: "ubiquity-os-marketplace/text-vector-embeddings"
+  - uses: "ubiquity-os-marketplace/command-ask"

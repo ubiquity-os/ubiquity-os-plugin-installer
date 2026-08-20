@@ -1,0 +1,15 @@
+metadata:
+  name: "UbiquityOS Standard Config"
+  description: "The fully-enabled and battle-tested configuration used across Ubiquity organizations."
+  version: "1.0.0"
+
+plugins:
+  - uses: "ubiquity-os-marketplace/command-start-stop"
+    with:
+      maxConcurrentTasks: 3
+  - uses: "ubiquity-os-marketplace/text-vector-embeddings"
+    with:
+      similarityThreshold: 0.82
+  - uses: "ubiquity-os-marketplace/daemon-pricing"
+    with:
+      baseRateUsd: 75
